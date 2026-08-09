@@ -1,76 +1,88 @@
-# OpenNFR documentation
+# Notes
 
-For what OpenNFR is and why, start from the [project README](../README.md). This page is
-the index of the design documents.
+Working notes towards a format for load testing requirements. See the
+[project README](../README.md) for what this repository is and is not.
 
-**Status: design stage.** Terminology and compatibility requirements are settled. There is
-no schema, validator or adapter yet — the examples illustrate naming and are not validated.
+> These are notes, not normative text. Nothing here is settled, and field names drift
+> between documents as the thinking changes. Where a document sounds decisive, read it as
+> "this is the current leaning and here is why", not as a rule.
 
-## Read first
+## Where to start
 
-**[GLOSSARY.md](GLOSSARY.md)** — the normative vocabulary. One concept, one word, each with
-the rejected synonyms spelled out. Everything else assumes it.
+**[GLOSSARY.md](GLOSSARY.md)** — candidate terms with the alternatives that were
+considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
+way in.
 
-## Decisions
+## What is actually verified
 
-### Terminology — [ADR-0001](adr/0001-terminology.md)
+Two documents contain checked facts rather than opinion, and they are the parts worth
+trusting:
 
-| № | Decision |
+| | |
 |---|---|
-| D1 | The format is named **OpenNFR**, `apiVersion: opennfr.io/v1` |
-| D2 | Three layers: Requirement → Criterion → Assertion / Verdict. The schema has no `assertion` |
-| D3 | Metric names come strictly from OTel semconv plus the `loadtest.*` namespace |
-| D4 | Criteria are structure only, with no string DSL |
-| D5 | `unit` is mandatory |
-| D6 | `guards` and the `inconclusive` outcome |
-| D7 | The word `workload` is reserved and currently unused |
+| [references.md](references.md) | the survey of OpenSLO, Keptn, k6, Taurus, picatinny, SLA4OAI and adjacent SLO tooling — what each does and where it hurts |
+| [compatibility.md](compatibility.md) | what load testing tools actually emit as of August 2026, checked against their documentation. The useful finding is negative: OTLP output is common, semconv names are not |
+
+## Thinking, in ADR form
+
+The ADR format is used for its structure — context, options, cost — not because anything is
+decided. Both are **status: proposed**.
+
+### [ADR-0001](adr/0001-terminology.md) — naming
+
+| № | Leaning |
+|---|---|
+| D1 | Call it OpenNFR; `apiVersion: opennfr.io/v1` |
+| D2 | Three layers: Requirement → Criterion → Assertion / Verdict, with no `assertion` in the document itself |
+| D3 | Take metric names from OTel semconv rather than inventing them |
+| D4 | Structured criteria, no string DSL |
+| D5 | Make `unit` mandatory |
+| D6 | Preconditions (`guards`) yielding a third outcome, `inconclusive` |
+| D7 | Leave the word `workload` unused for now |
 | D8 | An indicator is either a `distribution` or a `ratio` |
-| D9 | `EvaluationReport` is the second normative schema |
-| D10 | As few kinds as possible |
+| D9 | Define the result document too, not only the input |
+| D10 | Keep the number of document kinds small |
 
-### Compatibility — [ADR-0002](adr/0002-compatibility.md)
+### [ADR-0002](adr/0002-compatibility.md) — implementation and tools
 
-| № | Decision |
+| № | Leaning |
 |---|---|
-| D11 | An adapter is a semantic mapper, not a transport — and it is **always** required |
-| D12 | `kind: MetricMapping` — mapping is data, not Go code |
-| D13 | Conformance levels: `report` / `assert` / `abort` |
-| D14 | `loadtest.request.name` is the canonical addressing fallback |
-| D15 | Units are a closed enum, not full UCUM |
-| D16 | A normative subset of YAML: no anchors, everything maps onto JSON |
-| D17 | Strict parsing: an unknown field is an error |
-| D18 | The data source is not part of `RequirementSet` |
-| D19 | Go-friendliness as a construct-selection criterion |
+| D11 | An adapter is a semantic mapper, not a transport — and it seems to be needed always |
+| D12 | Express tool mapping as data rather than code |
+| D13 | Conformance levels instead of a support checkbox |
+| D14 | Accept a fallback for addressing requests, since `http.route` is rarely emitted |
+| D15 | A closed list of units rather than full UCUM |
+| D16 | A subset of YAML that maps onto JSON |
+| D17 | Strict parsing — an unknown field should be an error |
+| D18 | Keep the data source out of the requirement document |
+| D19 | Prefer constructs that decode without custom code |
 
-## References
+## Sketches
 
 | | |
 |---|---|
-| [semconv/loadtest.md](semconv/loadtest.md) | what is taken from OTel verbatim, what `loadtest.*` defines, what is deliberately absent |
-| [units.md](units.md) | the closed unit list and canonicalisation rules |
-| [compatibility.md](compatibility.md) | conformance levels, the tool matrix, requirements for the Go implementation |
-| [references.md](references.md) | the survey of OpenSLO, Keptn, k6, Taurus, picatinny, SLA4OAI |
+| [semconv/loadtest.md](semconv/loadtest.md) | what could be taken from OTel verbatim and what a `loadtest.*` namespace might add |
+| [units.md](units.md) | which units to allow and how to canonicalise them |
+| [examples/checkout-perf.yaml](examples/checkout-perf.yaml) | what a requirement document might look like |
+| [examples/checkout-perf.report.yaml](examples/checkout-perf.report.yaml) | what a result document might look like |
+| [examples/mapping-k6.yaml](examples/mapping-k6.yaml) | tool mapping, best case — k6 has OTLP output and native thresholds |
+| [examples/mapping-jmeter.yaml](examples/mapping-jmeter.yaml) | tool mapping, worst case — JTL files and no routes |
 
-## Examples
+None of the examples is validated: there is no schema to validate them against.
 
-Illustrative of naming; not validated, as there is no schema yet.
+## Unresolved
 
-| | |
-|---|---|
-| [checkout-perf.yaml](examples/checkout-perf.yaml) | `RequirementSet` — throughput, latency with guards, error rate, baseline comparison |
-| [checkout-perf.report.yaml](examples/checkout-perf.report.yaml) | `EvaluationReport` — the standard output of a check |
-| [mapping-k6.yaml](examples/mapping-k6.yaml) | `MetricMapping` — the best case: OTLP output and native thresholds |
-| [mapping-jmeter.yaml](examples/mapping-jmeter.yaml) | `MetricMapping` — the worst case: JTL files and no routes |
+Collected in the ADRs, and some of these may yet sink the approach:
 
-## Open questions
+- Declaring "an error occurred" across tools that all signal it differently
+  ([ADR-0002](adr/0002-compatibility.md#open-questions)).
+- Histogram resolution, since percentiles come from buckets.
+- Baseline modes, time windows, streaming evaluation — sketched, not thought through
+  ([ADR-0001](adr/0001-terminology.md#open-questions)).
+- Whether load profiles belong in this format at all.
 
-- [ADR-0001](adr/0001-terminology.md#open-questions): baseline modes, whether `window` is
-  sufficient, and the fate of an executable `workload`.
-- [ADR-0002](adr/0002-compatibility.md#open-questions): the expressiveness of
-  `errorSignal`, histogram resolution, streaming for `enforcement: inline`, and whether
-  `dataSourceRef` is needed.
+## Next
 
-## Next step
-
-A JSON Schema for `RequirementSet` and `EvaluationReport`. It will quickly expose whatever
-the vocabulary leaves unsaid and force several of the open questions shut.
+A JSON Schema for the requirement and result documents. Less because a schema is needed and
+more because writing one is the fastest way to find out which parts of the vocabulary are
+hand-waving.

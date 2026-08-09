@@ -1,8 +1,12 @@
 # ADR-0002. Compatibility: the Go implementation and load testing tools
 
-- **Status:** accepted
+- **Status:** proposed
 - **Date:** 2026-08-09
 - **Extends:** [ADR-0001](0001-terminology.md)
+
+> Notes, not decisions — see the preamble of [ADR-0001](0001-terminology.md). The one part
+> here that is checked rather than argued is the survey of what tools actually emit, and it
+> is worth reading even if everything else turns out wrong.
 
 ## Context
 
@@ -28,7 +32,7 @@ A survey of tool support as of August 2026 (details and sources in
 This refutes the initial assumption that "turn on the tool's OTel output and everything
 lines up".
 
-## Decisions
+## Working conclusions
 
 ### D11. An adapter is a semantic mapper, not a transport
 

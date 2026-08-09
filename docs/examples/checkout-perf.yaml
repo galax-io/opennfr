@@ -1,6 +1,6 @@
-# The canonical RequirementSet example.
-# Illustrates the naming defined in docs/GLOSSARY.md.
-# There is no schema yet, so this file is not validated.
+# Sketch: what a requirement document might look like.
+# Illustrates the candidate vocabulary from docs/GLOSSARY.md — field names are
+# unstable and this is not validated by anything, because no schema exists.
 
 apiVersion: opennfr.io/v1
 kind: RequirementSet

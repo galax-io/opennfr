@@ -1,6 +1,6 @@
-# An EvaluationReport example — the standard output of a check.
-# Corresponds to a run against checkout-perf.yaml.
-# There is no schema yet, so this file is not validated.
+# Sketch: what a result document might look like, for a run against
+# checkout-perf.yaml. Field names are unstable and nothing validates this,
+# because no schema exists.
 
 apiVersion: opennfr.io/v1
 kind: EvaluationReport

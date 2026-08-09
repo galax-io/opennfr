@@ -1,8 +1,8 @@
-# A MetricMapping for JMeter — the hardest case.
-# No OTLP output and no stable notion of a route: the sampler label is an
-# arbitrary string. The reachable level is report, and that is enough:
-# the entire format works there.
-# There is no schema yet, so this file is not validated.
+# Sketch: the same mapping idea for JMeter, the hardest case.
+# Factual part: no OTLP output and no stable notion of a route — the sampler
+# label is an arbitrary string. This is the case that any tool-agnostic format
+# has to survive, which is why it is written out.
+# Field names are unstable; nothing validates this.
 
 apiVersion: opennfr.io/v1
 kind: MetricMapping

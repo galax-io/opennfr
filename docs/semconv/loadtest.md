@@ -1,9 +1,14 @@
-# The `loadtest.*` registry
+# Sketch: a `loadtest.*` registry
 
-An OpenTelemetry semantic conventions extension for load testing.
+What an OpenTelemetry semantic conventions extension for load testing might contain.
 
-**Status: development.** This is our extension, not an OTel standard. The `loadtest.`
-namespace was unclaimed upstream at the time of writing.
+**This is a proposal written in semconv style, nothing more.** It is not an OTel standard,
+has not been submitted anywhere, and nothing emits these names today. The `loadtest.`
+namespace merely appeared to be unclaimed upstream at the time of writing.
+
+The parts worth reading regardless: which existing OTel names cover load testing already
+(more than expected), and the mapping table at the end, which reflects what tools actually
+emit.
 
 ## Principles
 

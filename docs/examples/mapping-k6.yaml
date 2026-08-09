@@ -1,7 +1,8 @@
-# A MetricMapping for k6 — a tool with built-in OTLP output.
-# It demonstrates that even such a tool needs an adapter: k6 exports its own
-# names (k6_http_req_duration), not semconv, and durations in milliseconds.
-# There is no schema yet, so this file is not validated.
+# Sketch: mapping a tool's names onto canonical ones, for k6.
+# The point it illustrates is factual, even if the syntax is not: k6 has a
+# built-in OTLP output and still needs an adapter, because it exports its own
+# names (k6_http_req_duration) and durations in milliseconds.
+# Field names are unstable; nothing validates this.
 
 apiVersion: opennfr.io/v1
 kind: MetricMapping

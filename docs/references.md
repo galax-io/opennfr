@@ -1,7 +1,10 @@
 # Reference survey
 
-What was studied before the terminology was settled in [ADR-0001](adr/0001-terminology.md),
-and what was taken from it.
+What exists already, what each one gets right, and where each one hurts. This is the most
+finished part of the repository — the notes elsewhere are speculation, but this is a survey
+of things that shipped.
+
+It is also the answer to the reasonable question "why not just use one of these?".
 
 ## Summary
 

@@ -1,16 +1,25 @@
-# OpenNFR Glossary
+# Glossary
 
-The normative vocabulary. One concept, one word. If a term is listed here, use only that
-term; if a concept is missing, coin the term first and write the code second.
+Candidate vocabulary. The aim is one concept, one word — but these are proposals, not
+settled terms, and several are still contested.
+
+The most durable part of each entry is the *Rejected* note: an alternative that was
+considered and dropped, with the reason. Those survive even when the preferred term
+changes.
 
 The reasoning behind each choice is in [ADR-0001](adr/0001-terminology.md).
+
+> Where an entry sounds prescriptive ("mandatory", "forbidden"), read it as the shape the
+> rule would take if this design is kept — none of it is enforced by anything, because
+> there is no schema and no implementation.
 
 ---
 
 ## Layers
 
-Three layers, each with its own vocabulary. Mixing words across layers is forbidden — that
-is precisely where existing formats break down.
+The organising idea: three layers, each with its own vocabulary, with words never reused
+across them. This is where the surveyed formats visibly break down, so it seems worth being
+strict about — though the boundaries below are drawn by argument, not by experience.
 
 ```
        source of truth                runtime                      result
@@ -231,9 +240,10 @@ gate:
 The projection of a criterion into a specific tool: a threshold in k6, an assertion in
 Gatling, a post-processor in JMeter.
 
-**The word `assertion` does not and must not appear in the OpenNFR schema.** An assertion
-is a generated artifact, not a source of truth. The moment it enters the spec, the format
-is nailed to one tool's semantics.
+**The argument for keeping the word `assertion` out of the document itself:** an assertion
+is a generated artifact, not a source of truth. The moment it enters the format, the format
+is nailed to one tool's semantics. This is the single strongest constraint the notes have
+produced so far, and the one most likely to hold.
 
 ### Adapter
 
@@ -311,8 +321,9 @@ that run without glue.
 
 ## Parsing rules
 
-The format is not "YAML in general" but a normative subset of it
-([ADR-0002 § D16–D17](adr/0002-compatibility.md)).
+Proposed constraints on the input, should this get as far as a schema. The reasoning is in
+[ADR-0002 § D16–D17](adr/0002-compatibility.md); the sketch is a subset of YAML rather than
+YAML in general.
 
 - **Every object maps one-to-one onto JSON.** Anchors, aliases and merge keys
   (`&`, `*`, `<<`) are forbidden: they do not survive the trip to JSON, are supported

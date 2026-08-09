@@ -1,8 +1,14 @@
 # ADR-0001. Format name and core terminology
 
-- **Status:** accepted
+- **Status:** proposed
 - **Date:** 2026-08-09
 - **Supersedes:** —
+
+> The ADR format is used here for its structure — context, options, cost — not because
+> anything is decided. Nothing below has been validated against a schema or an
+> implementation. Read each entry as "this is the current leaning and here is the
+> reasoning", and the *Rejected* notes as the more durable part: knowing why an option was
+> dropped survives the option itself changing.
 
 ## Context
 
@@ -19,9 +25,9 @@ format targets this problem. OpenSLO solves the neighbouring one (production SLO
 error budgets), Keptn provides CI gates with its own metric vocabulary, and
 k6/Taurus/picatinny are tool-internal DSLs. The niche is empty.
 
-## Decisions
+## Working conclusions
 
-### D1. The format is named OpenNFR
+### D1. Call the format OpenNFR
 
 `apiVersion: opennfr.io/v1`, root object `kind: RequirementSet`.
 

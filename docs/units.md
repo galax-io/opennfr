@@ -1,6 +1,9 @@
 # Units
 
-The `unit` field is mandatory wherever there is a number
+A sketch of which units to allow and how to convert them. Not implemented, not validated
+anywhere.
+
+The leaning is that a `unit` field should be mandatory wherever there is a number
 ([ADR-0001 § D5](adr/0001-terminology.md)).
 
 The set of units is **closed**: a subset of UCUM, not UCUM in full

@@ -1,9 +1,13 @@
 # Compatibility
 
-Conformance levels, the state of the tools, and requirements for the Go implementation.
-The reasoning is in [ADR-0002](adr/0002-compatibility.md).
+Two different things live in this document, and they deserve different amounts of trust:
 
-## Conformance levels
+- **The state of the tools** — checked against their documentation in August 2026. Facts.
+  Useful regardless of whether any of the format ideas survive.
+- **Conformance levels and the Go notes** — proposals. See
+  [ADR-0002](adr/0002-compatibility.md).
+
+## Conformance levels (proposed)
 
 Cumulative. A tool conforms to a level *through an adapter* — no tool publishes canonical
 metric names on its own.
