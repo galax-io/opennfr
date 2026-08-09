@@ -1,0 +1,50 @@
+# Changes here will be overwritten by `copier update` — NEVER EDIT MANUALLY.
+# This file records the answers used to scaffold the project so the template
+# can be re-applied later.  Keep it committed.
+_commit: d8b7cd1
+_src_path: gh:galax-io/spec-kit-galaxio-bootstrap
+architecture: 'The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the
+    terms, the ADRs justify them, and everything else must follow. The intended runtime
+    layering (types -> evaluation -> data sources -> tool adapters) is described in
+    docs/compatibility.md and exists only on paper. Compatibility-sensitive: any OpenTelemetry
+    semantic convention name borrowed by the format, and any field name that appears
+    in an example.'
+build_test_cmd: bash scripts/verify.sh
+commands: '# verify      bash scripts/verify.sh    (YAML parses, links resolve, docs
+    are English)
+
+    # links       grep-based, inside verify.sh
+
+    # yaml        python3 -c ''import yaml,glob; [list(yaml.safe_load_all(open(f)))
+    for f in glob.glob("docs/**/*.yaml", recursive=True)]''
+
+    # no build, no tests — there is nothing to compile yet'
+dep_manifest: none yet — no code. docs/GLOSSARY.md is the vocabulary truth
+do_git: false
+org_repo: galax-io/opennfr
+project_name: OpenNFR
+project_tagline: Design notes toward an open, tool-agnostic format for load testing
+    requirements. Consumers will be load-test adapters and CI backends; the document
+    vocabulary and the OpenTelemetry metric names it borrows are the compatibility
+    surface. Nothing is stable yet.
+publish_mechanism: GitHub Release only — nothing is published to a registry yet
+release_notes_tool: git-cliff
+role: 'Principal Engineer: format and specification design, load testing, observability.
+    This repo is a design notebook, not a product — prefer precision of vocabulary
+    over features, and treat every added term as a cost. Argue in issues before writing
+    files.'
+run_speckit: false
+stack: generic
+stack_detail: No code. Markdown notes plus YAML sketches that nothing validates, because
+    there is no schema yet. A Go reference implementation is anticipated (docs/adr/0002-compatibility.md)
+    but not started; constructs are already screened for whether they decode without
+    a custom unmarshaler.
+structure: '`docs/` -> the notes themselves; `docs/adr/` -> naming arguments in ADR
+    form (status: proposed); `docs/examples/` -> unvalidated sketches of documents;
+    `docs/semconv/` -> proposed `loadtest.*` attribute registry; `docs/references.md`
+    -> survey of prior art, the most finished part; `specs/` -> spec-kit working dir.'
+test_model: Nothing is testable yet — `scripts/verify.sh` only checks that the notes
+    are internally consistent (YAML parses, internal links resolve, the docs stayed
+    English). Once a JSON Schema exists, every file in docs/examples/ must validate
+    against it, and that becomes the real gate.
+
