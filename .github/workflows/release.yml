@@ -1,0 +1,72 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # AGENTS.md: "Tags ONLY on release/* branches or main". A tag on a feature
+      # branch would publish notes nobody reviewed, so refuse it here rather than
+      # relying on discipline.
+      - name: Tag must sit on main or a release branch
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          branches=$(git branch -r --contains "$tag" | sed 's|origin/||' | tr -d ' ')
+          echo "tag $tag is contained in:"; echo "$branches" | sed 's/^/  /'
+          if echo "$branches" | grep -qxE 'main|release/.*'; then
+            echo "ok: tag sits on an allowed branch"
+          else
+            echo "::error::tag $tag is not on main or a release/* branch"
+            exit 1
+          fi
+
+      # AGENTS.md: "Branch name must match tag version" — release/1.2.0 carries
+      # v1.2.0, v1.2.1, ...
+      - name: Release branch name must match the tag's minor version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          rel=$(git branch -r --contains "${GITHUB_REF_NAME}" | sed 's|origin/||' | tr -d ' ' | grep '^release/' || true)
+          if [ -z "$rel" ]; then
+            echo "tag is on main only — nothing to match"; exit 0
+          fi
+          want="release/${tag%.*}.0"
+          if echo "$rel" | grep -qx "$want"; then
+            echo "ok: $rel matches $GITHUB_REF_NAME"
+          else
+            echo "::error::tag $GITHUB_REF_NAME expects branch $want, found: $rel"
+            exit 1
+          fi
+
+      # AGENTS.md: every PR since the last tag carries the milestone, every issue
+      # whose fix is on main is closed.
+      - name: Milestone must be tag-ready
+        run: scripts/check-linkage.sh --for-tag "${GITHUB_REF_NAME}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+
+      - uses: orhun/git-cliff-action@v4
+        id: notes
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Publish GitHub Release
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file "${{ steps.notes.outputs.changelog }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

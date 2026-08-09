@@ -1,0 +1,37 @@
+name: Naming argument
+description: A term in the glossary is wrong, ambiguous, or already means something else
+labels: [naming]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The vocabulary is the part of this repo most likely to be wrong, and the cheapest
+        to fix now. See [docs/GLOSSARY.md](../blob/main/docs/GLOSSARY.md).
+
+  - type: input
+    id: term
+    attributes:
+      label: The term
+      placeholder: "criterion / guard / indicator / aggregation / …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong with it
+      description: Collides with an established meaning, is ambiguous in context, does not translate, reads badly in a field name — be specific.
+    validations:
+      required: true
+
+  - type: input
+    id: alternative
+    attributes:
+      label: Proposed alternative
+      description: Optional. "This is wrong and I do not know what is right" is a useful issue too.
+
+  - type: textarea
+    id: prior-art
+    attributes:
+      label: Prior art
+      description: Does another format use this word, and for what? OpenSLO, Keptn, k6, OpenTelemetry, or anything else that would collide.

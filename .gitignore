@@ -1,4 +1,16 @@
+# OS / editor
 .DS_Store
 *.swp
 .idea/
 .vscode/
+
+# Claude Code local (keep settings.json + hooks tracked; ignore local/secret state)
+.claude/settings.local.json
+.claude/worktrees/
+
+# spec-kit scratch
+scratchpad-*.sh
+scratchpad-*.log
+
+# build output
+# extend per stack: target/, build/, dist/, node_modules/, etc.

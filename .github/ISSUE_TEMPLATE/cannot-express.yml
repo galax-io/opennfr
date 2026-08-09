@@ -1,0 +1,37 @@
+name: The sketches cannot express this
+description: A real load testing requirement that the current notes have no way to state
+labels: [gap]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful kind of issue for this repo. A requirement from real work that the
+        sketches cannot express is direct evidence that the model is wrong — far stronger
+        than an argument about the model in the abstract.
+
+  - type: textarea
+    id: requirement
+    attributes:
+      label: The requirement, in plain words
+      placeholder: "Checkout must stay under 500 ms while the cache is cold, and the first minute after start does not count."
+    validations:
+      required: true
+
+  - type: textarea
+    id: today
+    attributes:
+      label: How you express it today
+      description: In k6, Gatling, JMeter, a spreadsheet, or a sentence in a Word document — whatever it actually is right now.
+
+  - type: textarea
+    id: blocker
+    attributes:
+      label: Where the sketches fall short
+      description: Optional. If you already tried writing it as a RequirementSet, paste the point where you got stuck.
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool this comes from
+      multiple: true
+      options: [k6, Gatling, JMeter, Locust, Artillery, yandex-tank, other, not tool-specific]

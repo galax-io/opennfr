@@ -1,0 +1,62 @@
+# git-cliff — GitHub Release notes for OpenNFR.
+# AGENTS.md names git-cliff as the release-notes tool; this is its config.
+#
+# The commit groups below are ordered for a design repo: what the format now says
+# comes before how the notes are organised. Once there is an implementation,
+# revisit the ordering — "feat" will start meaning code rather than vocabulary.
+
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }}
+{%- endfor %}
+{% endfor %}
+
+{% if version %}\
+{% if previous.version %}\
+**Full diff**: {{ self::remote_url() }}/compare/{{ previous.version }}...{{ version }}
+{% endif %}\
+{% endif %}\
+
+{%- macro remote_url() -%}
+  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+{%- endmacro -%}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+protect_breaking_commits = true
+sort_commits = "oldest"
+
+commit_parsers = [
+  # A design repo's headline change is a change to what the format says.
+  { message = "^feat", group = "Format changes" },
+  { message = "^docs\\(adr\\)", group = "Decisions revisited" },
+  { message = "^docs\\(speckit\\)", group = "Specs" },
+  { message = "^docs", group = "Notes" },
+  { message = "^fix", group = "Corrections" },
+  { message = "^refactor", group = "Housekeeping" },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore", group = "Housekeeping" },
+  { message = "^ci", group = "Housekeeping" },
+  { body = ".*security", group = "Security" },
+  # Catch-all. Without it, a commit that is not conventional gets no group and
+  # silently vanishes from the notes — which is how you ship an empty release.
+  { message = ".*", group = "Other" },
+]
+
+# Vocabulary changes are breaking by nature — a renamed term invalidates every
+# document written against the old one. Surface them, do not let them hide in a
+# group.
+commit_preprocessors = [
+  { pattern = "\\((\\w+\\s)?#([0-9]+)\\)", replace = "([#${2}](https://github.com/galax-io/opennfr/issues/${2}))" },
+]
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = false   # pre-1.0: breaking vocabulary changes bump minor
