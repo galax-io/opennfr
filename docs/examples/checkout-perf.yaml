@@ -1,0 +1,137 @@
+# The canonical RequirementSet example.
+# Illustrates the naming defined in docs/GLOSSARY.md.
+# There is no schema yet, so this file is not validated.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: checkout-perf
+  labels:
+    service.name: checkout
+    deployment.environment.name: staging
+
+spec:
+  defaults:
+    window:
+      phase: steady            # exclude ramp-up and ramp-down
+    enforcement: post          # inline is an adapter capability, see checkout-latency below
+    severity: blocker
+
+  requirements:
+
+    # ── A throughput requirement ───────────────────────────────────────────
+    # An ordinary Requirement, not a description of the load profile.
+    - name: checkout-throughput
+      displayName: "Checkout sustains the target throughput"
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            http.route: /api/v1/checkout
+      criteria:
+        # rate over a distribution = count / window duration
+        - aggregation: rate
+          op: gte
+          threshold: 200
+          unit: "{request}/s"
+
+    # ── A latency requirement, valid only under the target load ────────────
+    - name: checkout-latency
+      displayName: "Checkout responds quickly under target load"
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            http.request.method: POST
+            http.route: /api/v1/checkout
+      guards:
+        # A violated guard yields inconclusive, not fail: the run did not happen
+        # as intended, so no conclusion about the system was reached.
+        - name: reached-target-rate
+          description: "the threshold is only valid once 200 rps is reached (-5% allowance)"
+          aggregation: rate
+          op: gte
+          threshold: 190
+          unit: "{request}/s"
+        - name: generator-not-saturated
+          description: "the generator must not be the bottleneck"
+          indicator:
+            distribution:
+              metric: loadtest.dropped_iterations
+              selector: {}
+          aggregation: count
+          op: eq
+          threshold: 0
+          unit: "{iteration}"
+      criteria:
+        - aggregation: p95
+          op: lte
+          threshold: 500
+          unit: ms
+          severity: blocker
+        - aggregation: p99
+          op: lte
+          threshold: 1500
+          unit: ms
+          severity: warning
+          enforcement: both       # k6 and Taurus can also check this on the fly
+          onViolation: abort
+
+    # ── Error rate via ratio, without inventing an "errors" metric ─────────
+    - name: checkout-error-rate
+      displayName: "Checkout almost never returns errors"
+      indicator:
+        ratio:
+          total:
+            metric: http.client.request.duration
+            selector:
+              http.route: /api/v1/checkout
+          bad:
+            metric: http.client.request.duration
+            selector:
+              http.route: /api/v1/checkout
+              error.type: "*"       # the attribute is present with any value
+      criteria:
+        - aggregation: rate
+          op: lte
+          threshold: 0.1
+          unit: "%"                 # mandatory unit: 0.1 percent, not the fraction 0.1
+
+    # ── A "no worse than last time" requirement ────────────────────────────
+    - name: no-latency-regression
+      displayName: "No latency regression against the last passing run"
+      indicatorRef: checkout-latency
+      criteria:
+        - aggregation: p95
+          op: lte
+          baseline:
+            source: previousPassed
+          tolerance:
+            value: 10
+            unit: "%"               # direction follows from op: lte -> upwards
+          severity: warning
+
+    # ── Aggregate over every request: an empty selector ────────────────────
+    - name: overall-availability
+      displayName: "The service as a whole stays available under load"
+      indicator:
+        ratio:
+          total:
+            metric: http.client.request.duration
+            selector: {}            # {} = all requests (replaces the "all" key)
+          bad:
+            metric: http.client.request.duration
+            selector:
+              error.type: "*"
+      criteria:
+        - aggregation: rate
+          op: lte
+          threshold: 1
+          unit: "%"
+
+  gate:
+    onBlocker: fail
+    onWarning: warn
+    onInfo: ignore
+    onNoData: fail                  # silence is not success
+    onGuardViolation: inconclusive

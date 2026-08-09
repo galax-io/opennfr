@@ -1,0 +1,125 @@
+# An EvaluationReport example — the standard output of a check.
+# Corresponds to a run against checkout-perf.yaml.
+# There is no schema yet, so this file is not validated.
+
+apiVersion: opennfr.io/v1
+kind: EvaluationReport
+metadata:
+  name: checkout-perf-4711
+
+spec:
+  requirementSetRef: checkout-perf
+
+  run:
+    startTime: 2026-08-09T10:00:00Z
+    endTime: 2026-08-09T10:30:00Z
+    # Run identity uses existing OTel attributes only; no fields of our own.
+    attributes:
+      service.name: checkout
+      service.version: 2.14.0
+      deployment.environment.name: staging
+      test.suite.name: checkout-load
+      cicd.pipeline.name: perf-nightly
+      cicd.pipeline.run.id: "4711"
+      vcs.ref.head.revision: 9f3c1ab
+      loadtest.tool.name: k6
+      loadtest.tool.version: 0.52.0
+
+  outcome: fail                     # pass | warn | fail | inconclusive
+
+  verdicts:
+
+    - requirement: checkout-throughput
+      criterionId: rate             # the name if set, otherwise the aggregation
+      section: criteria             # criteria | guards
+      status: pass
+      observed:
+        value: 203.4
+        unit: "{request}/s"
+      expected:
+        op: gte
+        threshold: 200
+        unit: "{request}/s"
+      samples: 366120
+      window:
+        phase: steady
+        startTime: 2026-08-09T10:05:00Z
+        endTime: 2026-08-09T10:25:00Z
+
+    - requirement: checkout-latency
+      criterionId: reached-target-rate
+      section: guards
+      status: pass
+      observed: { value: 203.4, unit: "{request}/s" }
+      expected: { op: gte, threshold: 190, unit: "{request}/s" }
+      samples: 366120
+
+    - requirement: checkout-latency
+      criterionId: generator-not-saturated
+      section: guards
+      status: pass
+      observed: { value: 0, unit: "{iteration}" }
+      expected: { op: eq, threshold: 0, unit: "{iteration}" }
+
+    # The guards passed, so the criteria verdicts speak about the system
+    # rather than about the run.
+    - requirement: checkout-latency
+      criterionId: p95
+      section: criteria
+      status: fail
+      severity: blocker
+      observed: { value: 812, unit: ms }
+      expected: { op: lte, threshold: 500, unit: ms }
+      samples: 128340
+      window:
+        phase: steady
+        startTime: 2026-08-09T10:05:00Z
+        endTime: 2026-08-09T10:25:00Z
+
+    - requirement: checkout-latency
+      criterionId: p99
+      section: criteria
+      status: fail
+      severity: warning
+      enforcement: inline           # tripped during the run
+      observed: { value: 2310, unit: ms }
+      expected: { op: lte, threshold: 1500, unit: ms }
+      samples: 128340
+
+    - requirement: checkout-error-rate
+      criterionId: rate
+      section: criteria
+      status: pass
+      observed: { value: 0.04, unit: "%" }
+      expected: { op: lte, threshold: 0.1, unit: "%" }
+      samples: 128340
+
+    - requirement: no-latency-regression
+      criterionId: p95
+      section: criteria
+      status: warn
+      severity: warning
+      observed: { value: 812, unit: ms }
+      expected:
+        op: lte
+        baseline:
+          source: previousPassed
+          runId: "4698"             # which run was actually used as the baseline
+          value: 604
+          unit: ms
+        tolerance: { value: 10, unit: "%" }
+        effectiveThreshold: 664.4   # baseline + tolerance, for readability
+        unit: ms
+
+    - requirement: overall-availability
+      criterionId: rate
+      section: criteria
+      status: noData                # an outcome of its own, never a silent pass
+      reason: "no series carrying error.type within the steady window"
+
+  summary:
+    pass: 4
+    warn: 1
+    fail: 2
+    noData: 1
+    skipped: 0
