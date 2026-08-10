@@ -11,6 +11,7 @@
 # spec-kit scratch
 scratchpad-*.sh
 scratchpad-*.log
+speckit-install.log
 
 # build output
 # extend per stack: target/, build/, dist/, node_modules/, etc.
