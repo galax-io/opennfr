@@ -40,7 +40,26 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Answer each gate explicitly. A "no" is either fixed or justified in Complexity Tracking
+below — never left blank. See `.specify/memory/constitution.md` (v1.0.0).
+
+- [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term?
+      If so, is `docs/GLOSSARY.md` updated in the same change, with a rejected
+      alternative and its reason? Does any ADR now contradict it?
+- [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken
+      from OpenTelemetry semconv where an equivalent exists? Is anything new confined to
+      `loadtest.*`? Are there aliases or derived quantities masquerading as metrics?
+- [ ] **III. No Silent Green** — for every check this feature adds: what happens when the
+      data is missing, and when the run did not meet its assumed conditions? Is either
+      answer "pass"?
+- [ ] **IV. Honest Status** — do the artifacts state what is verified and what is
+      speculation? Is every claim about an external tool dated and sourced?
+- [ ] **V. Structure Over Grammar** — is every new field validatable by schema without a
+      bespoke parser? Are value sets closed? Does anything need custom decoding, and is
+      that justified in an ADR?
+- [ ] **Compatibility** — does this touch a borrowed OTel name, a published example's
+      field name, or the conformance levels? Is any construct expressible only at
+      conformance level `assert` or above?
 
 ## Project Structure
 
