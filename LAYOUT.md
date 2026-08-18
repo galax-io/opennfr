@@ -12,11 +12,12 @@ never becomes one.
 
 | Class | Home | Who may change it | Changing it obliges | Binds later work |
 |---|---|---|---|---|
-| **The format** | `FORMAT.md` at the repository root, plus `schema/` once it exists | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
+| **The format** | `FORMAT.md` and `schema/opennfr.io/v1/` at the repository root | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
 | **Ideas and notes** | `docs/` | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
 | Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
 | Tool mappings | `mappings/` once it exists | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — the conformance ladder is |
 | Conformance corpus | `conformance/` once it exists | Anyone, by pull request | Every case states the outcome a conforming consumer must reach | **Yes** |
+| Validated examples | `examples/` | Anyone, by pull request | They must validate against the schema. `verify.sh` fails if they do not — that is the point of them | **Yes** |
 | Sketches | `docs/examples/` | Anyone, by pull request | Every file announces itself as a sketch in its first six lines. Nothing validates them | No |
 | Parked experiments | `docs/experimental/` | Anyone, by pull request | Status, promotion and retirement conditions, a date; nothing outside links in; markdown only | No, by construction |
 | Reference implementation | Declared, not created | Anyone, by pull request | — | No |

@@ -2,181 +2,174 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opennfr.io/schema/v1/evaluationreport.schema.json",
   "title": "EvaluationReport",
-  "description": "What one evaluation of a RequirementSet produced. The format's second container: without it, 'any backend can consume this' is unmet, because a backend needs a standard output and not only a standard input.",
+  "description": "What one evaluation produced. The format's second container, and just as minimal: without a standard output, 'any backend can consume this' is half a promise.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
   "properties": {
-    "apiVersion": { "const": "opennfr.io/v1" },
-    "kind": { "const": "EvaluationReport" },
+    "apiVersion": {
+      "const": "opennfr.io/v1"
+    },
+    "kind": {
+      "const": "EvaluationReport"
+    },
     "metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
-        "name": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name" },
-        "displayName": { "type": "string" },
-        "labels": { "type": "object", "additionalProperties": { "type": "string" } },
-        "annotations": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/annotations" }
+        "name": {
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
+        },
+        "annotations": {
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/annotations"
+        }
       }
     },
     "spec": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requirementSetRef", "run", "outcome", "verdicts"],
+      "required": [
+        "requirementSetRef",
+        "outcome",
+        "verdicts"
+      ],
       "properties": {
-        "requirementSetRef": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name" },
-        "run": { "$ref": "#/$defs/run" },
-        "outcome": { "$ref": "#/$defs/outcome" },
-        "verdicts": { "type": "array", "items": { "$ref": "#/$defs/verdict" } },
-        "summary": { "$ref": "#/$defs/summary" }
+        "requirementSetRef": {
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
+        },
+        "run": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attributes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Run identity, expressed with existing OpenTelemetry attributes only — service.name, cicd.pipeline.run.id, vcs.ref.head.revision. The format defines no identity field of its own, which is what lets a report correlate with the traces of the same run without glue."
+            }
+          }
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "description": "inconclusive is a first-class outcome, not a flavour of fail. It means the test did not happen, which is a different engineering decision from the system not holding."
+        },
+        "verdicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verdict"
+          }
+        }
       }
     }
   },
-
   "$defs": {
-    "outcome": {
-      "enum": ["pass", "warn", "fail", "inconclusive"],
-      "description": "inconclusive is a first-class outcome, not a flavour of fail. It means the test did not happen, which is a different engineering decision from the system not holding."
-    },
-
-    "status": {
-      "enum": ["pass", "warn", "fail", "noData", "skipped"],
-      "description": "The result of checking one criterion or guard. noData is not a success: missing data is an outcome in its own right, never a silent green."
-    },
-
-    "run": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["startTime", "endTime"],
-      "properties": {
-        "startTime": { "type": "string", "format": "date-time" },
-        "endTime": { "type": "string", "format": "date-time" },
-        "attributes": {
-          "type": "object",
-          "additionalProperties": { "type": "string" },
-          "description": "Run identity, expressed with existing OpenTelemetry attributes only — service.name, deployment.environment.name, test.suite.name, cicd.pipeline.run.id, vcs.ref.head.revision and the like. The format defines no identity field of its own, which is what lets a report correlate with the traces of the same run without glue."
-        }
-      }
-    },
-
-    "measurement": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["value", "unit"],
-      "properties": {
-        "value": { "type": "number" },
-        "unit": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit" }
-      }
-    },
-
-    "resolvedBaseline": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["source", "value", "unit"],
-      "description": "The baseline as actually resolved, not as requested. Which run supplied it is part of the result, or the number cannot be reproduced.",
-      "properties": {
-        "source": { "enum": ["previousPassed", "previous", "pinned"] },
-        "runId": { "type": "string" },
-        "value": { "type": "number" },
-        "unit": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit" }
-      }
-    },
-
-    "expected": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["op"],
-      "description": "The bar this verdict was judged against, echoed so the result stands on its own without the requirement document beside it.",
-      "properties": {
-        "op": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/op" },
-        "threshold": { "type": "number" },
-        "baseline": { "$ref": "#/$defs/resolvedBaseline" },
-        "tolerance": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["value", "unit"],
-          "properties": {
-            "value": { "type": "number" },
-            "unit": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit" }
-          }
-        },
-        "effectiveThreshold": {
-          "type": "number",
-          "description": "baseline plus tolerance, computed, so a reader does not have to."
-        },
-        "unit": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit" }
-      },
-      "oneOf": [
-        {
-          "required": ["threshold", "unit"],
-          "not": { "anyOf": [{ "required": ["baseline"] }, { "required": ["tolerance"] }] }
-        },
-        {
-          "required": ["baseline", "tolerance"],
-          "not": { "required": ["threshold"] }
-        }
-      ]
-    },
-
-    "verdictWindow": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "phase": { "enum": ["rampUp", "steady", "rampDown", "full"] },
-        "rolling": { "type": "string", "pattern": "^\\d+(ms|s|m|h)$" },
-        "startTime": { "type": "string", "format": "date-time" },
-        "endTime": { "type": "string", "format": "date-time" }
-      }
-    },
-
     "verdict": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requirement", "criterionId", "section", "status"],
+      "required": [
+        "requirement",
+        "criterionId",
+        "section",
+        "status"
+      ],
       "properties": {
-        "requirement": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name" },
+        "requirement": {
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
+        },
         "criterionId": {
           "type": "string",
           "minLength": 1,
-          "description": "The criterion's name if it has one, otherwise its aggregation. Never an index: an index breaks the moment the file is edited."
+          "description": "The predicate's name if it has one, otherwise its aggregation. Never an index: an index breaks the moment the file is edited."
         },
-        "section": { "enum": ["criteria", "guards"] },
-        "status": { "$ref": "#/$defs/status" },
-        "severity": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/severity" },
-        "enforcement": { "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/enforcement" },
-        "observed": { "$ref": "#/$defs/measurement" },
-        "expected": { "$ref": "#/$defs/expected" },
-        "samples": { "type": "integer", "minimum": 0 },
-        "window": { "$ref": "#/$defs/verdictWindow" },
-        "reason": { "type": "string", "minLength": 1 }
+        "section": {
+          "enum": [
+            "criteria",
+            "guards"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "noData"
+          ],
+          "description": "noData is not a success. Missing data is an outcome in its own right, never a silent green."
+        },
+        "observed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit"
+          ],
+          "properties": {
+            "value": {
+              "type": "number"
+            },
+            "unit": {
+              "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit"
+            }
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "allOf": [
         {
-          "description": "A verdict that judged something must say what it observed and what it was judged against. Otherwise the result cannot be checked and has to be taken on trust.",
-          "if": { "properties": { "status": { "enum": ["pass", "warn", "fail"] } }, "required": ["status"] },
-          "then": { "required": ["observed", "expected"] }
+          "description": "A verdict that judged something must say what it measured, or the result has to be taken on trust.",
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "observed"
+            ]
+          }
         },
         {
-          "description": "No Silent Green, made mechanical. A verdict that produced no judgement must carry a reason, or silence is indistinguishable from success.",
-          "if": { "properties": { "status": { "enum": ["noData", "skipped"] } }, "required": ["status"] },
-          "then": { "required": ["reason"] }
+          "description": "No Silent Green, made mechanical: a verdict that produced no judgement must say why, or silence is indistinguishable from success.",
+          "if": {
+            "properties": {
+              "status": {
+                "const": "noData"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
         }
       ]
-    },
-
-    "summary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["pass", "warn", "fail", "noData", "skipped"],
-      "description": "Every status gets a count, including the ones nobody wants to look at. A summary that omits noData is how a report starts lying.",
-      "properties": {
-        "pass": { "type": "integer", "minimum": 0 },
-        "warn": { "type": "integer", "minimum": 0 },
-        "fail": { "type": "integer", "minimum": 0 },
-        "noData": { "type": "integer", "minimum": 0 },
-        "skipped": { "type": "integer", "minimum": 0 }
-      }
     }
   }
 }

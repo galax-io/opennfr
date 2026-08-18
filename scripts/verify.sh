@@ -32,7 +32,7 @@ except ImportError:
     print("  skip  PyYAML not installed (pip install pyyaml)")
     sys.exit(0)
 rc = 0
-for f in sorted(glob.glob("docs/**/*.yaml", recursive=True)):
+for f in sorted(glob.glob("examples/*.yaml") + glob.glob("docs/**/*.yaml", recursive=True)):
     try:
         list(yaml.safe_load_all(open(f, encoding="utf-8")))
         print(f"  ok    {f}")
@@ -74,7 +74,7 @@ def walk(v, path, f):
         return
     print(f"  FAIL  {f}: {path}: {type(v).__name__} has no JSON equivalent ({v!r})")
     rc = 1
-for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
+for f in sorted(glob.glob("examples/*.yaml") + glob.glob("docs/examples/**/*.yaml", recursive=True)):
     for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
         walk(doc, "", f)
     if rc == 0:
@@ -110,7 +110,7 @@ registry = Registry().with_resources(
 )
 by_kind = {s["title"]: s for s in schemas.values() if s.get("type") == "object"}
 rc = 0
-for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
+for f in sorted(glob.glob("examples/**/*.yaml", recursive=True)):
     for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
         if not isinstance(doc, dict):
             continue

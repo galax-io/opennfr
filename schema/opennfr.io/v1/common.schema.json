@@ -3,55 +3,59 @@
   "$id": "https://opennfr.io/schema/v1/common.schema.json",
   "title": "Common definitions",
   "description": "Definitions shared by every kind in opennfr.io/v1. One home per definition: a second copy is a second source, and two sources drift.",
-
   "$defs": {
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
       "maxLength": 253
     },
-
     "unit": {
       "type": "string",
       "minLength": 1,
       "description": "Mandatory wherever a number needs one. Without it 0.1 is either a tenth of a percent or a tenth of a fraction and nobody can tell. The permitted set becomes a closed list once docs/units.md is ratified; until then any non-empty string parses."
     },
-
-    "op": { "enum": ["lt", "lte", "gt", "gte", "eq", "neq"] },
-
-    "severity": { "enum": ["blocker", "warning", "info"] },
-
+    "op": {
+      "enum": [
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "eq",
+        "neq"
+      ]
+    },
     "aggregation": {
       "type": "string",
       "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
       "anyOf": [
-        { "enum": ["avg", "min", "max", "count", "rate", "sum", "stddev"] },
-        { "pattern": "^p\\d{1,2}(\\.\\d+)?$" }
+        {
+          "enum": [
+            "avg",
+            "min",
+            "max",
+            "count",
+            "rate",
+            "sum",
+            "stddev"
+          ]
+        },
+        {
+          "pattern": "^p\\d{1,2}(\\.\\d+)?$"
+        }
       ]
     },
-
-    "window": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "phase": { "enum": ["rampUp", "steady", "rampDown", "full"] },
-        "rolling": { "type": "string", "pattern": "^\\d+(ms|s|m|h)$" }
-      }
-    },
-
-    "enforcement": { "enum": ["post", "inline", "both"] },
-
-    "onViolation": { "enum": ["continue", "abort"] },
-
     "selector": {
       "type": "object",
       "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry.",
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "type": "string"
+      }
     },
-
     "annotations": {
       "type": "object",
-      "additionalProperties": { "type": "string" },
+      "additionalProperties": {
+        "type": "string"
+      },
       "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
     }
   }

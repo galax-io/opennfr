@@ -1,0 +1,41 @@
+# What evaluating examples/checkout.yaml produces. Validated by
+# scripts/verify.sh against evaluationreport.schema.json.
+
+apiVersion: opennfr.io/v1
+kind: EvaluationReport
+metadata:
+  name: checkout-4711
+
+spec:
+  requirementSetRef: checkout
+  run:
+    # Run identity uses existing OpenTelemetry attributes only.
+    attributes:
+      service.name: checkout
+      deployment.environment.name: staging
+      cicd.pipeline.run.id: "4711"
+
+  outcome: fail
+
+  verdicts:
+    - requirement: checkout-latency
+      criterionId: reached-target-rate
+      section: guards
+      status: pass
+      observed: { value: 203.4, unit: "{request}/s" }
+
+    # The guard passed, so this verdict speaks about the system rather
+    # than about the run.
+    - requirement: checkout-latency
+      criterionId: p95
+      section: criteria
+      status: fail
+      observed: { value: 812, unit: ms }
+
+    # No series carried error.type. That is not a pass, and the schema
+    # will not let this line exist without a reason.
+    - requirement: checkout-errors
+      criterionId: rate
+      section: criteria
+      status: noData
+      reason: no series carrying error.type within the run

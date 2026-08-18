@@ -36,7 +36,9 @@ spec:
           unit: ms
 ```
 
-Validate it:
+A guard, a ratio and a report are in [`examples/`](examples/). Those files are not sketches —
+`scripts/verify.sh` validates them against the schema on every commit, so if the format changes
+under them, the build goes red.
 
 ```bash
 bash scripts/verify.sh
@@ -65,15 +67,30 @@ file or the schema.
 |---|---|
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
 | Two indicator shapes | `distribution` for a distribution of values, `ratio` for a fraction. Exactly one, expressed by nesting rather than a discriminator, so a decoder needs no second pass |
-| One predicate shape | `aggregation` + `op` + a bar. Shared by criteria and guards |
-| Two kinds of bar | An absolute `threshold`, which requires a `unit`; or `baseline` + `tolerance`, where `tolerance.unit` carries it. Never both |
-| Closed value sets | `op`, `severity`, `enforcement`, `onViolation`, `window.phase`, `gate` outcomes. `aggregation` is an enum plus a percentile pattern — the one place with a pattern rather than a list |
+| One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
+| Guards | A violated guard means the run did not happen as intended, so the outcome is `inconclusive` — not `fail`, and never a pass |
+| Three outcomes | `pass`, `fail`, `inconclusive`. Three verdict statuses: `pass`, `fail`, `noData` |
 | Strictness | `additionalProperties: false` everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
-| Results that cannot lie | A verdict with status `pass`, `warn` or `fail` must carry what it observed **and** what it was judged against. A verdict with `noData` or `skipped` must carry a **reason**. Silence is not a permitted answer |
+| Results that cannot lie | A verdict with status `pass` or `fail` must carry what it observed. A verdict with `noData` must carry a **reason**. Silence is not a permitted answer |
 
-Everything beyond the envelope, one indicator and one criterion is optional. The optional parts
-that carry a real dependency are listed in [ARCHITECTURE.md](ARCHITECTURE.md) with what each
-one costs — two of them are satisfiable by no tool today.
+That is the whole container. Three files, under 12 KB of schema.
+
+## Deliberately not in it — yet
+
+These are real needs. They are **ideas in `docs/`**, not part of the format, because each one
+either adds a dependency the format cannot honour or adds a knob before anyone has asked for it.
+
+| Idea | Why it is not here |
+|---|---|
+| `window` — measure only the steady phase | Rests on a `loadtest.phase` attribute that nothing emits |
+| `baseline` + `tolerance` — "no worse than last time" | Needs stored history of previous runs, which no load generator provides |
+| `severity` and `gate` — which violations fail the run | A knob. Today any failed criterion fails the run, and that is enough until someone needs otherwise |
+| `enforcement`, `onViolation` — fail during the run | Tool capability, not format. k6 can, JMeter cannot, and the format must not exclude JMeter |
+| `defaults` — write shared settings once | Sugar. It buys brevity and costs merge semantics |
+| `indicatorRef` — reuse one indicator | Sugar |
+
+Each is argued in [`docs/GLOSSARY.md`](docs/GLOSSARY.md). When one is accepted, it lands in the
+schema **and its note in `docs/` is deleted** — see below.
 
 ## Not in the container at all
 
