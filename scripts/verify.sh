@@ -45,6 +45,42 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
+section "Examples validate against the schema"
+# The real gate. Every kind: RequirementSet document must satisfy
+# schema/opennfr.io/v1/requirementset.schema.json — a sketch that does not parse
+# as the format is a sketch of something else.
+if ! command -v python3 >/dev/null 2>&1; then
+  printf '  skip  python3 not found\n'
+else
+  python3 - <<'SCHEMA' || fail=1
+import glob, json, sys
+try:
+    import yaml
+    from jsonschema import Draft202012Validator
+except ImportError as e:
+    print(f"  skip  {e.name} not installed (pip install jsonschema pyyaml)")
+    sys.exit(0)
+schema = json.load(open("schema/opennfr.io/v1/requirementset.schema.json", encoding="utf-8"))
+Draft202012Validator.check_schema(schema)
+v = Draft202012Validator(schema)
+rc = 0
+for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
+    for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
+        if not isinstance(doc, dict) or doc.get("kind") != "RequirementSet":
+            continue
+        errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
+        if errs:
+            rc = 1
+            for e in errs:
+                where = "/".join(map(str, e.path)) or "(root)"
+                print(f"  FAIL  {f}: {where}: {e.message}")
+        else:
+            print(f"  ok    {f}")
+sys.exit(rc)
+SCHEMA
+fi
+
+# ---------------------------------------------------------------------------
 section "Internal markdown links resolve"
 missing=0
 while IFS= read -r line; do

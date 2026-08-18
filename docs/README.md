@@ -16,8 +16,13 @@ Working notes towards a format for load testing requirements. See the
 considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
 way in.
 
-This directory holds **notes and ideas only**. How the project actually works lives at the
-repository root: [ARCHITECTURE.md](../ARCHITECTURE.md) and [LAYOUT.md](../LAYOUT.md).
+This directory holds **notes and ideas only**. The project itself lives at the repository
+root: [FORMAT.md](../FORMAT.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [LAYOUT.md](../LAYOUT.md).
+
+**A note here is deleted once it stops being a note.** When an idea is accepted into the
+format, parked, or rejected, its note goes in the same pull request — see
+[LAYOUT.md](../LAYOUT.md). What survives is the ADR, the glossary's *Rejected* line, or the
+schema; never a second copy of a decision.
 
 ## What is actually verified
 

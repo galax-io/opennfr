@@ -28,6 +28,19 @@ Classes differ by what a change **obliges**, not by who may propose it. No role 
 introduced here, because [Principle I](.specify/memory/constitution.md) prices every added
 governance word and a role taxonomy would buy nothing mechanical.
 
+### A note is deleted when it stops being a note
+
+An idea lives in `docs/` only while it is still an idea. The moment it is **accepted into the
+format**, **parked** into the experimental area, or **rejected**, the note is deleted — in the
+same pull request that accepts, parks or rejects it.
+
+This is not tidiness. A note that has already become a rule is a second source for one
+decision, and two sources drift. That is the failure the format exists to prevent, applied to
+the repository that defines it.
+
+The reasoning is not lost when the note goes: it lands in an ADR, in a glossary entry's
+*Rejected* line, or in the schema itself. What is deleted is the duplicate, never the argument.
+
 **The one place "anyone" needs help.** `scripts/check-linkage.sh` gates every pull request on a
 milestone **and** a registered closing link to an issue in that milestone, and an outside
 contributor cannot normally set a milestone on a fork's pull request. A maintainer opens the

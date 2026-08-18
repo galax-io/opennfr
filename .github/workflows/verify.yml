@@ -19,7 +19,18 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --disable-pip-version-check pyyaml
+      - run: pip install --disable-pip-version-check pyyaml jsonschema
+
+      # jsonschema is not optional here. verify.sh skips schema validation when
+      # the module is missing, and a gate that skips itself in CI is the silent
+      # green this project forbids.
+      - name: The schema gate must actually run, not skip
+        run: |
+          bash scripts/verify.sh | tee /tmp/verify.out
+          if grep -q 'skip  jsonschema' /tmp/verify.out; then
+            echo '::error::schema validation skipped in CI — jsonschema missing'
+            exit 1
+          fi
 
       # The repo has no code yet, so this checks the only things that can be
       # wrong: sketches parse, links resolve, docs stayed English.
