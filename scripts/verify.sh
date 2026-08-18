@@ -45,6 +45,44 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
+section "Sketches map one-to-one onto JSON"
+# ADR-0002 D16: every object must map onto JSON. YAML will happily produce a
+# datetime from an unquoted timestamp, and a datetime has no JSON equivalent —
+# so it parses here and breaks the moment anything serialises it.
+if command -v python3 >/dev/null 2>&1; then
+  python3 - <<'JSONABLE' || fail=1
+import glob, sys
+try:
+    import yaml
+except ImportError:
+    print("  skip  PyYAML not installed"); sys.exit(0)
+OK = (dict, list, str, int, float, bool, type(None))
+rc = 0
+def walk(v, path, f):
+    global rc
+    if isinstance(v, bool) or v is None or isinstance(v, (str, int, float)):
+        return
+    if isinstance(v, dict):
+        for k, x in v.items():
+            if not isinstance(k, str):
+                print(f"  FAIL  {f}: {path}: non-string key {k!r}"); rc = 1
+            walk(x, f"{path}/{k}", f)
+        return
+    if isinstance(v, list):
+        for i, x in enumerate(v):
+            walk(x, f"{path}/{i}", f)
+        return
+    print(f"  FAIL  {f}: {path}: {type(v).__name__} has no JSON equivalent ({v!r})")
+    rc = 1
+for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
+    for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
+        walk(doc, "", f)
+    if rc == 0:
+        print(f"  ok    {f}")
+sys.exit(rc)
+JSONABLE
+fi
+
 section "Examples validate against the schema"
 # The real gate. Every kind: RequirementSet document must satisfy
 # schema/opennfr.io/v1/requirementset.schema.json — a sketch that does not parse
@@ -57,17 +95,30 @@ import glob, json, sys
 try:
     import yaml
     from jsonschema import Draft202012Validator
+    import referencing  # noqa: F401
 except ImportError as e:
     print(f"  skip  {e.name} not installed (pip install jsonschema pyyaml)")
     sys.exit(0)
-schema = json.load(open("schema/opennfr.io/v1/requirementset.schema.json", encoding="utf-8"))
-Draft202012Validator.check_schema(schema)
-v = Draft202012Validator(schema)
+from referencing import Registry, Resource
+schemas = {}
+for sf in sorted(glob.glob("schema/opennfr.io/v1/*.json")):
+    s = json.load(open(sf, encoding="utf-8"))
+    Draft202012Validator.check_schema(s)
+    schemas[s["$id"]] = s
+registry = Registry().with_resources(
+    [(i, Resource.from_contents(s)) for i, s in schemas.items()]
+)
+by_kind = {s["title"]: s for s in schemas.values() if s.get("type") == "object"}
 rc = 0
 for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
     for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
-        if not isinstance(doc, dict) or doc.get("kind") != "RequirementSet":
+        if not isinstance(doc, dict):
             continue
+        kind = doc.get("kind")
+        if kind not in by_kind:
+            print(f"  --    {f}: kind {kind!r} has no schema yet")
+            continue
+        v = Draft202012Validator(by_kind[kind], registry=registry)
         errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
         if errs:
             rc = 1
@@ -75,7 +126,7 @@ for f in sorted(glob.glob("docs/examples/**/*.yaml", recursive=True)):
                 where = "/".join(map(str, e.path)) or "(root)"
                 print(f"  FAIL  {f}: {where}: {e.message}")
         else:
-            print(f"  ok    {f}")
+            print(f"  ok    {f}  [{kind}]")
 sys.exit(rc)
 SCHEMA
 fi

@@ -65,25 +65,15 @@
           }
         },
         "annotations": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "The only extension point. The opennfr.io/ prefix is reserved."
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/annotations"
         }
       }
     },
     "name": {
-      "type": "string",
-      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
-      "maxLength": 253
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
     },
     "selector": {
-      "type": "object",
-      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated here — they come from OpenTelemetry.",
-      "additionalProperties": {
-        "type": "string"
-      }
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/selector"
     },
     "series": {
       "type": "object",
@@ -156,63 +146,19 @@
       ]
     },
     "aggregation": {
-      "type": "string",
-      "anyOf": [
-        {
-          "enum": [
-            "avg",
-            "min",
-            "max",
-            "count",
-            "rate",
-            "sum",
-            "stddev"
-          ]
-        },
-        {
-          "pattern": "^p\\d{1,2}(\\.\\d+)?$"
-        }
-      ]
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/aggregation"
     },
     "op": {
-      "enum": [
-        "lt",
-        "lte",
-        "gt",
-        "gte",
-        "eq",
-        "neq"
-      ]
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/op"
     },
     "unit": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Mandatory. Without it 0.1 is either a tenth of a percent or a tenth of a fraction and nobody can tell. The permitted set is a closed list once docs/units.md is ratified; until then any non-empty string parses."
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit"
     },
     "severity": {
-      "enum": [
-        "blocker",
-        "warning",
-        "info"
-      ]
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/severity"
     },
     "window": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "phase": {
-          "enum": [
-            "rampUp",
-            "steady",
-            "rampDown",
-            "full"
-          ]
-        },
-        "rolling": {
-          "type": "string",
-          "pattern": "^\\d+(ms|s|m|h)$"
-        }
-      }
+      "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/window"
     },
     "predicate": {
       "type": "object",
@@ -282,17 +228,10 @@
           "$ref": "#/$defs/window"
         },
         "enforcement": {
-          "enum": [
-            "post",
-            "inline",
-            "both"
-          ]
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/enforcement"
         },
         "onViolation": {
-          "enum": [
-            "continue",
-            "abort"
-          ]
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/onViolation"
         }
       },
       "oneOf": [
@@ -423,17 +362,10 @@
           "$ref": "#/$defs/severity"
         },
         "enforcement": {
-          "enum": [
-            "post",
-            "inline",
-            "both"
-          ]
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/enforcement"
         },
         "onViolation": {
-          "enum": [
-            "continue",
-            "abort"
-          ]
+          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/onViolation"
         }
       }
     },

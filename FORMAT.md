@@ -2,9 +2,17 @@
 
 A container. It fixes the **shape** a requirement is written in, and nothing else.
 
-The definition is the schema:
-[`schema/opennfr.io/v1/requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json).
-This file explains it; the schema decides.
+The definition is the schema. This file explains it; the schema decides.
+
+| Kind | Schema | What it holds |
+|---|---|---|
+| `RequirementSet` | [`requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json) | What must hold. The input |
+| `EvaluationReport` | [`evaluationreport.schema.json`](schema/opennfr.io/v1/evaluationreport.schema.json) | What happened. The output |
+| — | [`common.schema.json`](schema/opennfr.io/v1/common.schema.json) | Definitions both share. One home each, so they cannot drift |
+| `MetricMapping` | not yet | Binds the format to one tool |
+
+The output is not an afterthought. Without a standard report, "any backend can consume this" is
+half a promise: a backend needs a standard output as much as a standard input.
 
 ## The minimal document
 
@@ -61,6 +69,7 @@ file or the schema.
 | Two kinds of bar | An absolute `threshold`, which requires a `unit`; or `baseline` + `tolerance`, where `tolerance.unit` carries it. Never both |
 | Closed value sets | `op`, `severity`, `enforcement`, `onViolation`, `window.phase`, `gate` outcomes. `aggregation` is an enum plus a percentile pattern — the one place with a pattern rather than a list |
 | Strictness | `additionalProperties: false` everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
+| Results that cannot lie | A verdict with status `pass`, `warn` or `fail` must carry what it observed **and** what it was judged against. A verdict with `noData` or `skipped` must carry a **reason**. Silence is not a permitted answer |
 
 Everything beyond the envelope, one indicator and one criterion is optional. The optional parts
 that carry a real dependency are listed in [ARCHITECTURE.md](ARCHITECTURE.md) with what each
