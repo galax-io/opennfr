@@ -1,5 +1,8 @@
 # Units
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 A sketch of which units to allow and how to convert them. Not implemented, not validated
 anywhere.
 

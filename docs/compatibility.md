@@ -1,5 +1,8 @@
 # Compatibility
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 Two different things live in this document, and they deserve different amounts of trust:
 
 - **The state of the tools** — checked against their documentation in August 2026. Facts.

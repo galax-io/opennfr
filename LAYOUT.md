@@ -10,20 +10,22 @@ If you are here to add support for a load generator, you need § 5 and nothing e
 one-directional: a follow-up specification writes artifacts into the homes named below, and
 never becomes one.
 
-| Class | Home | Who may change it | Changing it obliges | On the compatibility surface |
+| Class | Home | Who may change it | Changing it obliges | Binds later work |
 |---|---|---|---|---|
-| Normative core | `docs/` top level, plus `docs/semconv/` | Anyone, by pull request | A term change updates [GLOSSARY.md](GLOSSARY.md) in the same PR with a rejected alternative; a naming disagreement is argued in an issue **before** files change; a change to a compatibility-sensitive surface requires an ADR | Partly — see § 4 |
-| Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates or implements it | No |
-| Tool mappings | `mappings/` | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — but the conformance ladder itself is |
-| Conformance corpus | `docs/examples/` | Anyone, by pull request | Every file announces itself as a sketch in its first six lines, until a schema validates it | Field names in published examples are |
-| Experimental area | `docs/experimental/` | Anyone, by pull request | Self-labelling with status, promotion and retirement conditions and a date; nothing outside links in; markdown only | **No, by construction** |
+| **The format** | `FORMAT.md` at the repository root, plus `schema/` once it exists | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
+| **Ideas and notes** | `docs/` | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
+| Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
+| Tool mappings | `mappings/` once it exists | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — the conformance ladder is |
+| Conformance corpus | `conformance/` once it exists | Anyone, by pull request | Every case states the outcome a conforming consumer must reach | **Yes** |
+| Sketches | `docs/examples/` | Anyone, by pull request | Every file announces itself as a sketch in its first six lines. Nothing validates them | No |
+| Parked experiments | `docs/experimental/` | Anyone, by pull request | Status, promotion and retirement conditions, a date; nothing outside links in; markdown only | No, by construction |
 | Reference implementation | Declared, not created | Anyone, by pull request | — | No |
 
 **Why the third column is uniform.** It reads the same in every row on purpose. The
 constitution already forbids a surface only maintainers can extend — *"A target list that only
 maintainers can extend is not tool-agnostic"* — and no other class has a reason to be narrower.
 Classes differ by what a change **obliges**, not by who may propose it. No role vocabulary is
-introduced here, because [Principle I](../.specify/memory/constitution.md) prices every added
+introduced here, because [Principle I](.specify/memory/constitution.md) prices every added
 governance word and a role taxonomy would buy nothing mechanical.
 
 **The one place "anyone" needs help.** `scripts/check-linkage.sh` gates every pull request on a
@@ -32,27 +34,24 @@ contributor cannot normally set a milestone on a fork's pull request. A maintain
 issue and sets the milestone on the contributor's behalf, as part of first review. Without that
 sentence the uniform column is theatre.
 
-### The normative core includes an unratified proposal
+### Why `docs/semconv/` is a note and not the format
 
-`docs/semconv/loadtest.md` is filed in the normative core, not in the experimental area, and
-the class definition is widened by exactly one clause to say so:
+`docs/semconv/loadtest.md` proposes names under `loadtest.*` for what OpenTelemetry does not
+cover. It states in its own text that it has been submitted nowhere and that nothing emits
+those names today — which makes it an idea, and `docs/` is where ideas live.
 
-> The normative core includes the `loadtest.*` registry — the only core artifact whose
-> **upstream** status is unratified. It must state that status in its own dated text, as it
-> already does.
-
-Filed in the experimental area instead, the one-operation removal test would be false on day
-one: `window.phase` rests on `loadtest.phase`, and the fallback addressing rests on
-`loadtest.request.name`. [Principle II](../.specify/memory/constitution.md) already licenses
-`loadtest.*` names as first-class; [Principle IV](../.specify/memory/constitution.md) requires
-the unsubmitted status to be stated, not the artifact to be quarantined.
+The awkward part, stated rather than hidden: two constructs in `FORMAT.md` already lean on it.
+`window.phase` rests on `loadtest.phase`, and the fallback addressing rests on
+`loadtest.request.name`. Both are listed in FORMAT.md's optional table with that dependency
+named. A name graduates from note to format by being used in `FORMAT.md` and, eventually, fixed
+in `schema/` — not by moving directory.
 
 ## 2. Governance vocabulary
 
 These words describe the repository, not the format. They are defined here rather than in the
 glossary, which is the format's three-layer vocabulary and does not gain a fourth layer. A word
 that collides with one already in the glossary is settled **there** instead, where the collision
-is visible — that is why `target` and `monitoring backend` are in [GLOSSARY.md](GLOSSARY.md)
+is visible — that is why `target` and `monitoring backend` are in [docs/GLOSSARY.md](docs/GLOSSARY.md)
 and not below.
 
 | Word | Meaning | Rejected |
@@ -71,7 +70,7 @@ and not below.
 
 ## 3. What is currently mis-filed
 
-Published rather than fixed. [AGENTS.md](../AGENTS.md) forbids opportunistic refactors outside
+Published rather than fixed. [AGENTS.md](AGENTS.md) forbids opportunistic refactors outside
 scope, so these move in their own pull requests — and each move carries an obligation that is
 cheaper to know now than to discover mid-rename.
 
@@ -90,7 +89,7 @@ This document does **not** republish the list. The constitution owns it, and a s
 copy that can drift — which the constitution's own supremacy clause makes wrong by definition.
 
 The authoritative list is in
-[the constitution's Compatibility Constraints](../.specify/memory/constitution.md). The
+[the constitution's Compatibility Constraints](.specify/memory/constitution.md). The
 per-class column in § 1 says whether a class touches it; the constitution says what "it" is.
 Extending the list is a constitutional amendment, not a layout change.
 
@@ -106,7 +105,7 @@ The whole point of the layout: this needs no permission and touches no normative
    cannot honour**. An undeclared gap is a defect of the mapping, not of the format.
 4. Evidence the claimed level with a **dated manual verification against the target's own
    documentation**, in the mapping's own annotations. This is what
-   [Principle IV](../.specify/memory/constitution.md) requires of every claim about an external
+   [Principle IV](.specify/memory/constitution.md) requires of every claim about an external
    tool.
 5. Open a pull request. A maintainer attaches the milestone and the closing link if you cannot.
 

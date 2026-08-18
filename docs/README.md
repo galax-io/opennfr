@@ -1,5 +1,8 @@
 # Notes
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 Working notes towards a format for load testing requirements. See the
 [project README](../README.md) for what this repository is and is not.
 
@@ -13,14 +16,8 @@ Working notes towards a format for load testing requirements. See the
 considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
 way in.
 
-**[architecture.md](architecture.md)** — how a requirement becomes an outcome, what each
-component on that path may not know, and the same example document walked through for k6,
-Gatling and JMeter. Every clause says whether it binds later work or merely describes
-something unbuilt.
-
-**[layout.md](layout.md)** — one home per artifact class, what changing each obliges, what is
-currently mis-filed, and the procedure for adding support for a tool without touching the
-normative core.
+This directory holds **notes and ideas only**. How the project actually works lives at the
+repository root: [ARCHITECTURE.md](../ARCHITECTURE.md) and [LAYOUT.md](../LAYOUT.md).
 
 ## What is actually verified
 
