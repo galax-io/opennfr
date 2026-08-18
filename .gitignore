@@ -8,7 +8,8 @@
 .claude/settings.local.json
 .claude/worktrees/
 
-# spec-kit scratch
+# spec-kit scratch (keep the installed config tracked; ignore per-checkout runtime state)
+.specify/feature.json
 scratchpad-*.sh
 scratchpad-*.log
 speckit-install.log

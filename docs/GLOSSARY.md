@@ -26,9 +26,13 @@ strict about — though the boundaries below are drawn by argument, not by exper
     ┌────────────────────┐      ┌──────────────┐      ┌────────────────────────┐
     │ Requirement        │──────│  Assertion   │      │ Verdict → Outcome      │
     │   └─ Criterion     │ render               evaluate                        │
-    │   └─ Guard         │──────│ (k6/Gatling) │──────│ EvaluationReport       │
+    │   └─ Guard         │──────│    Target    │──────│ EvaluationReport       │
     └────────────────────┘      └──────────────┘      └────────────────────────┘
 ```
+
+The runtime box faces a [Target](#target) — a load generator (k6, Gatling, JMeter) or a
+monitoring backend (Prometheus, Datadog). Both classes are supported the same way: by adding
+data, never code.
 
 ---
 
@@ -244,6 +248,35 @@ Gatling, a post-processor in JMeter.
 is a generated artifact, not a source of truth. The moment it enters the format, the format
 is nailed to one tool's semantics. This is the single strongest constraint the notes have
 produced so far, and the one most likely to hold.
+
+### Target
+
+The external product an adapter faces. Two classes, supported identically — by adding data,
+never by adding code:
+
+- a **load generator** produces the traffic and reports what happened (k6, Gatling, JMeter);
+- a **monitoring backend** holds telemetry, answers a query, and can host a standing monitor
+  (Prometheus, Datadog).
+
+A target never reads a requirement document. It is reached through a
+[MetricMapping](#metricmapping), and only the load-generator class is ever handed native
+assertions — at [conformance level](#conformance-level) `assert` and above.
+
+A target faces **outward**: it receives a rendered artifact or an assembled query. That is the
+opposite direction from a *data source*, which faces inward and supplies normalised series to
+evaluation, and which [ADR-0002 § D18](adr/0002-compatibility.md) keeps a parameter of
+evaluation rather than a property of a requirement. One product may play both roles in one
+run — Prometheus is the obvious case — in which case it is named by the role it is playing.
+
+`monitoring backend` is defined here rather than in an entry of its own because `backend`
+already carries a different sense in this glossary: in [enforcement](#enforcement) and in
+[EvaluationReport](#evaluationreport) it is the thing that evaluates after the run. The two
+must never be read as one.
+
+Rejected: `consumer` — [AGENTS.md](../AGENTS.md) uses it for everything downstream of the
+format, CI backends and human readers included, which is far wider than this. `tool` —
+excludes the monitoring class, and the entire point of the word is that both classes are
+supported the same way. `backend` on its own — collides, as above.
 
 ### Adapter
 
