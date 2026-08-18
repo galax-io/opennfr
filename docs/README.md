@@ -13,6 +13,15 @@ Working notes towards a format for load testing requirements. See the
 considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
 way in.
 
+**[architecture.md](architecture.md)** — how a requirement becomes an outcome, what each
+component on that path may not know, and the same example document walked through for k6,
+Gatling and JMeter. Every clause says whether it binds later work or merely describes
+something unbuilt.
+
+**[layout.md](layout.md)** — one home per artifact class, what changing each obliges, what is
+currently mis-filed, and the procedure for adding support for a tool without touching the
+normative core.
+
 ## What is actually verified
 
 Two documents contain checked facts rather than opinion, and they are the parts worth

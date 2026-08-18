@@ -149,6 +149,8 @@ alternatives and the reasons.
 | | |
 |---|---|
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | candidate vocabulary, with rejected synonyms |
+| [docs/architecture.md](docs/architecture.md) | how a requirement becomes an outcome, and three worked walkthroughs |
+| [docs/layout.md](docs/layout.md) | where every kind of thing lives, and how to add a tool |
 | [docs/adr/0001-terminology.md](docs/adr/0001-terminology.md) | naming arguments, in ADR form (status: proposed) |
 | [docs/adr/0002-compatibility.md](docs/adr/0002-compatibility.md) | notes on a Go implementation and tool compatibility |
 | [docs/compatibility.md](docs/compatibility.md) | what tools actually emit — checked, factual |
