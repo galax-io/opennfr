@@ -79,7 +79,7 @@ decided. Both are **status: proposed**.
 | [examples/mapping-k6.yaml](examples/mapping-k6.yaml) | tool mapping, best case — k6 has OTLP output and native thresholds |
 | [examples/mapping-jmeter.yaml](examples/mapping-jmeter.yaml) | tool mapping, worst case — JTL files and no routes |
 
-None of the examples is validated: there is no schema to validate them against.
+None of these sketches is validated: they use constructs the format does not have, which is why they live here. The validated corpus is `examples/` at the repository root, checked against the schema on every commit.
 
 ## Unresolved
 

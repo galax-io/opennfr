@@ -6,8 +6,9 @@ An attempt to work out what an open, tool-agnostic format for load testing requi
 *could* look like. Right now this repository contains notes: a survey of existing
 solutions, a pile of naming arguments, and sketches of what a document might look like.
 
-> Nothing here is decided. There is no schema, no validator, no implementation, and no
-> stable vocabulary. Every YAML block below is an illustration of an idea, not syntax —
+> The vocabulary is not stable and there is no implementation. There is now a schema for
+> the requirement container — see [FORMAT.md](FORMAT.md) — but everything under `docs/` is
+> still notes. Every YAML block below is an illustration of an idea, not syntax —
 > field names change between sessions of thinking about them. Do not build anything on it
 > yet.
 

@@ -54,11 +54,10 @@ sentence the uniform column is theatre.
 cover. It states in its own text that it has been submitted nowhere and that nothing emits
 those names today — which makes it an idea, and `docs/` is where ideas live.
 
-The awkward part, stated rather than hidden: two constructs in `FORMAT.md` already lean on it.
-`window.phase` rests on `loadtest.phase`, and the fallback addressing rests on
-`loadtest.request.name`. Both are listed in FORMAT.md's optional table with that dependency
-named. A name graduates from note to format by being used in `FORMAT.md` and, eventually, fixed
-in `schema/` — not by moving directory.
+Nothing in the format uses these names yet. `window` — the construct that would have rested on
+`loadtest.phase` — is listed in FORMAT.md under *Deliberately not in it — yet*, and the schema
+rejects it. A name graduates from note to format by entering the schema, not by moving
+directory.
 
 ## 2. Governance vocabulary
 
