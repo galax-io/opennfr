@@ -1,41 +1,54 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template, unversioned) → 1.0.0
-Bump rationale: MAJOR — first ratification. The file was an unfilled template; every
-placeholder is now a concrete, binding principle, which is a new governance baseline
-rather than an amendment to an existing one.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR on both limbs of the versioning policy simultaneously — three
+principles are added (VI, VII, VIII), and an existing binding constraint is materially
+expanded to cover a second class of target.
 
-Principles defined (all new — no prior titles to rename):
-  I.   Vocabulary Before Features (NON-NEGOTIABLE)
-  II.  Borrow Names, Never Invent Them
-  III. No Silent Green (NON-NEGOTIABLE)
-  IV.  Honest Status
-  V.   Structure Over Grammar
+Principles added:
+  VI.   Evaluation Is Target-Blind
+  VII.  Architecture Before Implementation
+  VIII. Experiments Are Parked, Not Merged
 
-Sections added:
-  - Compatibility Constraints  (template slot SECTION_2)
-  - Development Workflow       (template slot SECTION_3)
-  - Governance
+Principles renamed or removed: none. I-V are untouched.
 
-Sections removed: none.
+Sections materially expanded:
+  - Compatibility Constraints — "Support for a load testing tool MUST be expressible as
+    data" widened to "Support for any target", naming both classes. Widened rather than
+    duplicated: a parallel bullet saying nearly the same thing is what spec 001 § FR-011
+    forbids.
+  - Governance → Compliance review — "five principles above" → "eight".
+
+Grandfather clause, stated in VIII rather than hidden: `docs/semconv/loadtest.md` and the
+`errorSignal` sketch in `docs/examples/mapping-k6.yaml` both practise labelling without
+containment and predate this amendment. VIII binds work admitted after 2026-08-18.
 
 Templates and docs reviewed:
-  ✅ .specify/templates/plan-template.md   — "Constitution Check" filled with the five
-                                             concrete gates below (was a placeholder)
-  ✅ .specify/templates/spec-template.md   — no change needed; it is stack-agnostic and
-                                             adds no constraint the constitution contradicts
-  ✅ .specify/templates/tasks-template.md  — no change needed; task categories are generic.
-                                             Revisit when an implementation exists and
-                                             Principle V starts generating schema tasks
-  ✅ AGENTS.md                             — no change needed; it is the runtime process
-                                             guide and the constitution now points at it
-                                             rather than restating it
-  ✅ README.md, docs/                      — no change needed; the principles were derived
-                                             from them, not imposed on them
+  ✅ .specify/templates/plan-template.md   — stale pointer "(v1.0.0)" corrected to
+                                             "(v1.1.0)"; three Constitution Check gates
+                                             added for VI, VII and VIII
+  ✅ .specify/templates/spec-template.md   — no change needed; the added principles impose
+                                             no new mandatory spec section, and all three
+                                             are checked at plan time
+  ✅ .specify/templates/tasks-template.md  — no change needed; task categories stay generic
+  ✅ .specify/templates/checklist-template.md — no change needed
+  ✅ AGENTS.md                             — no change needed; VII generalises its
+                                             Spec-first rule rather than restating it
+  ✅ docs/                                 — no change needed; VI cites compatibility.md
+                                             § Layering, which already says it
 
-Deferred / TODO: none. RATIFICATION_DATE is today because this is the first adoption;
-there is no earlier date to recover.
+Citations, each resolvable by file and section without reading git history:
+  VI   → docs/compatibility.md § Requirements for the Go implementation → Layering
+  VII  → AGENTS.md § Commits & PRs (Spec-first), co-cited with Principle I's ordering rule
+  VIII → Principle III's "Any artifact nothing validates MUST say so in its own text",
+         which grounds the notice half; the containment half is new, which is why the
+         grandfather clause exists.
+
+Deferred / TODO: whether the compatibility-surface list should also cover names the format
+defines under `loadtest.*` — currently it covers only names the format *borrows*. Argued in
+specs/001-nfr-format-architecture/research.md § D4b; not taken here because it may exceed
+MINOR.
 -->
 
 # OpenNFR Constitution
@@ -115,6 +128,70 @@ contributions and, worse, invites someone to build against names that will chang
 every backend that reads it — and it never is. This is precisely where the string-DSL
 formats surveyed in `docs/references.md` fail.
 
+### VI. Evaluation Is Target-Blind
+
+The component that turns measurements into verdicts is the only thing standing between one
+document and one meaning. It stays blind, or the meaning becomes the tool's.
+
+- The component that produces verdicts MUST NOT know which target produced the measurements,
+  nor how they were obtained.
+- A statistic a target computed for itself MUST NOT be consumed as a verdict. Verdicts are
+  computed from normalised series under canonical names.
+- How a target derives a percentile MUST be recorded alongside any result that rests on it.
+- A measurement taken at one vantage point MUST NOT stand in for one taken at another. A gap
+  is declared, never filled by the nearest available number.
+
+**Rationale**: `docs/compatibility.md` § Requirements for the Go implementation → Layering
+already says it — "the evaluation layer knows nothing about tools or sources" — and calls that
+"the only reason the format can promise compatibility with an arbitrary tool". But that section
+is a proposal and nothing is built against it yet, which is exactly when the rule is cheap to
+fix. The moment a verdict depends on a tool's own arithmetic, one document stops meaning one
+thing and every portability claim the format makes is void.
+
+### VII. Architecture Before Implementation
+
+- Every change that adds or alters a component MUST name the architectural role it fills, and
+  MUST stay inside it.
+- A specification that needs a role the architecture does not have MUST amend the architecture
+  first, in an earlier pull request. Diverging from it silently is FORBIDDEN.
+- Implementation MUST NOT arrive ahead of the specification that names its role.
+- Amending the architecture MUST NOT require a decision record. It is not a
+  compatibility-sensitive surface, and the sanctioned route has to stay cheaper than the
+  workaround, or people take the workaround.
+
+**Rationale**: `AGENTS.md` § Commits & PRs already orders the artifacts — "**Spec-first.**
+`specs/NNN-*/` artifacts → `docs(speckit): add NNN-<feature> spec/plan/tasks` commit BEFORE any
+`feat`/`fix`. Never folded into implementation." — and Principle I orders the vocabulary the
+same way. This generalises both from a commit rule into a design rule. Deciding the
+architecture and the implementation in one pass is how a design notebook becomes a codebase
+nobody can argue with: the architecture stops being reviewable the moment it arrives attached
+to working code.
+
+### VIII. Experiments Are Parked, Not Merged
+
+Unsettled work is contained. A notice on something load-bearing is not containment — but a
+notice on something already contained is exactly what Principle III requires, so the two rules
+meet here rather than compete.
+
+- Work whose correctness is not yet established MUST live in the experimental area and MUST
+  NOT enter a compatibility-sensitive surface.
+- Every artifact in that area MUST state, in its own text, that it is experimental, what would
+  promote it, what would retire it, and the date the statement was last true.
+- The experimental area MUST be removable in one operation without changing anything outside
+  it, and nothing outside it may link into it.
+- This principle binds work admitted **after 2026-08-18**. Two artifacts predate it and are
+  grandfathered: `docs/semconv/loadtest.md`, an unsubmitted upstream proposal that core
+  constructs already depend on, and the `errorSignal` sketch in
+  `docs/examples/mapping-k6.yaml`. Both carry the notice Principle III requires. Neither may
+  be cited as precedent for admitting new unsettled work.
+
+**Rationale**: the failure this prevents is "it mostly works, call it v1" — a four-query-language
+experiment with four different percentile implementations treated as settled because it is
+nearly right. The grandfather clause is written down rather than hidden because two committed
+artifacts already practise labelling without containment, and a principle that made them
+retroactively non-compliant on the day it shipped would be a rule the repository breaks on
+arrival.
+
 ## Compatibility Constraints
 
 Compatibility-sensitive surfaces, which MUST NOT change without an ADR:
@@ -130,9 +207,10 @@ Binding constraints:
   format silently excludes every tool that cannot assert inline.
 - Requirement documents MUST remain portable across observability stacks. The data
   source is a parameter of evaluation, never part of the requirement.
-- Support for a load testing tool MUST be expressible as data, not as code in the
-  reference implementation. A tool list that only maintainers can extend is not
-  tool-agnostic.
+- Support for any target MUST be expressible as data, not as code in the reference
+  implementation. This covers both classes: a load generator that produces the traffic, and a
+  monitoring backend that holds telemetry and answers a query. A target list that only
+  maintainers can extend is not tool-agnostic.
 
 ## Development Workflow
 
@@ -166,7 +244,7 @@ same issue/milestone/linkage rules as every other change.
 - PATCH — clarification, rewording, or a fix that changes no obligation.
 
 **Compliance review**: `/speckit-plan` MUST evaluate its Constitution Check against the
-five principles above before Phase 0 research and again after Phase 1 design. PR review
+eight principles above before Phase 0 research and again after Phase 1 design. PR review
 MUST verify compliance; a violation is either fixed or the constitution is amended, but
 never silently accepted. Complexity that appears to require a violation MUST be
 justified in writing in the plan's Complexity Tracking section.
@@ -174,4 +252,4 @@ justified in writing in the plan's Complexity Tracking section.
 **Runtime guidance**: `AGENTS.md` for process, `docs/GLOSSARY.md` for vocabulary,
 `docs/adr/` for why any of it is the way it is.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-10
+**Version**: 1.1.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-18

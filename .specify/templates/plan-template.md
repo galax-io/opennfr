@@ -41,7 +41,7 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 Answer each gate explicitly. A "no" is either fixed or justified in Complexity Tracking
-below — never left blank. See `.specify/memory/constitution.md` (v1.0.0).
+below — never left blank. See `.specify/memory/constitution.md` (v1.1.0).
 
 - [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term?
       If so, is `docs/GLOSSARY.md` updated in the same change, with a rejected
@@ -57,6 +57,17 @@ below — never left blank. See `.specify/memory/constitution.md` (v1.0.0).
 - [ ] **V. Structure Over Grammar** — is every new field validatable by schema without a
       bespoke parser? Are value sets closed? Does anything need custom decoding, and is
       that justified in an ADR?
+- [ ] **VI. Evaluation Is Target-Blind** — does anything here let the component that
+      produces verdicts learn which target supplied the measurements, or consume a statistic
+      a target computed for itself? Is percentile provenance recorded? Is any measurement
+      from one vantage point standing in for another?
+- [ ] **VII. Architecture Before Implementation** — does every component this adds or alters
+      name the architectural role it fills? If it needs a role the architecture lacks, does
+      an earlier PR amend the architecture rather than diverging from it?
+- [ ] **VIII. Experiments Are Parked, Not Merged** — is any unsettled work entering a
+      compatibility-sensitive surface? Does every experimental artifact state its status,
+      promotion and retirement conditions, and the date? Is the experimental area still
+      removable in one operation, with nothing outside linking into it?
 - [ ] **Compatibility** — does this touch a borrowed OTel name, a published example's
       field name, or the conformance levels? Is any construct expressible only at
       conformance level `assert` or above?
