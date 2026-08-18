@@ -26,10 +26,10 @@
       ],
       "properties": {
         "name": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
+          "$ref": "#/$defs/name"
         },
         "annotations": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/annotations"
+          "$ref": "#/$defs/annotations"
         }
       }
     },
@@ -65,7 +65,7 @@
           "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format."
         },
         "selector": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/selector"
+          "$ref": "#/$defs/selector"
         }
       }
     },
@@ -118,20 +118,20 @@
       ],
       "properties": {
         "name": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name",
+          "$ref": "#/$defs/name",
           "description": "Optional. Identifies this predicate in a report; without it the aggregation is the identifier, so two predicates in one requirement may not then share an aggregation."
         },
         "aggregation": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/aggregation"
+          "$ref": "#/$defs/aggregation"
         },
         "op": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/op"
+          "$ref": "#/$defs/op"
         },
         "threshold": {
           "type": "number"
         },
         "unit": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/unit"
+          "$ref": "#/$defs/unit"
         }
       }
     },
@@ -145,7 +145,7 @@
       ],
       "properties": {
         "name": {
-          "$ref": "https://opennfr.io/schema/v1/common.schema.json#/$defs/name"
+          "$ref": "#/$defs/name"
         },
         "indicator": {
           "$ref": "#/$defs/indicator"
@@ -176,6 +176,60 @@
           }
         }
       }
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "maxLength": 253
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Mandatory wherever a number needs one. Without it 0.1 is either a tenth of a percent or a tenth of a fraction and nobody can tell. The permitted set becomes a closed list once docs/units.md is ratified; until then any non-empty string parses."
+    },
+    "op": {
+      "enum": [
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "eq",
+        "neq"
+      ]
+    },
+    "aggregation": {
+      "type": "string",
+      "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
+      "anyOf": [
+        {
+          "enum": [
+            "avg",
+            "min",
+            "max",
+            "count",
+            "rate",
+            "sum",
+            "stddev"
+          ]
+        },
+        {
+          "pattern": "^p\\d{1,2}(\\.\\d+)?$"
+        }
+      ]
+    },
+    "selector": {
+      "type": "object",
+      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
     }
   }
 }

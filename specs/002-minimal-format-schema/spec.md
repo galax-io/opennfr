@@ -68,7 +68,7 @@ root; it does not.
 
 ---
 
-### User Story 3 - The format cannot drift away from its own examples (Priority: P3)
+### User Story 3 - The format cannot drift away from its own example (Priority: P3)
 
 A change to the format that breaks a published example fails the build.
 
@@ -79,7 +79,7 @@ matches the format teaches the wrong thing, silently.
 
 **Acceptance Scenarios**:
 
-1. **Given** the validated examples, **When** the format changes incompatibly, **Then** the
+1. **Given** the validated example, **When** the format changes incompatibly, **Then** the
    build fails.
 2. **Given** a document kind with no schema yet, **When** the check runs, **Then** it says so
    out loud rather than passing over it.
@@ -105,26 +105,24 @@ matches the format teaches the wrong thing, silently.
   cannot honour, or a knob nobody has asked for, MUST stay an idea until asked for.
 - **FR-004**: Unknown fields MUST be rejected everywhere.
 - **FR-005**: A number MUST carry a unit.
-- **FR-006**: The format MUST define an output document as well as an input. A standard input
-  with no standard output is half a promise.
-- **FR-007**: A result that judged something MUST carry what it observed. A result that judged
-  nothing MUST carry a reason. Silence MUST NOT be a permitted answer.
-- **FR-008**: A definition used by more than one document kind MUST have exactly one home.
+- **FR-006**: The format MUST NOT define a document kind that nothing produces yet. A result
+  document, and a document binding the format to a tool, arrive when something needs them —
+  a guess written into a schema is harder to withdraw than a guess written in a note.
 
 ### The notebook
 
-- **FR-009**: Every file in the notebook MUST say, in its own text, that it is a note and not a
+- **FR-007**: Every file in the notebook MUST say, in its own text, that it is a note and not a
   rule.
-- **FR-010**: The project's own documents MUST NOT live in the notebook.
-- **FR-011**: A note MUST be deleted in the same change that accepts, parks or rejects the idea
+- **FR-008**: The project's own documents MUST NOT live in the notebook.
+- **FR-009**: A note MUST be deleted in the same change that accepts, parks or rejects the idea
   it records.
 
 ### The gate
 
-- **FR-012**: Published examples MUST be validated against the schema on every commit.
-- **FR-013**: A document kind with no schema MUST be reported as such, not passed over.
-- **FR-014**: The gate MUST fail rather than skip when its validator is unavailable.
-- **FR-015**: Every value in a published document MUST have a JSON equivalent.
+- **FR-010**: Published examples MUST be validated against the schema on every commit.
+- **FR-011**: A document kind with no schema MUST be reported as such, not passed over.
+- **FR-012**: The gate MUST fail rather than skip when its validator is unavailable.
+- **FR-013**: Every value in a published document MUST have a JSON equivalent.
 
 ## Key Entities
 
@@ -139,13 +137,14 @@ matches the format teaches the wrong thing, silently.
 - **SC-001**: A misspelled field in a requirement document is caught, and the report names its
   path.
 - **SC-002**: The number of metric names enumerated in the schema is zero.
-- **SC-003**: The whole container is under 12 KB across all schema files.
+- **SC-003**: The whole container is one file, under 6 KB.
 - **SC-004**: Every file in the notebook carries a note marker — 100%, verifiable by grep.
 - **SC-005**: Every validated example passes on every commit; a format change that breaks one
   turns the build red.
 - **SC-006**: A document kind without a schema produces a visible line rather than silence.
 - **SC-007**: Removing the validator turns the build red rather than green.
 - **SC-008**: The number of constructs in the container that no tool can satisfy is zero.
+- **SC-009**: The number of document kinds defined that nothing yet produces is zero.
 
 ## What this change decided
 
@@ -157,6 +156,7 @@ Recorded because the reasoning is not recoverable from the diff.
 | `window`, `baseline`/`tolerance`, `severity`/`gate`, `enforcement`/`onViolation`, `defaults`, `indicatorRef` are ideas, not fields | Two rest on things that do not exist; the rest are sugar or policy |
 | Guards stay | Without them the format is a wrapper over thresholds. A run that under-delivered its load shows a green percentile and a false verdict, and nothing else in the container catches that |
 | Validated examples live apart from sketches | A sketch may exceed the format; an example may not. Judging both by one rule makes one of them useless |
+| A result document and a tool binding are **not** defined | Nothing produces either yet. Inventing a container for output before anything computes output is guessing, and a guess in a schema costs more to withdraw than a guess in a note |
 
 ### Three defects the schema found that prose had hidden
 

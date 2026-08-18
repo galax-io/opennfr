@@ -95,30 +95,21 @@ import glob, json, sys
 try:
     import yaml
     from jsonschema import Draft202012Validator
-    import referencing  # noqa: F401
 except ImportError as e:
     print(f"  skip  {e.name} not installed (pip install jsonschema pyyaml)")
     sys.exit(0)
-from referencing import Registry, Resource
-schemas = {}
-for sf in sorted(glob.glob("schema/opennfr.io/v1/*.json")):
-    s = json.load(open(sf, encoding="utf-8"))
-    Draft202012Validator.check_schema(s)
-    schemas[s["$id"]] = s
-registry = Registry().with_resources(
-    [(i, Resource.from_contents(s)) for i, s in schemas.items()]
-)
-by_kind = {s["title"]: s for s in schemas.values() if s.get("type") == "object"}
+schema = json.load(open("schema/opennfr.io/v1/requirementset.schema.json", encoding="utf-8"))
+Draft202012Validator.check_schema(schema)
+v = Draft202012Validator(schema)
 rc = 0
-for f in sorted(glob.glob("examples/**/*.yaml", recursive=True)):
+for f in sorted(glob.glob("examples/*.yaml")):
     for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
         if not isinstance(doc, dict):
             continue
         kind = doc.get("kind")
-        if kind not in by_kind:
+        if kind != "RequirementSet":
             print(f"  --    {f}: kind {kind!r} has no schema yet")
             continue
-        v = Draft202012Validator(by_kind[kind], registry=registry)
         errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
         if errs:
             rc = 1

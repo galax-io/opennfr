@@ -2,17 +2,8 @@
 
 A container. It fixes the **shape** a requirement is written in, and nothing else.
 
-The definition is the schema. This file explains it; the schema decides.
-
-| Kind | Schema | What it holds |
-|---|---|---|
-| `RequirementSet` | [`requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json) | What must hold. The input |
-| `EvaluationReport` | [`evaluationreport.schema.json`](schema/opennfr.io/v1/evaluationreport.schema.json) | What happened. The output |
-| — | [`common.schema.json`](schema/opennfr.io/v1/common.schema.json) | Definitions both share. One home each, so they cannot drift |
-| `MetricMapping` | not yet | Binds the format to one tool |
-
-The output is not an afterthought. Without a standard report, "any backend can consume this" is
-half a promise: a backend needs a standard output as much as a standard input.
+The definition is [`schema/opennfr.io/v1/requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json).
+One file. This page explains it; the schema decides.
 
 ## The minimal document
 
@@ -36,9 +27,9 @@ spec:
           unit: ms
 ```
 
-A guard, a ratio and a report are in [`examples/`](examples/). Those files are not sketches —
-`scripts/verify.sh` validates them against the schema on every commit, so if the format changes
-under them, the build goes red.
+[`examples/minimal.yaml`](examples/minimal.yaml) is that document. It is not a sketch:
+`scripts/verify.sh` validates it against the schema on every commit, so the format cannot drift
+away from it.
 
 ```bash
 bash scripts/verify.sh
@@ -71,9 +62,8 @@ file or the schema.
 | Guards | A violated guard means the run did not happen as intended, so the outcome is `inconclusive` — not `fail`, and never a pass |
 | Three outcomes | `pass`, `fail`, `inconclusive`. Three verdict statuses: `pass`, `fail`, `noData` |
 | Strictness | `additionalProperties: false` everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
-| Results that cannot lie | A verdict with status `pass` or `fail` must carry what it observed. A verdict with `noData` must carry a **reason**. Silence is not a permitted answer |
 
-That is the whole container. Three files, under 12 KB of schema.
+That is the whole container. One file, under 6 KB.
 
 ## Deliberately not in it — yet
 
@@ -88,6 +78,8 @@ either adds a dependency the format cannot honour or adds a knob before anyone h
 | `enforcement`, `onViolation` — fail during the run | Tool capability, not format. k6 can, JMeter cannot, and the format must not exclude JMeter |
 | `defaults` — write shared settings once | Sugar. It buys brevity and costs merge semantics |
 | `indicatorRef` — reuse one indicator | Sugar |
+| A result document — what an evaluation produced | Nothing produces one yet. Designing the output before anything computes it is guessing, and a guess in a schema is harder to withdraw than a guess in a note |
+| `MetricMapping` — binding the format to a tool | Same reason. It arrives with the first tool that needs it |
 
 Each is argued in [`docs/GLOSSARY.md`](docs/GLOSSARY.md). When one is accepted, it lands in the
 schema **and its note in `docs/` is deleted** — see below.
