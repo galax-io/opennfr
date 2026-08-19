@@ -9,6 +9,10 @@
 # The schema gate validates examples/ against schema/opennfr.io/v1/. The sketches
 # under docs/examples/ are outside it on purpose — see AGENTS.md > Test Model.
 #
+# Constitution III (No Silent Green) binds this file to itself: a section that cannot
+# run reports FAIL, never ok and never a bare skip, and a section that scanned nothing
+# says so. A gate that excuses itself is indistinguishable from a gate that passed.
+#
 # Usage: bash scripts/verify.sh
 
 set -uo pipefail
@@ -22,17 +26,21 @@ bad()     { printf '  FAIL  %s\n' "$1"; fail=1; }
 # ---------------------------------------------------------------------------
 section "YAML sketches parse"
 if ! command -v python3 >/dev/null 2>&1; then
-  printf '  skip  python3 not found\n'
+  bad "python3 not found — the YAML parse gate cannot run"
 else
   python3 - <<'PY'
 import glob, sys
 try:
     import yaml
 except ImportError:
-    print("  skip  PyYAML not installed (pip install pyyaml)")
-    sys.exit(0)
+    print("  FAIL  PyYAML not installed (pip install pyyaml)")
+    sys.exit(1)
 rc = 0
-for f in sorted(glob.glob("examples/*.yaml") + glob.glob("docs/**/*.yaml", recursive=True)):
+files = sorted(glob.glob("examples/*.yaml") + glob.glob("docs/**/*.yaml", recursive=True))
+if not files:
+    print("  FAIL  no YAML document found to parse")
+    sys.exit(1)
+for f in files:
     try:
         list(yaml.safe_load_all(open(f, encoding="utf-8")))
         print(f"  ok    {f}")
@@ -49,7 +57,9 @@ section "Sketches map one-to-one onto JSON"
 # ADR-0002 D16: every object must map onto JSON, and anchors, aliases and merge
 # keys are forbidden outright. Both checks have to happen before safe_load_all
 # resolves them away: by the time it returns, an alias is an ordinary dict.
-if command -v python3 >/dev/null 2>&1; then
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the JSON-mapping gate cannot run"
+else
   python3 - <<'JSONABLE' || fail=1
 import glob, math, sys
 try:
@@ -87,7 +97,11 @@ def walk(v, path, f):
         return
     print(f"  FAIL  {f}: {path}: {type(v).__name__} has no JSON equivalent ({v!r})")
     rc = 1
-for f in sorted(glob.glob("examples/*.yaml") + glob.glob("docs/examples/**/*.yaml", recursive=True)):
+files = sorted(glob.glob("examples/*.yaml") + glob.glob("docs/examples/**/*.yaml", recursive=True))
+if not files:
+    print("  FAIL  no YAML document found to map onto JSON")
+    sys.exit(1)
+for f in files:
     before = rc
     scan_events(f)
     for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
@@ -165,7 +179,9 @@ fi
 # ---------------------------------------------------------------------------
 section "Internal markdown links resolve"
 missing=0
+found=0
 while IFS= read -r line; do
+  found=$((found + 1))
   src="${line%%:*}"
   target="${line#*:}"
   base="$(dirname "$src")"
@@ -182,31 +198,88 @@ done < <(
     | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/' \
     | grep -vE ':(https?|mailto):'
 )
-[ "$missing" -eq 0 ] && ok "no dangling internal links"
+# Zero links means the extraction above stopped working, not that the docs are clean.
+if [ "$found" -eq 0 ]; then
+  bad "no markdown links found — the link extraction is broken"
+elif [ "$missing" -eq 0 ]; then
+  ok "no dangling internal links ($found checked)"
+fi
 
 # ---------------------------------------------------------------------------
 section "Docs are English"
 # ADR-0001 settled on English for everything published. Cyrillic left in a file
 # means a translation was missed, which is silent until someone outside reads it.
-cyr=$(grep -rlP '[\x{0400}-\x{04FF}]' --include='*.md' --include='*.yaml' . 2>/dev/null | grep -v '^\./\.git/' || true)
-if [ -n "$cyr" ]; then
-  while IFS= read -r f; do bad "non-English text in $f"; done <<<"$cyr"
+#
+# This was `grep -rlP` until it turned out that `-P` is a GNU extension. BSD grep on
+# macOS answers "invalid option -- P", `2>/dev/null` swallowed that, `|| true` swallowed
+# the exit status, and an empty result read as a clean scan: the check reported ok on
+# every Mac without ever having run once. Python carries no such dialect, and the rest
+# of this file already reaches for it whenever a check stops being one grep long.
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the English scan cannot run"
 else
-  ok "no non-English text in docs"
+  python3 - <<'ENGLISH' || fail=1
+import re, subprocess, sys
+
+# What the repository carries or is about to: tracked files plus untracked ones git
+# would accept. Ignored paths stay out — .claude/worktrees/ holds entire checkouts of
+# other branches — and an unstaged draft stays in, which is where the Cyrillic that
+# exposed this check being broken was sitting.
+def git(*flags):
+    out = subprocess.run(["git", "ls-files", "-z", *flags, "--", "*.md", "*.yaml"],
+                         capture_output=True, check=True).stdout
+    return {f for f in out.decode("utf-8").split("\0") if f}
+
+try:
+    listed = git("--cached", "--others", "--exclude-standard")
+    # A file deleted from the worktree is still in the index. It has no content to
+    # read, so it is removed by name rather than left to fail as unreadable — which
+    # keeps that FAIL meaning what it says.
+    listed -= git("--deleted")
+except (OSError, subprocess.CalledProcessError) as e:
+    print(f"  FAIL  cannot enumerate files ({e}) — the English scan cannot run")
+    sys.exit(1)
+
+files = sorted(listed)
+if not files:
+    print("  FAIL  no .md or .yaml file found to scan")
+    sys.exit(1)
+
+cyrillic = re.compile(r"[\u0400-\u04FF]")   # the Cyrillic block, as the grep matched
+rc = 0
+for f in files:
+    try:
+        text = open(f, encoding="utf-8").read()
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"  FAIL  {f}: cannot be read as UTF-8 ({e})")
+        rc = 1
+        continue
+    for n, line in enumerate(text.splitlines(), 1):
+        if cyrillic.search(line):
+            print(f"  FAIL  non-English text in {f}:{n}")
+            rc = 1
+            break                            # one line per file is enough to act on
+if rc == 0:
+    print(f"  ok    no non-English text in {len(files)} files")
+sys.exit(rc)
+ENGLISH
 fi
 
 # ---------------------------------------------------------------------------
 section "Examples are labelled as sketches"
 # Nothing validates the examples, so each one must say so — otherwise a reader
 # mistakes an illustration for syntax.
+sketches=0
 for f in docs/examples/*.yaml; do
   [ -e "$f" ] || continue
+  sketches=$((sketches + 1))
   if head -6 "$f" | grep -qi 'sketch'; then
     ok "$f"
   else
     bad "$f does not announce itself as a sketch in its first 6 lines"
   fi
 done
+[ "$sketches" -gt 0 ] || bad "docs/examples/ holds no sketch to check"
 
 # ---------------------------------------------------------------------------
 printf '\n'
