@@ -1,5 +1,8 @@
 # Notes
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 Working notes towards a format for load testing requirements. See the
 [project README](../README.md) for what this repository is and is not.
 
@@ -13,14 +16,13 @@ Working notes towards a format for load testing requirements. See the
 considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
 way in.
 
-**[architecture.md](architecture.md)** — how a requirement becomes an outcome, what each
-component on that path may not know, and the same example document walked through for k6,
-Gatling and JMeter. Every clause says whether it binds later work or merely describes
-something unbuilt.
+This directory holds **notes and ideas only**. The project itself lives at the repository
+root: [FORMAT.md](../FORMAT.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [LAYOUT.md](../LAYOUT.md).
 
-**[layout.md](layout.md)** — one home per artifact class, what changing each obliges, what is
-currently mis-filed, and the procedure for adding support for a tool without touching the
-normative core.
+**A note here is deleted once it stops being a note.** When an idea is accepted into the
+format, parked, or rejected, its note goes in the same pull request — see
+[LAYOUT.md](../LAYOUT.md). What survives is the ADR, the glossary's *Rejected* line, or the
+schema; never a second copy of a decision.
 
 ## What is actually verified
 
@@ -77,7 +79,7 @@ decided. Both are **status: proposed**.
 | [examples/mapping-k6.yaml](examples/mapping-k6.yaml) | tool mapping, best case — k6 has OTLP output and native thresholds |
 | [examples/mapping-jmeter.yaml](examples/mapping-jmeter.yaml) | tool mapping, worst case — JTL files and no routes |
 
-None of the examples is validated: there is no schema to validate them against.
+None of these sketches is validated: they use constructs the format does not have, which is why they live here. The validated corpus is `examples/` at the repository root, checked against the schema on every commit.
 
 ## Unresolved
 

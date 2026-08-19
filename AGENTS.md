@@ -36,7 +36,7 @@ The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the terms, the
 
 ## Test Model
 
-Nothing is testable yet — `scripts/verify.sh` only checks that the notes are internally consistent (YAML parses, internal links resolve, the docs stayed English). Once a JSON Schema exists, every file in docs/examples/ must validate against it, and that becomes the real gate.
+`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve and the docs stayed English. `examples/` is the validated corpus; the sketches under `docs/examples/` are deliberately outside the gate, because they illustrate ideas the format does not have — see LAYOUT.md.
 
 ---
 

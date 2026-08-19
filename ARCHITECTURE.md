@@ -13,7 +13,7 @@ one applies to it. Nothing is unmarked.
 | **(binding)** | Later specifications must obey it. Component roles, their forbidden dependencies, and the boundaries between follow-up specs |
 | **(proposed)** | Describes something that does not exist yet. True of every component named here — none is built |
 
-The split is not decoration. [Principle IV](../.specify/memory/constitution.md) forbids a
+The split is not decoration. [Principle IV](.specify/memory/constitution.md) forbids a
 document from reading as more settled than it is, while a rule nobody must follow is not worth
 writing. Roles bind; the machinery that would fill them is proposed.
 
@@ -41,10 +41,10 @@ requirement ── criterion ──> verdict ──> gate ──> outcome
 1. *(binding)* The path ends at **outcome**, not at verdict. A `Verdict` is the result of
    checking one criterion or guard; an `Outcome` is the aggregated result of the whole run.
    A trace that stops at verdict stops one component short of `gate`. See
-   [GLOSSARY.md](GLOSSARY.md).
+   [docs/GLOSSARY.md](docs/GLOSSARY.md).
 2. *(binding)* No role may read the requirement document to discover its data source. The
    source is a parameter of evaluation, never a property of the requirement —
-   [ADR-0002 § D18](adr/0002-compatibility.md).
+   [ADR-0002 § D18](docs/adr/0002-compatibility.md).
 3. *(binding)* No construct may be checkable only while a run is in progress. Anything
    expressible must also be evaluable afterwards, or the format silently excludes every tool
    that cannot assert inline. This is already a ratified constitutional constraint.
@@ -57,7 +57,7 @@ Roles are contracts, not modules. Two of them — Render and Ingest — are **su
 glossary's `Adapter`**, not rivals to it: the glossary already defines an `Adapter` as doing
 four jobs, of which rendering assertions is one and collecting a tool's output is another.
 Introducing a competing decomposition of the same pipeline is what
-[Principle I](../.specify/memory/constitution.md) forbids.
+[Principle I](.specify/memory/constitution.md) forbids.
 
 The original request called these *interpreters*. In this repository's vocabulary that word is
 `Adapter`; `interpreter` is not used.
@@ -69,7 +69,7 @@ The original request called these *interpreters*. In this repository's vocabular
 | R3 | Ingest *(Adapter)* | A target's raw output + one tool mapping | Normalised series under canonical names, in canonical units | What the criteria say | **binding** |
 | R4 | Evaluate | Normalised series, criteria, guards, `gate` | One verdict per criterion and guard, then one outcome | Which target produced the measurements, or how | **binding** |
 
-**R4 is [Principle VI](../.specify/memory/constitution.md)** *(binding)*, and it is the only
+**R4 is [Principle VI](.specify/memory/constitution.md)** *(binding)*, and it is the only
 reason one document can mean one thing across many targets. Its sharpest consequence: a
 statistic the target already computed — k6's own p95 — must not be consumed as a verdict. The
 moment it is, the verdict depends on that tool's percentile machinery.
@@ -94,7 +94,7 @@ declared in the mapping rather than left to whoever implements the role.
    another. A load generator measures latency as a client; a production stack usually measures
    it as a server. The numbers are not comparable.
 7. *(binding)* Missing data produces `noData` and a violated guard produces `inconclusive`.
-   Neither is a pass. [Principle III](../.specify/memory/constitution.md).
+   Neither is a pass. [Principle III](.specify/memory/constitution.md).
 
 ---
 
@@ -109,10 +109,10 @@ identically — by adding data, never by adding code:
 | Monitoring backend | Holds telemetry, answers a query, can host a standing monitor | Not applicable — see § 6 | **proposed** |
 
 The full definition, including why `monitoring backend` is defined inside the `Target` entry
-rather than on its own, is in [GLOSSARY.md](GLOSSARY.md). A target faces **outward**; a
+rather than on its own, is in [docs/GLOSSARY.md](docs/GLOSSARY.md). A target faces **outward**; a
 *data source* faces inward and supplies normalised series to R4. One product may play both
 roles in one run, in which case it is named by the role it is playing. This document cites
-[ADR-0002 § D18](adr/0002-compatibility.md) for `data source` rather than redefining it.
+[ADR-0002 § D18](docs/adr/0002-compatibility.md) for `data source` rather than redefining it.
 
 ---
 
@@ -121,9 +121,9 @@ roles in one run, in which case it is named by the role it is playing. This docu
 *(proposed — none of the machinery exists; the tool facts are dated)*
 
 One document, unchanged in every character:
-[examples/checkout-perf.yaml](examples/checkout-perf.yaml). It carries five requirements, two
+[docs/examples/checkout-perf.yaml](docs/examples/checkout-perf.yaml). It carries five requirements, two
 guards, and a `gate`. Every tool statement below comes from this repository's own survey in
-[compatibility.md](compatibility.md), *"Verified against documentation as of August 2026"*, or
+[docs/compatibility.md](docs/compatibility.md), *"Verified against documentation as of August 2026"*, or
 from the mapping sketches in `examples/`. Nothing here is asserted from outside those files.
 
 ### 4.1 k6 — the best case
@@ -163,7 +163,7 @@ Edition — the open-source build goes through `simulation.log`.
 |---|---|
 | Latency, throughput | Response time is recorded; canonical naming needs the missing mapping |
 | `onViolation: abort` | **Impossible** — the survey records Abort: `no` for Gatling |
-| guard on `loadtest.dropped_iterations` | **No equivalent** — the mapping table in [semconv/loadtest.md](semconv/loadtest.md) records an em-dash |
+| guard on `loadtest.dropped_iterations` | **No equivalent** — the mapping table in [docs/semconv/loadtest.md](docs/semconv/loadtest.md) records an em-dash |
 | Error signal | `KO` carries it |
 | `http.route` | Reconstructed by an adapter, per the survey — which does not exist yet |
 
@@ -212,8 +212,8 @@ which this feature does not do)*
 
 17. *(binding)* Support for any target is added as **data** — a `kind: MetricMapping` document
     — and requires changing no normative-core artifact and no reference implementation. This is
-    [ADR-0002 § D12](adr/0002-compatibility.md), generalised to both target classes by
-    [the constitution's Compatibility Constraints](../.specify/memory/constitution.md).
+    [ADR-0002 § D12](docs/adr/0002-compatibility.md), generalised to both target classes by
+    [the constitution's Compatibility Constraints](.specify/memory/constitution.md).
 18. *(binding)* A mapping declares what its target **cannot** do. An undeclared gap is a defect
     of the mapping, not of the format.
 

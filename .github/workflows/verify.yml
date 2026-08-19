@@ -19,10 +19,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --disable-pip-version-check pyyaml
+      - run: pip install --disable-pip-version-check pyyaml jsonschema
 
-      # The repo has no code yet, so this checks the only things that can be
-      # wrong: sketches parse, links resolve, docs stayed English.
+      # One invocation. Piping into tee would report tee's status, and GitHub
+      # runs these blocks with errexit but not pipefail — a failing gate would
+      # look green.
       - run: bash scripts/verify.sh
 
   linkage:

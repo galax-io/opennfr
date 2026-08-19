@@ -1,5 +1,8 @@
 # Reference survey
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 What exists already, what each one gets right, and where each one hurts. This is the most
 finished part of the repository — the notes elsewhere are speculation, but this is a survey
 of things that shipped.

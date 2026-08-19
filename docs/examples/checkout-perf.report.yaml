@@ -11,8 +11,8 @@ spec:
   requirementSetRef: checkout-perf
 
   run:
-    startTime: 2026-08-09T10:00:00Z
-    endTime: 2026-08-09T10:30:00Z
+    startTime: "2026-08-09T10:00:00Z"
+    endTime: "2026-08-09T10:30:00Z"
     # Run identity uses existing OTel attributes only; no fields of our own.
     attributes:
       service.name: checkout
@@ -43,8 +43,8 @@ spec:
       samples: 366120
       window:
         phase: steady
-        startTime: 2026-08-09T10:05:00Z
-        endTime: 2026-08-09T10:25:00Z
+        startTime: "2026-08-09T10:05:00Z"
+        endTime: "2026-08-09T10:25:00Z"
 
     - requirement: checkout-latency
       criterionId: reached-target-rate
@@ -73,8 +73,8 @@ spec:
       samples: 128340
       window:
         phase: steady
-        startTime: 2026-08-09T10:05:00Z
-        endTime: 2026-08-09T10:25:00Z
+        startTime: "2026-08-09T10:05:00Z"
+        endTime: "2026-08-09T10:25:00Z"
 
     - requirement: checkout-latency
       criterionId: p99

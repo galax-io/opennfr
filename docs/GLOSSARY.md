@@ -1,5 +1,8 @@
 # Glossary
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+
 Candidate vocabulary. The aim is one concept, one word — but these are proposals, not
 settled terms, and several are still contested.
 

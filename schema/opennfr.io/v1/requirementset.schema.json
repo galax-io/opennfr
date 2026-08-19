@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opennfr.io/schema/v1/requirementset.schema.json",
+  "title": "RequirementSet",
+  "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry rather than defined here, so measuring something new never means changing the format.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "opennfr.io/v1"
+    },
+    "kind": {
+      "const": "RequirementSet"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "annotations": {
+          "$ref": "#/$defs/annotations"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirements"
+      ],
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "selector"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format."
+        },
+        "selector": {
+          "$ref": "#/$defs/selector"
+        }
+      }
+    },
+    "indicator": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Exactly one shape. Nested keys rather than a discriminator, so a decoder needs no second pass.",
+      "properties": {
+        "distribution": {
+          "$ref": "#/$defs/series"
+        },
+        "ratio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total"
+          ],
+          "properties": {
+            "total": {
+              "$ref": "#/$defs/series"
+            },
+            "bad": {
+              "$ref": "#/$defs/series"
+            },
+            "good": {
+              "$ref": "#/$defs/series"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "bad"
+              ]
+            },
+            {
+              "required": [
+                "good"
+              ]
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "distribution"
+          ]
+        },
+        {
+          "required": [
+            "ratio"
+          ]
+        }
+      ]
+    },
+    "predicate": {
+      "type": "object",
+      "required": [
+        "aggregation",
+        "op",
+        "threshold",
+        "unit"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "Optional. Identifies this predicate in a report; without it the aggregation is the identifier, so two predicates in one requirement may not then share an aggregation."
+        },
+        "aggregation": {
+          "$ref": "#/$defs/aggregation"
+        },
+        "op": {
+          "$ref": "#/$defs/op"
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "indicator",
+        "criteria"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "indicator": {
+          "$ref": "#/$defs/indicator"
+        },
+        "guards": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Preconditions. Same shape as a criterion, opposite meaning: a violated guard says the run did not happen as intended, so the outcome is inconclusive rather than fail. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/predicate"
+              }
+            ],
+            "properties": {
+              "indicator": {
+                "$ref": "#/$defs/indicator"
+              }
+            },
+            "unevaluatedProperties": false
+          }
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/predicate"
+              }
+            ],
+            "unevaluatedProperties": false
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "indicator": {
+                "required": [
+                  "ratio"
+                ]
+              }
+            },
+            "required": [
+              "indicator"
+            ]
+          },
+          "then": {
+            "properties": {
+              "criteria": {
+                "items": {
+                  "properties": {
+                    "aggregation": {
+                      "enum": [
+                        "rate",
+                        "count"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "description": "docs/GLOSSARY.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
+        }
+      ]
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "maxLength": 253
+    },
+    "unit": {
+      "enum": [
+        "ns",
+        "us",
+        "ms",
+        "s",
+        "min",
+        "h",
+        "%",
+        "1",
+        "By",
+        "KiBy",
+        "MiBy",
+        "GiBy",
+        "{request}",
+        "{request}/s",
+        "{iteration}",
+        "{iteration}/s",
+        "{vu}"
+      ],
+      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
+    },
+    "op": {
+      "enum": [
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "eq",
+        "neq"
+      ]
+    },
+    "aggregation": {
+      "type": "string",
+      "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
+      "anyOf": [
+        {
+          "enum": [
+            "avg",
+            "min",
+            "max",
+            "count",
+            "rate",
+            "sum",
+            "stddev"
+          ]
+        },
+        {
+          "pattern": "^p\\d{1,2}(\\.\\d+)?$"
+        }
+      ]
+    },
+    "selector": {
+      "type": "object",
+      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "annotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
+    }
+  }
+}

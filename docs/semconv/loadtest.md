@@ -1,5 +1,8 @@
 # Sketch: a `loadtest.*` registry
 
+> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
+> The format itself is [FORMAT.md](../../FORMAT.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
+
 What an OpenTelemetry semantic conventions extension for load testing might contain.
 
 **This is a proposal written in semconv style, nothing more.** It is not an OTel standard,

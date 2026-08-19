@@ -6,8 +6,9 @@ An attempt to work out what an open, tool-agnostic format for load testing requi
 *could* look like. Right now this repository contains notes: a survey of existing
 solutions, a pile of naming arguments, and sketches of what a document might look like.
 
-> Nothing here is decided. There is no schema, no validator, no implementation, and no
-> stable vocabulary. Every YAML block below is an illustration of an idea, not syntax —
+> The vocabulary is not stable and there is no implementation. There is now a schema for
+> the requirement container — see [FORMAT.md](FORMAT.md) — but everything under `docs/` is
+> still notes. Every YAML block below is an illustration of an idea, not syntax —
 > field names change between sessions of thinking about them. Do not build anything on it
 > yet.
 
@@ -142,6 +143,14 @@ approach:
 
 ## Documents
 
+Three live at the repository root, because they are the project rather than ideas about it:
+[FORMAT.md](FORMAT.md) — the minimal format and how to fill it with metrics —
+[ARCHITECTURE.md](ARCHITECTURE.md) — how a requirement becomes an outcome — and
+[LAYOUT.md](LAYOUT.md) — where every kind of thing lives.
+
+**Everything under `docs/` is notes.** Ideas, arguments and prior art, kept for the reasoning
+in them. A note may contradict the format; the format wins.
+
 Read them as notes, not as normative text. The [glossary](docs/GLOSSARY.md) is the most
 useful entry point: it is essentially a list of candidate terms with the rejected
 alternatives and the reasons.
@@ -149,8 +158,6 @@ alternatives and the reasons.
 | | |
 |---|---|
 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | candidate vocabulary, with rejected synonyms |
-| [docs/architecture.md](docs/architecture.md) | how a requirement becomes an outcome, and three worked walkthroughs |
-| [docs/layout.md](docs/layout.md) | where every kind of thing lives, and how to add a tool |
 | [docs/adr/0001-terminology.md](docs/adr/0001-terminology.md) | naming arguments, in ADR form (status: proposed) |
 | [docs/adr/0002-compatibility.md](docs/adr/0002-compatibility.md) | notes on a Go implementation and tool compatibility |
 | [docs/compatibility.md](docs/compatibility.md) | what tools actually emit — checked, factual |

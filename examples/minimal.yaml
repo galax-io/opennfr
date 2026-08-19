@@ -1,0 +1,21 @@
+# The smallest valid document. Not a sketch: scripts/verify.sh validates it
+# against the schema on every commit, so the format cannot drift away from it.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: example
+
+spec:
+  requirements:
+    - name: latency
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            http.route: /api/v1/orders
+      criteria:
+        - aggregation: p95
+          op: lte
+          threshold: 500
+          unit: ms
