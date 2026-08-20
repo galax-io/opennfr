@@ -43,6 +43,9 @@ tools with built-in OTLP output. Its work is:
 2. converting units (k6 reports durations in `ms`, semconv requires `s`);
 3. renaming the tool's tags into OTel attributes;
 4. rendering criteria into native assertions — at conformance level `assert` and above (D13).
+   *(2026-08-21: the level qualifier falls with the ladder — see
+   [ADR-0003](0003-retire-conformance-levels.md). Rendering is unconditional, and jobs 1–3
+   survive only inasmuch as rendering needs them.)*
 
 A built-in OTLP output reduces the adapter's work (no collection to write) but does not
 remove it.
@@ -91,6 +94,16 @@ extend expressiveness.
 
 Hence the compatibility rule: **the format must contain no construct expressible only at
 level `assert`.** Anything checkable on the fly must also be checkable afterwards.
+
+> **Superseded 2026-08-21 by [ADR-0003](0003-retire-conformance-levels.md).** The ladder is
+> retired, not re-derived, and the compatibility rule above is **inverted** in the
+> constitution: a construct enters the format only if at least one surveyed target can assert
+> it exactly. Both followed from the bottom rung — `report` was "a complete mode" only because
+> this project intended to evaluate runs itself, and it no longer does. What a target can and
+> cannot do is now declared per capability in that target's own description, dated and
+> sourced; aborting a run is one such capability rather than a rung. The entry above is left
+> as written: it records what was decided in August 2026 and why, and the reasoning is what
+> makes the retirement legible.
 
 ### D14. `loadtest.request.name` is the canonical addressing fallback
 
