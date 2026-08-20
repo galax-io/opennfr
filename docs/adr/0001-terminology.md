@@ -49,6 +49,12 @@ Requirement → Criterion → [render]   → Assertion                  (in the 
                         → [evaluate] → Verdict → Gate → Outcome   (in the backend)
 ```
 
+> **Amended 2026-08-21.** The second line is gone: the format ends at the target's own
+> assertions, and the evaluate arm is parked at `docs/experimental/post-run-evaluation.md`.
+> **The decision itself stands and is load-bearing.** Keeping the layers' vocabularies apart is
+> exactly why the word `assertion` never enters a requirement document, which is the constraint
+> the assertion-first format leans on hardest. One layer emptied; the separation did not.
+
 Every concept lives in exactly one layer. The key consequence: **the word `assertion` does
 not appear in the OpenNFR schema.** An assertion is a generated artifact of a specific
 tool; admitted into the source of truth, it would nail the format to one tool's semantics.
