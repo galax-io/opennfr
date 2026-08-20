@@ -227,7 +227,8 @@ site waiting to happen, and it is exactly what FR-034 exists to catch.
 
 ## R10. What must the prerequisite amendments say?
 
-**Decision**: ten amendments across two artifacts, in earlier pull requests, per Principle VII.
+**Decision**: eleven amendments across two artifacts, landing as **three pull requests**, all
+earlier than this feature, per Principle VII.
 
 **The constitution goes to 2.0.0 — MAJOR.** Its own versioning policy defines MAJOR as "a principle
 is removed or redefined in a way that permits what it previously forbade", and three separate
@@ -240,11 +241,27 @@ changes meet that test:
 | Principle VI | Forbids consuming "a statistic a target computed for itself" as a verdict. That is now the design. Not violated — nothing in scope produces a verdict — but **vacuous rather than satisfied**, which reads to the next person as a live constraint |
 | § Governance, versioning policy | A PATCH limb correction, so that the three above can be version-stamped honestly. Blocks nothing directly; must be in force when 2.0.0 is stamped |
 
-**`ARCHITECTURE.md` — six sections.** It is unversioned and its own § "Status of this document" makes
-the amending route an ordinary pull request landing before the specification that diverges from it.
-§ 1 (the path, clauses 1–3), § 2 (the four roles and "what no role may do"), § 3 (targets), § 4 (the
-walkthroughs, clauses 8–16), § 5 (support is data, clauses 17–18), § 7 (the follow-up table and
-dependency graph).
+**`ARCHITECTURE.md` — seven sections, one pull request.** It is unversioned and its own § "Status of
+this document" makes the amending route an ordinary pull request landing before the specification
+that diverges from it. § 1 (the path, clauses 1–3), § 2 (the four roles and "what no role may do"),
+§ 3 (targets), § 4 (the walkthroughs, clauses 8–16), § 5 (support is data, clauses 17–18), § 6 (the
+monitoring direction, clause 20), § 7 (the follow-up table and dependency graph).
+
+They cannot be split: § 4 clause 11 is the **fourth copy** of the rule the constitution inverts, so
+removing § 1 clause 3 while leaving it would move the stale rule rather than retire it.
+
+**Why three PRs and not eleven.** The constitution's own amendment procedure says an amendment "is
+made by a PR that changes this file and any templates the change affects, **and nothing else**", so
+all four constitution edits are one PR carrying one `2.0.0` stamp. `ARCHITECTURE.md` is one PR for
+the reason above. ADR-0002 § D13 is the third, because the conformance levels are a
+compatibility-sensitive surface and only an ADR may re-derive them.
+
+**A sequencing problem this specification has not resolved.** Two of the eleven — Principle VI and
+`ARCHITECTURE.md` § 1 — block *the specification itself*, not a later task: Principle VII says a
+specification needing a role the architecture lacks "MUST amend the architecture first, in an earlier
+pull request". This specification was written and opened for review before either. Whether a Draft
+specification that declares its own prerequisites counts as diverging is a genuine question, and the
+conservative reading is that the two amendment PRs land first.
 
 **Note for whoever reviews § 2**: that amendment is where the repair to FR-009 becomes
 *architecturally* available — the R2 role's output column is what gives the rendering a definition to

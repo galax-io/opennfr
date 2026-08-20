@@ -42,15 +42,27 @@ Taken from `AGENTS.md` and the constitution, restated because they change how th
 **Purpose**: Principle VII requires the architecture and the constitution to be amended in **earlier**
 pull requests, never diverged from silently. Nothing in Phase 2 onward may merge until these land.
 
-**⚠️ These are separate issues, separate PRs, and separate milestones-worth of review.** They are
-listed here because they block everything, not because this feature performs them. The written text
-for each is in [research.md § R10](research.md).
+**⚠️ Eleven amendments, landing as three pull requests.** They are listed here because they block
+everything, not because this feature performs them. The written text for each is in
+[research.md § R10](research.md).
+
+| PR | Covers | Why it cannot be split further |
+|---|---|---|
+| Constitution → **2.0.0** | T001–T004 | Its own amendment procedure: a PR that changes "this file and any templates the change affects, **and nothing else**". One version stamp |
+| `ARCHITECTURE.md` | T005 | § 4 clause 11 is the fourth copy of the rule § 1 clause 3 retires; separating them moves the stale rule |
+| ADR-0002 § D13 | T006 | The conformance levels are a compatibility-sensitive surface; only an ADR may re-derive them |
+
+**Two of these block the specification itself, not a later task.** Principle VI and
+`ARCHITECTURE.md` § 1 are what make this feature formally permitted, and Principle VII requires the
+architecture amended "first, in an earlier pull request". The specification was opened for review
+ahead of both. The conservative reading is that PR #14 waits for them; that call has not been made,
+and it should be made rather than defaulted into.
 
 - [ ] T001 Amend Principle III in `.specify/memory/constitution.md`: its letter mandates a run that missed its conditions "MUST be reported as inconclusive"; no surveyed target has a third outcome. Keep the spirit, state what carries the run-time half now
 - [ ] T002 Amend § Compatibility Constraints in `.specify/memory/constitution.md`: the binding "no construct expressible only at conformance level `assert` or above" is inverted by FR-020, and `report` ceases to be a conformance level
 - [ ] T003 Amend Principle VI in `.specify/memory/constitution.md`: decide narrow-or-remove; it is vacuous rather than satisfied under an assertion-first format
 - [ ] T004 Correct the versioning-policy limb in `.specify/memory/constitution.md` § Governance so T001–T003 can be stamped honestly, and stamp the document **2.0.0 (MAJOR)**
-- [ ] T005 [P] Amend `ARCHITECTURE.md` §§ 1, 2, 3, 4, 5, 7 — clauses 1–3, the R1–R4 role table and "what no role may do", the target classes, the walkthroughs, "support is data", and the § 7.1 follow-up table. § 2 is where the rendering gets a definition to point at
+- [ ] T005 [P] Amend `ARCHITECTURE.md` §§ 1, 2, 3, 4, 5, 6, 7 in **one** pull request — clauses 1–3, the R1–R4 role table and "what no role may do", the target classes, the walkthroughs, "support is data", clause 20 in the monitoring direction, and the § 7.1 follow-up table. § 2 is where the rendering gets a definition to point at; § 4 clause 11 is the fourth copy of the rule the constitution inverts, so splitting the sections would move the stale rule rather than retire it
 - [ ] T006 Amend ADR-0002 § D13 (conformance levels) — the levels are an ADR-gated surface, so re-deriving them cannot be done by editing a note
 
 **Checkpoint**: the repository permits what this feature does. Until then FR-020 is formally
@@ -65,11 +77,22 @@ fails instead of passing.
 
 - [ ] T007 [P] Create `mappings/` with a `README.md` stating what a target description is and that it is the only artifact class where a tool name is legitimate
 - [ ] T008 [P] Create `conformance/README.md` stating what the corpus binds and — required by FR-037 — what it does **not** establish, drawn from [spec Appendix C](spec.md#appendix-c-what-the-corpus-will-not-establish)
-- [ ] T009 Update `LAYOUT.md` § 1: the `mappings/` and `conformance/` rows lose "once it exists"; `mappings/` names `kind: TargetDescription` instead of `kind: MetricMapping`
+- [ ] T009 Update `LAYOUT.md` § 1: the `mappings/` and `conformance/` rows lose "once it exists"; `mappings/` names `kind: TargetDescription` instead of `kind: MetricMapping`. **Lands in the same PR as T013** — the Development Workflow requires a PR that changes a term to update `docs/GLOSSARY.md` in that same PR, and this is where `TargetDescription` first appears
 - [ ] T010 Update `LAYOUT.md` § 5 step 1 and § 6 so the relocation trap it already documents is closed: extend the sketch-label check beyond `docs/examples/*.yaml` in the same change that adds `mappings/`
-- [ ] T011 Add a `Conformance corpus` section to `scripts/verify.sh` that **fails** when the corpus is empty or its runner is missing — never skips (FR-035)
+- [ ] T011 Add a `Conformance corpus` section to `scripts/verify.sh` that **fails** when the corpus is empty or its runner is missing — never skips (FR-035). **Lands in the same commit as T040 and T044**, the first corpus cases: a section that fails on an empty corpus turns the gate red on the commit that introduces it, and the constitution requires `verify.sh` green on every commit. Writing it to tolerate an empty corpus instead would be the silent green it exists to prevent
 
-**Checkpoint**: the gate reports a missing corpus as red. Nothing else has changed yet.
+**Checkpoint**: the two homes exist and `LAYOUT.md` describes them. The gate is unchanged until
+T011 lands with its first cases.
+
+### Task-ordering constraints found while planning execution
+
+Two tasks in this phase cannot land alone, and both are the same shape — a rule this repository
+already binds, hit from an unexpected direction:
+
+| Task | Cannot land alone because |
+|---|---|
+| T009 | It introduces `TargetDescription` into a published document. A PR that changes a term updates `docs/GLOSSARY.md` in the same PR, so T009 and T013 are one PR |
+| T011 | A section that fails on an empty corpus is red on the commit that adds it, and `verify.sh` must be green on every commit. It lands with T040 and T044 |
 
 ---
 
