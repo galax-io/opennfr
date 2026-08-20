@@ -58,15 +58,27 @@ architecture amended "first, in an earlier pull request". The specification was 
 ahead of both. The conservative reading is that PR #14 waits for them; that call has not been made,
 and it should be made rather than defaulted into.
 
-- [ ] T001 Amend Principle III in `.specify/memory/constitution.md`: its letter mandates a run that missed its conditions "MUST be reported as inconclusive"; no surveyed target has a third outcome. Keep the spirit, state what carries the run-time half now
-- [ ] T002 Amend § Compatibility Constraints in `.specify/memory/constitution.md`: the binding "no construct expressible only at conformance level `assert` or above" is inverted by FR-020, and `report` ceases to be a conformance level
-- [ ] T003 Amend Principle VI in `.specify/memory/constitution.md`: decide narrow-or-remove; it is vacuous rather than satisfied under an assertion-first format
-- [ ] T004 Correct the versioning-policy limb in `.specify/memory/constitution.md` § Governance so T001–T003 can be stamped honestly, and stamp the document **2.0.0 (MAJOR)**
-- [ ] T005 [P] Amend `ARCHITECTURE.md` §§ 1, 2, 3, 4, 5, 6, 7 in **one** pull request — clauses 1–3, the R1–R4 role table and "what no role may do", the target classes, the walkthroughs, "support is data", clause 20 in the monitoring direction, and the § 7.1 follow-up table. § 2 is where the rendering gets a definition to point at; § 4 clause 11 is the fourth copy of the rule the constitution inverts, so splitting the sections would move the stale rule rather than retire it
-- [ ] T006 Amend ADR-0002 § D13 (conformance levels) — the levels are an ADR-gated surface, so re-deriving them cannot be done by editing a note
+- [X] T001 Amend Principle III in `.specify/memory/constitution.md`: its letter mandates a run that missed its conditions "MUST be reported as inconclusive"; no surveyed target has a third outcome. Keep the spirit, state what carries the run-time half now — **written, in #16, awaiting merge**
+- [X] T002 Amend § Compatibility Constraints in `.specify/memory/constitution.md`: the binding "no construct expressible only at conformance level `assert` or above" is inverted by FR-020, and `report` ceases to be a conformance level — **written, in #16, awaiting merge**
+- [X] T003 Amend Principle VI in `.specify/memory/constitution.md`: decide narrow-or-remove; it is vacuous rather than satisfied under an assertion-first format — **written, in #16, awaiting merge**
+- [X] T004 Correct the versioning-policy limb in `.specify/memory/constitution.md` § Governance so T001–T003 can be stamped honestly, and stamp the document **2.0.0 (MAJOR)** — **written, in #16, awaiting merge**
+- [X] T005 [P] Amend `ARCHITECTURE.md` §§ 1, 2, 3, 4, 5, 6, 7 in **one** pull request — clauses 1–3, the R1–R4 role table and "what no role may do", the target classes, the walkthroughs, "support is data", clause 20 in the monitoring direction, and the § 7.1 follow-up table. § 2 is where the rendering gets a definition to point at; § 4 clause 11 is the fourth copy of the rule the constitution inverts, so splitting the sections would move the stale rule rather than retire it — **written, in #18, awaiting merge**
+- [X] T006 Amend ADR-0002 § D13 (conformance levels) — the levels are an ADR-gated surface, so re-deriving them cannot be done by editing a note — **written, in #20, awaiting merge**
 
 **Checkpoint**: the repository permits what this feature does. Until then FR-020 is formally
 forbidden by the constitution, and Governance says the constitution wins.
+
+**Status 2026-08-21.** All three pull requests are open, `verify` and `linkage` green on each:
+
+| PR | Issue | Covers | Merge order |
+|---|---|---|---|
+| [#16](https://github.com/galax-io/opennfr/pull/16) | #15 | Constitution → 2.0.0, and `plan-template.md` | first |
+| [#18](https://github.com/galax-io/opennfr/pull/18) | #17 | `ARCHITECTURE.md` §§ 1–7 | after #16 |
+| [#20](https://github.com/galax-io/opennfr/pull/20) | #19 | ADR-0003 retiring the ladder; dated notes on ADR-0002 | after #16 |
+
+Marked `[X]` because the work is written and submitted, not because it has landed. **Phase 1
+onward stays blocked until these merge** — the constitution still carries the constraint FR-020
+inverts, and Governance says the constitution wins while it does.
 
 ---
 
