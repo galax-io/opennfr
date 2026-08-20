@@ -52,6 +52,13 @@ remove it.
 
 ### D12. Mapping is data, not code: `kind: MetricMapping`
 
+> **Superseded 2026-08-21** as to its artifact, not its conclusion. The conclusion — a target
+> list only maintainers can extend is not tool-agnostic — is why the replacement exists. But
+> `kind: MetricMapping` named name-correspondence, and its sections were shaped for a path that
+> ended in evaluation. A **target description** replaces it: it declares what a target can and
+> cannot assert, how its units convert, and where it can report success on absent data, with
+> every claim dated and sourced. The entry below is left as written.
+
 The correspondence between a tool's names and canonical ones is declared as a separate
 object of the format rather than hardcoded in Go.
 

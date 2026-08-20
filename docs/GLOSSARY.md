@@ -12,30 +12,38 @@ changes.
 
 The reasoning behind each choice is in [ADR-0001](adr/0001-terminology.md).
 
-> Where an entry sounds prescriptive ("mandatory", "forbidden"), read it as the shape the
-> rule would take if this design is kept — none of it is enforced by anything, because
-> there is no schema and no implementation.
+> **Two kinds of entry live here, and they are not equally settled.** Some define terms the
+> schema already carries, and `scripts/verify.sh` enforces those on every commit. Others argue
+> for constructs the format does not have; nothing enforces them and they may be wrong. Where
+> an entry sounds prescriptive, check whether the schema carries it — **the schema decides, not
+> this file.**
 
 ---
 
 ## Layers
 
-The organising idea: three layers, each with its own vocabulary, with words never reused
-across them. This is where the surveyed formats visibly break down, so it seems worth being
-strict about — though the boundaries below are drawn by argument, not by experience.
+The organising idea: layers, each with its own vocabulary, with words never reused across
+them. This is where the surveyed formats visibly break down, so it seems worth being strict
+about — though the boundaries below are drawn by argument, not by experience.
 
 ```
-       source of truth                runtime                      result
-    ┌────────────────────┐      ┌──────────────┐      ┌────────────────────────┐
-    │ Requirement        │──────│  Assertion   │      │ Verdict → Outcome      │
-    │   └─ Criterion     │ render               evaluate                        │
-    │   └─ Guard         │──────│    Target    │──────│ EvaluationReport       │
-    └────────────────────┘      └──────────────┘      └────────────────────────┘
+       source of truth                        runtime
+    ┌────────────────────┐      ┌──────────────────────────────┐
+    │ Requirement        │──────│  the Target's own Assertion  │
+    │   └─ Criterion     │ render                               the target
+    │   └─ Guard         │──────│  + every predicate it could  │ runs it and
+    └────────────────────┘      │    not render, named         │ decides
+                                └──────────────────────────────┘
 ```
 
-The runtime box faces a [Target](#target) — a load generator (k6, Gatling, JMeter) or a
-monitoring backend (Prometheus, Datadog). Both classes are supported the same way: by adding
-data, never code.
+**There were three layers.** The third — verdicts, outcomes, a result document — described what
+happened after the measurements arrived, and nothing in scope produces measurements any more.
+Its vocabulary is parked at `docs/experimental/post-run-evaluation.md`, with the arguments
+intact. The separation itself survives and is the reason the word *assertion* stays out of
+Layer 1: see [Assertion](#assertion), and [ADR-0001 § D2](adr/0001-terminology.md).
+
+The runtime box faces a [Target](#target) — a load generator. A monitoring backend hosts no
+assertion, so it has no path here; that direction is parked.
 
 ---
 
@@ -43,8 +51,11 @@ data, never code.
 
 ### RequirementSet
 
-The root document, `kind: RequirementSet`. Holds a set of requirements, shared `defaults`
-and the `gate` policy.
+The root document, `kind: RequirementSet`. Holds a set of requirements.
+
+A shared-`defaults` section is an idea the format does not have: it buys brevity and costs
+merge semantics, and nobody has asked for it. The `gate` policy it used to hold is parked with
+post-run evaluation.
 
 Rejected: `Suite` — carries a testing connotation, whereas requirements outlive tests.
 `Policy` — pulls towards OPA/Rego. `Profile` — will be needed later for environments.
@@ -55,7 +66,7 @@ A single human statement about the system ("checkout responds quickly under targ
 A container: it declares *what* is measured (`indicator`), *when* that is meaningful
 (`guards`), and *which predicates* must hold (`criteria`).
 
-A requirement is never evaluated on its own — its criteria are.
+A requirement is never rendered on its own — its criteria and guards are.
 
 Rejected: `Objective` — taken by OpenSLO for a target with an error budget, which we do
 not have. `NFR` — an acronym is unreadable as a field name.
@@ -65,7 +76,11 @@ not have. `NFR` — an acronym is unreadable as a field name.
 One machine-checkable predicate over an indicator: aggregation + operator + threshold +
 unit. The smallest unit of validation and the smallest unit of reporting.
 
-A violated criterion means the system does not meet the requirement → `fail`.
+A criterion becomes **exactly one entry** in the rendering: either the target's own assertions
+for it, or a named statement that this target cannot express it. Never neither, and never both.
+It may become more than one native assertion — a range a target spells as two comparisons, or a
+companion assertion that stops the target passing on an empty selection — and that is not a
+breach of the counting rule, which relates a criterion to a *bucket* and not to an assertion.
 
 Rejected: `Assertion` — that is the runtime layer (see below). `Threshold` — that is just
 the number inside a criterion, not the predicate. `Check` — too generic, and reserved for
@@ -76,11 +91,19 @@ the act of checking.
 Syntactically the same as a criterion; semantically a precondition — a statement that the
 run happened in the intended regime at all.
 
-A violated guard means **no conclusion about the system was reached** → `inconclusive`,
-neither `fail` nor `pass`.
+A guard renders like a criterion, into the same kind of native assertion, and the target fails
+the run on it like any other. **There is no third outcome**: no surveyed target has one, and a
+construct nothing can honour would be a silent green of its own.
+
+What tells a guard apart from a criterion is its entry in the rendering, which records both
+that the entry is a guard and the identity the target derives its own report line from. It is
+not told apart by a name in the target's report — see [criterionId](#criterionid) for why no
+target has anywhere to put one.
 
 The canonical case: "p95 < 500 ms" is only meaningful if the generator actually reached
-200 rps. A run at 5 rps yields a green p95 and a false verdict — a guard catches that.
+200 rps. A run at 5 rps yields a green p95 and a false pass — a guard catches that. This is the
+failure mode the whole project exists to address, which is why the construct stayed when the
+outcome that used to express it went.
 
 Rejected: `precondition` — verbose; `context` / `given` — fail to convey that this is a
 checkable statement rather than metadata; `workload` — [reserved](#workload).
@@ -88,8 +111,8 @@ checkable statement rather than metadata; `workload` — [reserved](#workload).
 ### Indicator
 
 The definition of the measured quantity: metric name + selector + shape (`distribution`
-or `ratio`). The counterpart of an SLI in OpenSLO. Declared inline (`indicator`) or reused
-by reference (`indicatorRef`).
+or `ratio`). The counterpart of an SLI in OpenSLO. Declared inline. Reuse by reference (`indicatorRef`) is an idea the format does not have — it
+is sugar, and it is unscreened against the admission rule.
 
 Two shapes:
 
@@ -109,8 +132,10 @@ The metric name. **Strictly from OpenTelemetry semantic conventions**, or from o
 
 A load generator is an HTTP client, so the canonical latency metric is
 `http.client.request.duration` — not the server-side one and not a tool-specific one
-(`http_req_duration` in k6 and friends). Reducing tool-specific names to canonical ones is
-the adapter's job, not the format's.
+(`http_req_duration` in k6 and friends). The correspondence between a target's names and the
+document's is declared as data, outside the requirement, and consumed **outward** when the
+document is rendered — see [Target description](#target-description). Not the format's job, and
+no longer a step that reads a target's output.
 
 ### selector
 
@@ -124,6 +149,12 @@ correlates with the production metrics of the same service. Almost no load gener
 emits it, however, so `loadtest.request.name` is an accepted fallback — the human-readable
 request name (k6's `name` tag, Gatling's request name, JMeter's sampler label). It is the
 worse option, not an equal one: such names are arbitrary and live inside a single tool.
+
+**A request inside a group** is addressed by carrying both attributes on the same selection —
+`loadtest.group.name` together with `loadtest.request.name`. This needs no second kind of
+address and no new term, which matters because targets that nest requests in groups reach them
+by a path, and a path parsed out of one string would be exactly the string DSL ADR-0001 § D4
+forbids.
 
 Rejected: `filter` (Keptn) — too generic; `tags` — k6 terminology; `scope` — already means
 "visibility".
@@ -141,9 +172,15 @@ plus percentiles matching `^p\d{1,2}(\.\d+)?$` — `p50`, `p95`, `p99.9`.
 This is still structure, not an expression: the pattern is validated by JSON Schema and
 needs no parser.
 
-`rate` over a `distribution` equals `count / window duration`, i.e. exactly
-`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric — OTel has
-none either, because it is always derived.
+`rate` over a `distribution` is throughput, derived rather than measured: there is no separate
+"throughput" metric here and none in OTel either. The analogy is `rate(..._count[…])` in
+Prometheus, and a surveyed target confirms the shape natively — Gatling asserts on mean
+requests per second without a metric of that name existing (checked 2026-08-20).
+
+**Not every member is screened.** The admission rule requires a surveyed target that can assert
+a construct exactly, and `sum` has not been checked against one. It is in the enum because it
+was there before the rule existed, which is a reason to check it rather than a reason to keep
+it.
 
 `avg` rather than `mean`: that is the spelling in all four reference formats.
 
@@ -152,6 +189,12 @@ none either, because it is always derived.
 The comparison operator: `lt | lte | gt | gte | eq | neq`. As in OpenSLO.
 
 Symbols (`<`, `<=`) are rejected: they validate poorly and require string parsing.
+
+**Screening against the admission rule**, checked 2026-08-20: `lt`, `lte`, `gt`, `gte` and `eq`
+each have an exact counterpart in both surveyed targets. **`neq` has one in neither** and is
+unresolved — it predates the rule. In the other direction, range and set membership are
+assertable by one target and are *admissible* on that strength, but admissibility is a floor,
+not a licence, and neither is admitted.
 
 ### threshold and unit
 
@@ -166,77 +209,25 @@ conversion table rather than a UCUM grammar parser.
 A mandatory unit settles the perennial "is 0.1 a fraction or a percentage?". OpenSLO
 answers it with two separate fields (`target` / `targetPercent`); we answer it with one.
 
-### baseline and tolerance
+### Parked, and where the arguments went
 
-Comparison against a previous run instead of an absolute threshold. Mutually exclusive
-with `threshold`.
+Six entries left this file on 2026-08-21. None was rejected; each described something the
+format cannot deliver, and the reasoning was worth more than the words.
 
-```yaml
-- aggregation: p95
-  op: lte
-  baseline: { source: previousPassed }
-  tolerance: { value: 10, unit: "%" }
-```
+| Term | Why it left | Where it is |
+|---|---|---|
+| `baseline` + `tolerance` | needs stored history of previous runs, which no load generator keeps | `docs/experimental/inadmissible-constructs.md` |
+| `window` | `phase` rests on an attribute nothing emits; `rolling` was never screened and is recorded as unscreened | `docs/experimental/inadmissible-constructs.md` |
+| `severity` | grades a violation for a policy that no longer exists | `docs/experimental/post-run-evaluation.md` |
+| `enforcement` | its default, `post`, is unreachable; only one value would remain | `docs/experimental/post-run-evaluation.md` |
+| `onViolation` | depends on `enforcement`. Its admission floor **is** met — one target aborts — so it waits on the field, not on a tool | `docs/experimental/post-run-evaluation.md` |
+| `gate` | turns verdicts into an outcome, and nothing in scope produces either | `docs/experimental/post-run-evaluation.md` |
 
-Reads as "p95 is no more than 10 % worse than the baseline". The direction of the
-tolerance follows from `op` (`lte` — upwards, `gte` — downwards), so strings like
-`"<=+10%"` (Keptn) are unnecessary.
+The paths are written as text rather than as links on purpose: nothing outside the experimental
+area may link into it, or the one-operation removal test stops working.
 
-`tolerance.unit` may be `%` (relative) or the metric's own unit (absolute, e.g. `50 ms`).
-
-### window
-
-Where in time the measurement is taken.
-
-```yaml
-window:
-  phase: steady     # rampUp | steady | rampDown | full
-  rolling: 1m       # optional — a rolling window instead of one aggregate per phase
-```
-
-`phase` rests on the `loadtest.phase` attribute and solves the everyday nuisance: not
-counting ramp-up and ramp-down.
-
-Rejected: `timeWindow` (OpenSLO) — redundant; `interval`, `period` — vague.
-
-### severity
-
-How serious a criterion violation is: `blocker | warning | info`. Feeds the outcome
-through `gate`.
-
-Three levels, not four: in practice nobody distinguishes a `critical` sitting between
-`blocker` and `warning`.
-
-### enforcement
-
-Where a criterion is checked:
-
-| Value | Meaning |
-|---|---|
-| `post` | computed by the backend after the run from collected metrics (**default**) |
-| `inline` | rendered into the tool's assertion and checked during the run |
-| `both` | both of the above |
-
-`post` is the default because it is achievable for every tool. `inline` is an adapter
-capability: k6 and Taurus have it, Gatling and JMeter only partly.
-
-### onViolation
-
-For `enforcement: inline` only: `continue` (default) | `abort` — stop the run. Maps to
-k6's `abortOnFail` and Taurus's `stop as failed`.
-
-### gate
-
-The policy that turns many verdicts into a single run outcome.
-
-```yaml
-gate:
-  onBlocker: fail
-  onWarning: warn
-  onInfo: ignore
-  onNoData: fail              # silence is not success
-  onGuardViolation: inconclusive
-```
+**What did not leave:** [Guard](#guard). Preconditions stay in the format. Only the third
+outcome that used to express a violated one went.
 
 ---
 
@@ -252,108 +243,165 @@ is a generated artifact, not a source of truth. The moment it enters the format,
 is nailed to one tool's semantics. This is the single strongest constraint the notes have
 produced so far, and the one most likely to hold.
 
+**The tension with the admission rule, stated as an argument rather than a rule.** A construct
+now enters the format only if some target can assert it exactly — so the format is bounded by
+what assertions can express, while its words must still not be spelled the way any one target
+spells them. Those pull in opposite directions and both are right: the first stops the format
+promising what nothing can check, the second stops it becoming one tool's file with a different
+extension.
+
 ### Target
 
-The external product an adapter faces. Two classes, supported identically — by adding data,
-never by adding code:
+The external product an adapter faces. Support is added by adding data, never by adding code.
 
-- a **load generator** produces the traffic and reports what happened (k6, Gatling, JMeter);
-- a **monitoring backend** holds telemetry, answers a query, and can host a standing monitor
-  (Prometheus, Datadog).
+A **load generator** produces the traffic, asserts against what it measured, reports, and
+decides the run. It is the only class this format serves: a **monitoring backend** holds
+telemetry and answers a query, but hosts no assertion, so it has no path here and that
+direction is parked.
 
 A target never reads a requirement document. It is reached through a
-[MetricMapping](#metricmapping), and only the load-generator class is ever handed native
-assertions — at [conformance level](#conformance-level) `assert` and above.
+[Target description](#target-description), and *what* it can assert is declared there per
+capability, each claim dated and sourced — never as a single level. The ladder that used to
+grade targets is retired: see [ADR-0003](adr/0003-retire-conformance-levels.md).
 
-A target faces **outward**: it receives a rendered artifact or an assembled query. That is the
-opposite direction from a *data source*, which faces inward and supplies normalised series to
-evaluation, and which [ADR-0002 § D18](adr/0002-compatibility.md) keeps a parameter of
-evaluation rather than a property of a requirement. One product may play both roles in one
-run — Prometheus is the obvious case — in which case it is named by the role it is playing.
+A target faces **outward**: it receives rendered assertions. The opposite direction — a *data
+source* facing inward — belonged to the withdrawn evaluation role and is parked with it. What
+survives unconditionally is the rule that kept them two words:
+[ADR-0002 § D18](adr/0002-compatibility.md), a requirement carries neither a target nor a
+source, which the constitution's Principle VI now states directly.
 
 `monitoring backend` is defined here rather than in an entry of its own because `backend`
-already carries a different sense in this glossary: in [enforcement](#enforcement) and in
-[EvaluationReport](#evaluationreport) it is the thing that evaluates after the run. The two
-must never be read as one.
+already carried a different sense in this glossary — the thing that evaluated after the run.
+That sense is parked, and the collision is recorded so it is not recreated.
 
 Rejected: `consumer` — [AGENTS.md](../AGENTS.md) uses it for everything downstream of the
-format, CI backends and human readers included, which is far wider than this. `tool` —
-excludes the monitoring class, and the entire point of the word is that both classes are
-supported the same way. `backend` on its own — collides, as above.
+format, CI backends and human readers included, which is far wider than this. `tool` — it
+excluded the monitoring class, which mattered when both were served; it is now the *narrower*
+word and would be a fair name, but renaming a term to track a scope change is how a vocabulary
+churns. `backend` on its own — collides, as above.
 
 ### Adapter
 
-The component that binds the format to a specific tool. It does four things: renames
-metrics to canonical names, converts units, renames the tool's tags into OTel attributes,
-and — at level `assert` and above — renders criteria into native assertions.
+The component that binds the format to a specific target. It **renders**: it turns predicates
+into that target's own assertions, and names every predicate it could not.
 
-An adapter is **always** required, including for tools with built-in OTLP output: OTLP is
-a transport, not a vocabulary, and no load generator publishes semconv names. See
-[compatibility.md](compatibility.md).
+It used to do four things. Three of them — renaming metrics to canonical names, converting a
+target's tags into attributes, collecting output — served the withdrawn ingest role and are
+parked with it. Renaming and unit conversion survive only inasmuch as rendering needs them to
+write an assertion the target will accept, which is why this entry is **narrowed rather than
+replaced by a new word**: a rival term for a component that still exists would cost a reader
+two names for one thing.
 
-### MetricMapping
+An adapter is **always** required, including for targets with built-in OTLP output: OTLP is a
+transport, not a vocabulary, and no load generator publishes semconv names.
 
-`kind: MetricMapping` — the declarative table mapping a tool's names onto canonical ones.
-Data, not code: supporting a new tool means adding a YAML file.
+The **artifact** it produces is a [Rendering](#rendering); the component is this entry. Both
+words are needed because the corpus pins the artifact while the architecture binds the
+component.
 
-Contains `metrics` (with unit conversion), `attributes`, `errorSignal` and — for the
-`assert`/`abort` levels — an `assertions` section. Examples:
-[k6](examples/mapping-k6.yaml), [JMeter](examples/mapping-jmeter.yaml).
+### Rendering
 
-### Conformance level
+What an adapter produces for one document and one target: the target's own assertions, plus
+**every predicate it could not render, named, with a reason**. It is the format's output, and
+the path stops there.
 
-How deeply a tool is integrated. Cumulative levels:
+Two properties make it worth a word of its own:
 
-| Level | What the adapter does | What it unlocks |
-|---|---|---|
-| `report` | maps metrics and attributes to canonical names | `enforcement: post` — **the entire format** |
-| `assert` | also renders native assertions | `enforcement: inline`, `both` |
-| `abort` | also stops the run | `onViolation: abort` |
+- **It counts.** Every predicate lands in exactly one of the two lists. No third bucket, no
+  silent remainder — that is where "nothing reports success by omission" is enforced now that
+  no outcome vocabulary exists.
+- **It attributes.** Each entry records the identity the target will derive its own report line
+  from, and whether the entry states a condition of the run rather than a property of the
+  system. That is the only way to tell a failed guard from a failed criterion in a target that
+  has no field for a name.
 
-`report` is not a degraded mode but a complete one: `assert` and `abort` merely shorten
-the feedback loop. Hence the rule: no construct is added to the format if it is
-expressible at `assert` and above only.
+Not a new concept: this repository already calls the act *render*, in the layer diagram above,
+in `ARCHITECTURE.md`'s R2 role and in the specification. This names its output.
+
+Rejected: `output` — says nothing about what it contains. `report` — belongs to the target,
+which writes one, and using it here would put two documents under one word at the exact
+boundary this format is drawn along.
+
+### Target description
+
+The data that says everything about one target: how it names things, **what it can assert and
+what it cannot**, how its units convert, and where it can report success on absent data. Adding
+a target is adding one of these — no change to the format, the schema, or any existing
+document.
+
+Two properties are load-bearing:
+
+- **Capability and gaps partition each axis.** A combination declared in neither is a *defect
+  of the description*, catchable mechanically. A description silent about a capability is not
+  claiming the target has it.
+- **Every claim carries a source and the date it was checked.** A capability claim is an
+  assertion about somebody else's software; undated, it rots without anyone noticing.
+
+It supersedes `kind: MetricMapping`, which named name-correspondence rather than capability and
+whose ingest sections described a role the format no longer has.
+[ADR-0002 § D12](adr/0002-compatibility.md) carries a dated note; its argument — that a target
+list only maintainers can extend is not tool-agnostic — is why this exists at all.
+
+Rejected: `capabilities` — names one of the four things it declares and silently demotes the
+other three, and a file called *capabilities* that is mostly unit conversions reads as
+misfiled. `tool profile` — names the tool rather than the description of it, which invites a
+second file per tool and then a question about which is authoritative.
+
+### Unrenderable criterion
+
+A predicate the target cannot express **exactly**, carried by name and reason rather than
+dropped.
+
+The word exists to make one thing unspellable: a criterion that quietly produced nothing. Every
+predicate is rendered or unrenderable, the two lists cover the document, and the report arrives
+**before the run starts** rather than as a result.
+
+Rejected: dropping it silently — a dropped criterion is a check that never ran and a run that
+looks clean, which is the failure this project was founded on. Substituting the nearest thing
+the target does have — an approximation is a silent green with a plausible number in it, and it
+is worse than a gap because nobody goes looking for it.
+
+### Display name
+
+Free human-readable text, in any script, beside the machine identifier. On the document, on a
+requirement, on a predicate. Optional everywhere.
+
+It is **inert**: it changes nothing selected, measured, compared or rendered, and stripping
+every display name from a document must leave every rendering byte-identical. An inert field
+that is not *provably* inert acquires meaning.
+
+Two things it must not do. It must not **restate a value the structured fields already carry** —
+a name reading "99th percentile under 500 ms" beside `threshold: 500` is a second source for
+one number, and they diverge the first time the threshold moves. And it does **not reach the
+target's own report**: no surveyed target has a field for an author-chosen string, and a field
+named this invitingly will otherwise be assumed to.
+
+Rejected: `label` — in one surveyed tool a label *is* the sampler name, i.e. a selector value,
+so the word already means an address here. `title` — collides with the document's own title and
+with JSON Schema's `title`. `description` — invites paragraphs where a phrase is wanted.
 
 ---
 
-## Layer 3. Result
+## Layer 3 is gone
 
-### Verdict
-
-The result of checking **one** criterion or guard.
-
-`status`: `pass | warn | fail | noData | skipped`
-
-`noData` is mandatory and is not a success: missing data is an outcome in its own right,
-not a silent green.
+Verdicts, outcomes and a result document described what happened after the measurements
+arrived. Nothing in scope produces measurements now — the target does, and it reports for
+itself. The vocabulary is parked at `docs/experimental/post-run-evaluation.md`, with the
+`noData` argument intact, because "missing data is an outcome in its own right" is the sentence
+the whole project turns on and it outlived the enum it was written in.
 
 ### criterionId
 
-A stable identifier for a criterion within a requirement, used for references from the
-report. Equals the criterion's `name` if set, otherwise its `aggregation` value (in which
-case two criteria with the same aggregation and no `name` are forbidden).
+A stable identifier for a predicate within a requirement. Equals the predicate's `name` if set,
+otherwise its `aggregation`.
+
+It is what a [Rendering](#rendering) points at, and it is the reason the counting rule can be
+checked: two predicates sharing an identity would make the arithmetic meaningless before it was
+ever evaluated. Uniqueness is required across a requirement's criteria **and** its guards
+together, not per section — a guard and a criterion that both reduce by `rate` collide, and
+that is the case a per-section check misses.
 
 Indices (`criterion: 0`) are rejected: they break whenever the file is edited.
-
-### Outcome
-
-The aggregated result of the whole run: `pass | warn | fail | inconclusive`.
-
-`inconclusive` is a first-class outcome, not a special case of `fail`. It means "the test
-did not happen", which is a fundamentally different engineering decision from "the system
-does not hold".
-
-### EvaluationReport
-
-The format's second normative schema, `kind: EvaluationReport`. Without it the promise
-"parses into any backend" is unmet — a backend needs a standard output, not only an input.
-
-Run identity is described by **existing** OTel attributes — `test.suite.name`,
-`cicd.pipeline.run.id`, `service.name`, `service.version`,
-`deployment.environment.name` — which is what lets a report correlate with the traces of
-that run without glue.
-
----
 
 ## Parsing rules
 
@@ -363,8 +411,9 @@ YAML in general.
 
 - **Every object maps one-to-one onto JSON.** Anchors, aliases and merge keys
   (`&`, `*`, `<<`) are forbidden: they do not survive the trip to JSON, are supported
-  inconsistently across parsers, and destroy line numbers in error messages. Reuse goes
-  through `defaults` and `indicatorRef`.
+  inconsistently across parsers, and destroy line numbers in error messages. Reuse would go through the `defaults` and `indicatorRef` ideas — neither of which the
+  format has, and the bet that they cover the loss of anchors is untested
+  ([ADR-0002 § D16](adr/0002-compatibility.md)).
 - **An unknown field is an error.** A typo such as `agregation:` would, under lenient
   parsing, silently disable a criterion and turn the run green. That is the same silent
   lie as treating `noData` as success, and it is forbidden for the same reason.

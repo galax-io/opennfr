@@ -166,7 +166,7 @@
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions. Same shape as a criterion, opposite meaning: a violated guard says the run did not happen as intended, so the outcome is inconclusive rather than fail. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and rendered into the same kind of native assertion — no surveyed target has an outcome between pass and fail, so a violated precondition fails the run like anything else. What tells it apart is its entry in the rendering, which records that the entry is a guard. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
           "items": {
             "allOf": [
               {

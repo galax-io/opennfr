@@ -59,8 +59,8 @@ file or the schema.
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
 | Two indicator shapes | `distribution` for a distribution of values, `ratio` for a fraction. Exactly one, expressed by nesting rather than a discriminator, so a decoder needs no second pass |
 | One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
-| Guards | A violated guard means the run did not happen as intended, so the outcome is `inconclusive` — not `fail`, and never a pass |
-| Three outcomes | `pass`, `fail`, `inconclusive`. Three verdict statuses: `pass`, `fail`, `noData` |
+| Guards | A precondition: the run happened in the intended regime at all. It renders like a criterion, and what tells it apart is its entry in the rendering, not an outcome |
+| No outcome vocabulary | The target evaluates and reports. This format defines no verdict, no outcome and no result document |
 | Strictness | Unknown fields are rejected everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
 | Closed units | `unit` is an enumeration from [`docs/units.md`](docs/units.md), so `mss` is caught here rather than three orders of magnitude later |
 | Aggregations that fit the shape | A `ratio` is a fraction, so only `rate` and `count` mean anything over it. A percentile of a fraction is rejected |
@@ -74,14 +74,14 @@ either adds a dependency the format cannot honour or adds a knob before anyone h
 
 | Idea | Why it is not here |
 |---|---|
-| `window` — measure only the steady phase | Rests on a `loadtest.phase` attribute that nothing emits |
-| `baseline` + `tolerance` — "no worse than last time" | Needs stored history of previous runs, which no load generator provides |
-| `severity` and `gate` — which violations fail the run | A knob. Today any failed criterion fails the run, and that is enough until someone needs otherwise |
-| `enforcement`, `onViolation` — fail during the run | Tool capability, not format. k6 can, JMeter cannot, and the format must not exclude JMeter |
+| `window` — measure only the steady phase | Rests on a `loadtest.phase` attribute that nothing emits. **Not "yet"** — parked, because no target can assert it |
+| `baseline` + `tolerance` — "no worse than last time" | Needs stored history of previous runs, which no load generator keeps. Parked for the same reason |
+| `severity` and `gate` — which violations fail the run | They grade violations for a policy that no longer exists. Parked with post-run evaluation |
+| `enforcement`, `onViolation` — fail during the run | `enforcement`'s default was "check after the run", which is unreachable now. Parked; `onViolation`'s admission floor is met, so it waits on the field rather than on a tool |
 | `defaults` — write shared settings once | Sugar. It buys brevity and costs merge semantics |
 | `indicatorRef` — reuse one indicator | Sugar |
 | A result document — what an evaluation produced | Nothing produces one yet. Designing the output before anything computes it is guessing, and a guess in a schema is harder to withdraw than a guess in a note |
-| `MetricMapping` — binding the format to a tool | Same reason. It arrives with the first tool that needs it |
+| `MetricMapping` — binding the format to a tool | **Superseded**, not pending: what a target can and cannot assert is declared in a target description |
 
 Each is argued in [`docs/GLOSSARY.md`](docs/GLOSSARY.md). When one is accepted, it lands in the
 schema **and its note in `docs/` is deleted** — see below.
@@ -111,13 +111,14 @@ Rules that hold at every step:
 - A term reaches [`docs/GLOSSARY.md`](docs/GLOSSARY.md) with a **rejected alternative** before
   it appears in an example or the schema. The rejection outlives the term it protects.
 - A metric or attribute name is **borrowed**, never invented, wherever semconv has one.
-- Nothing reports success by omission. Missing data is `noData`, a violated guard is
-  `inconclusive`, and neither is a pass.
+- Nothing reports success by omission. Every predicate is either rendered into the target's own
+  assertions or named, with a reason, as one that target cannot express — before the run starts,
+  and with no third bucket.
 
 ## Where the rest lives
 
 | | |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | how a document becomes a verdict, and what reaches which tool |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | how a document becomes a target's own assertions, and what the target is told it could not be given |
 | [LAYOUT.md](LAYOUT.md) | where every kind of file lives |
 | [`docs/`](docs/) | notes and arguments — **ideas, not rules** |
