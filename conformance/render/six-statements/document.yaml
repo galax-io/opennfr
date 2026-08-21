@@ -1,0 +1,69 @@
+# The coverage bar. Every statement the prior NFR-YAML could express, in one document,
+# with no tool named anywhere in it.
+#
+# The old format spelled these as six fixed keys — Russian sentences over a hardcoded
+# table — and could say nothing else. Here they are ordinary requirements, and a seventh
+# statement needs no change to anything.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: six-statements
+  displayName: Everything the previous format could say
+
+spec:
+  requirements:
+
+    # 1-2. percentiles and the maximum, for one named request
+    - name: get-root-duration
+      displayName: Duration of GET /
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            loadtest.request.name: GET /
+      criteria:
+        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 500, unit: ms}
+        - {displayName: 95th percentile, aggregation: p95, op: lte, threshold: 400, unit: ms}
+        - {displayName: 75th percentile, aggregation: p75, op: lte, threshold: 300, unit: ms}
+        - {displayName: Median,          aggregation: p50, op: lte, threshold: 200, unit: ms}
+        - {displayName: Slowest,         aggregation: max, op: lte, threshold: 1000, unit: ms}
+
+    # 3. the old composite key `MyGroup / MyRequest`, as two attributes on one selection
+    - name: checkout-submit-duration
+      displayName: Duration of the checkout submit, inside its group
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            loadtest.group.name: MyGroup
+            loadtest.request.name: MyRequest
+      criteria:
+        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 900, unit: ms}
+
+    # 4. the old `all` key: an empty selector is every request, said explicitly
+    - name: all-requests-duration
+      displayName: Duration across every request
+      indicator:
+        distribution:
+          metric: http.client.request.duration
+          selector: {}
+      criteria:
+        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 1000, unit: ms}
+        - {displayName: Slowest,         aggregation: max, op: lte, threshold: 2000, unit: ms}
+
+    # 5-6. the failed share. Not a metric of its own: a fraction of two selections over a
+    #      metric that already exists, which is why no `error_rate` name is coined.
+    - name: all-requests-error-share
+      displayName: Share of failed requests
+      indicator:
+        ratio:
+          total:
+            metric: http.client.request.duration
+            selector: {}
+          bad:
+            metric: http.client.request.duration
+            selector:
+              error.type: "*"
+      criteria:
+        - {displayName: Failed share, aggregation: rate, op: lte, threshold: 5, unit: "%"}
