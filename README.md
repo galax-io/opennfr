@@ -4,13 +4,14 @@
 
 An attempt to work out what an open, tool-agnostic format for load testing requirements
 *could* look like. Right now this repository contains notes: a survey of existing
-solutions, a pile of naming arguments, and sketches of what a document might look like.
+solutions, a pile of naming arguments, a schema, and a first target described as data.
 
-> The vocabulary is not stable and there is no implementation. There is now a schema for
-> the requirement container — see [FORMAT.md](FORMAT.md) — but everything under `docs/` is
-> still notes. Every YAML block below is an illustration of an idea, not syntax —
-> field names change between sessions of thinking about them. Do not build anything on it
-> yet.
+> The vocabulary is not stable and nothing here renders. Three schemas exist — the
+> requirement container, a target's description, and what a correct rendering produces; see
+> [FORMAT.md](FORMAT.md) — and the examples under `examples/`, `mappings/` and
+> `conformance/` are validated against them on every commit. Everything under `docs/` is
+> still notes, and a YAML block there illustrates an idea rather than syntax. Do not build
+> anything on this yet.
 
 If you have opinions about any of this, that is exactly what the repository is for.
 
@@ -82,10 +83,14 @@ finding above. Whether that trade is worth it is not obvious.
 
 **A run that under-delivered load is not a pass.** If the generator never reached 200 rps,
 a latency threshold goes green and the verdict is a lie. This seems to be the most common
-failure mode in load testing reports, and none of the surveyed formats catches it. The
-sketch: preconditions that are checked like criteria but yield a third outcome —
-*inconclusive*, "the test did not happen" — rather than pass or fail. Whether it deserves
-to be a separate outcome or is just a fancy `fail` is arguable.
+failure mode in load testing reports, and none of the surveyed formats catches it. A
+requirement can state the condition, and it renders into an assertion the tool actually runs.
+
+It was going to be a third outcome — *inconclusive*, "the test did not happen". That was
+withdrawn: no surveyed tool has a third outcome, and a construct nothing can honour is a
+silent green of its own. The distinction survives in the rendering, which records which
+entries state a condition of the run rather than a property of the system, and which report
+line each will become.
 
 **Tool support as data, not code.** If integrating a tool means writing a mapping file
 rather than forking an implementation, the list of supported tools stops being capped by
@@ -97,49 +102,100 @@ and that is an open problem, not a solved one.
 rather than `"p95 < 500ms"`. More verbose, but no bespoke grammar has to be reimplemented
 in every backend. This is where Keptn and Taurus visibly struggle.
 
-## What a document might look like
+## What a document looks like
 
-Illustrative sketch. Field names are unstable.
+Not a sketch. This is [`examples/six-statements.yaml`](examples/six-statements.yaml), and
+`scripts/verify.sh` validates it against the schema on every commit — so the format cannot
+drift away from what this page teaches.
 
 ```yaml
 apiVersion: opennfr.io/v1
 kind: RequirementSet
 metadata:
-  name: checkout-perf
+  name: six-statements
 spec:
   requirements:
-    - name: checkout-latency
-      displayName: "Checkout responds quickly under target load"
+    - name: get-root-duration
+      displayName: Duration of GET /
       indicator:
         distribution:
-          metric: http.client.request.duration    # OTel semconv name, not ours
+          metric: http.client.request.duration   # an OpenTelemetry name, not ours
           selector:
-            http.request.method: POST
-            http.route: /api/v1/checkout
-      guards:                                     # violated -> inconclusive
-        - { aggregation: rate, op: gte, threshold: 190, unit: "{request}/s" }
-      criteria:                                   # violated -> fail
-        - { aggregation: p95, op: lte, threshold: 500,  unit: ms, severity: blocker }
-        - { aggregation: p99, op: lte, threshold: 1500, unit: ms, severity: warning }
+            loadtest.request.name: GET /
+      criteria:
+        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 500, unit: ms}
+        - {displayName: Slowest,         aggregation: max, op: lte, threshold: 1000, unit: ms}
+
+    - name: all-requests-error-share
+      displayName: Share of failed requests
+      indicator:
+        ratio:                                   # a fraction, not a metric of its own
+          total:
+            metric: http.client.request.duration
+            selector: {}                         # {} is every request, said explicitly
+          bad:
+            metric: http.client.request.duration
+            selector:
+              error.type: "*"                    # the attribute is present, any value
+      criteria:
+        - {displayName: Failed share, aggregation: rate, op: lte, threshold: 5, unit: "%"}
 ```
+
+No tool is named anywhere in it — not in a field, a value, or a metric name.
+
+### What it becomes
+
+The document's job ends when it becomes the tool's own assertions. For Gatling, those two
+requirements render to:
+
+```scala
+setUp(...).assertions(
+  details("GET /").responseTime.percentile(99.0).lte(500),
+  details("GET /").responseTime.max.lte(1000),
+  global.failedRequests.percent.lte(5)
+)
+```
+
+The correspondence lives in [`mappings/gatling.yaml`](mappings/gatling.yaml) — how the target
+names things, **what it can and cannot assert**, how its units convert — with every claim
+carrying the source and the date it was checked. Adding a second tool is adding a second such
+file; the requirement document does not change.
+
+The expected output is pinned as data in
+[`conformance/render/six-statements/`](conformance/render/six-statements/), so any
+implementation, in any language, in any repository, has something to be checked against.
+
+### Two things the format refuses to do
+
+**It will not approximate.** Where a target cannot express a criterion exactly, the criterion
+is reported by name, with a reason, **before the run starts** — never replaced by the nearest
+thing the tool has. Every predicate is either rendered or named; there is no third bucket.
+
+**It will not name a derived quantity.** An error rate is a `ratio` over a metric that already
+exists, not a metric called `error_rate`. Throughput is `aggregation: rate`. A second
+vocabulary is a second source of truth, and the two diverge as soon as either changes.
 
 ## Known holes
 
 Not a roadmap — a list of things that are unresolved, some of which may sink the whole
 approach:
 
-- **Nothing is validated.** No JSON Schema exists, so the examples are prose that happens
-  to parse as YAML. The schema is the next thing to write, and it will expose whatever the
-  vocabulary leaves unsaid.
+- **A `ratio` names a metric it does not measure.** An error-rate requirement reads
+  `metric: http.client.request.duration`, because a histogram's count *is* the request count
+  and OpenTelemetry defines no HTTP client request counter. The document is correct and reads
+  as though it were about latency. Found by a reader; unsolved.
 - **Declaring "an error occurred" across tools.** k6 signals failure with a separate metric,
   JMeter with a boolean column, Gatling with KO. Expressing that declaratively without
   reinventing a rules DSL is unsolved.
+- **A target can pass on absent data, and nothing here can stop it.** One surveyed tool has an
+  assertion scope that exits *successfully* when it matches nothing. It is declared in that
+  target's description, because declaring it is the only move available.
 - **Percentiles come from histogram buckets**, so accuracy depends on bucket boundaries.
   Whether the format has to say anything about resolution is unclear.
-- **Whether load profiles belong here at all.** Describing the requirement is one thing;
-  describing the load that has to be generated is another, and it overlaps with what the
-  tools already do well. Currently out of scope, mostly out of caution.
-- **Baselines, time windows, streaming evaluation** — sketched, not thought through.
+- **Nothing here renders.** The corpus is an oracle: it says what a correct rendering produces
+  and is unfalsified until an implementation somewhere runs against it.
+- **Two targets do not prove the shape is neutral.** Any design drawn while looking at two
+  tools fits those two. The honest next probe is a third.
 
 ## Documents
 

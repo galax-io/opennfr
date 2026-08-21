@@ -1,0 +1,142 @@
+# What document.yaml becomes for this target. One entry per predicate, in document order:
+# for each requirement in order, its guards then its criteria. `rendered` and
+# `unrenderable` are projections of this one list — that is what makes the counting rule
+# hold by construction rather than by arithmetic.
+#
+# Each entry's `native.text` is dated evidence, not an authority. When it disagrees with
+# the normative tokens above it, the literal is the finding and the tokens are the bug.
+
+apiVersion: opennfr.io/v1
+kind: Rendering
+metadata:
+  name: six-statements-for-gatling
+
+spec:
+  document: six-statements
+  target:
+    description: gatling
+    version: "3.15.1"
+    checked: "2026-08-20"
+
+  predicates:
+
+    # ── get-root-duration ────────────────────────────────────────────────────────
+    - predicate: {requirement: get-root-duration, role: criterion, id: p99}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {request: GET /}
+            aggregation: percentile
+            percentile: 99
+            op: lte
+            threshold: 500
+            unit: ms
+            native:
+              text: 'details("GET /").responseTime.percentile(99.0).lte(500)'
+
+    - predicate: {requirement: get-root-duration, role: criterion, id: p95}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {request: GET /}
+            aggregation: percentile
+            percentile: 95
+            op: lte
+            threshold: 400
+            unit: ms
+            native:
+              text: 'details("GET /").responseTime.percentile(95.0).lte(400)'
+
+    - predicate: {requirement: get-root-duration, role: criterion, id: p75}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {request: GET /}
+            aggregation: percentile
+            percentile: 75
+            op: lte
+            threshold: 300
+            unit: ms
+            native:
+              text: 'details("GET /").responseTime.percentile(75.0).lte(300)'
+
+    - predicate: {requirement: get-root-duration, role: criterion, id: p50}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {request: GET /}
+            aggregation: percentile
+            percentile: 50
+            op: lte
+            threshold: 200
+            unit: ms
+            native:
+              text: 'details("GET /").responseTime.percentile(50.0).lte(200)'
+
+    - predicate: {requirement: get-root-duration, role: criterion, id: max}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {request: GET /}
+            aggregation: max
+            op: lte
+            threshold: 1000
+            unit: ms
+            native:
+              text: 'details("GET /").responseTime.max.lte(1000)'
+
+    # ── checkout-submit-duration — the old composite key, as a two-part path ──────
+    - predicate: {requirement: checkout-submit-duration, role: criterion, id: p99}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {group: MyGroup, request: MyRequest}
+            aggregation: percentile
+            percentile: 99
+            op: lte
+            threshold: 900
+            unit: ms
+            native:
+              text: 'details("MyGroup" / "MyRequest").responseTime.percentile(99.0).lte(900)'
+
+    # ── all-requests-duration — an empty selector is the whole run ────────────────
+    - predicate: {requirement: all-requests-duration, role: criterion, id: p99}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {}
+            aggregation: percentile
+            percentile: 99
+            op: lte
+            threshold: 1000
+            unit: ms
+            native:
+              text: 'global.responseTime.percentile(99.0).lte(1000)'
+
+    - predicate: {requirement: all-requests-duration, role: criterion, id: max}
+      rendered:
+        assertions:
+          - metric: responseTime
+            selector: {}
+            aggregation: max
+            op: lte
+            threshold: 2000
+            unit: ms
+            native:
+              text: 'global.responseTime.max.lte(2000)'
+
+    # ── all-requests-error-share ─────────────────────────────────────────────────
+    # The `bad` side's `error.type: "*"` is not a selection here: it is what makes the
+    # fraction the failed one, and this target has a statistic for exactly that. The
+    # selection comes from `total`, which is empty — the whole run.
+    - predicate: {requirement: all-requests-error-share, role: criterion, id: rate}
+      rendered:
+        assertions:
+          - metric: failedRequests
+            selector: {}
+            aggregation: percent
+            op: lte
+            threshold: 5
+            unit: "%"
+            native:
+              text: 'global.failedRequests.percent.lte(5)'
