@@ -30,12 +30,6 @@
         },
         "annotations": {
           "$ref": "#/$defs/annotations"
-        },
-        "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       }
     },
@@ -151,12 +145,6 @@
         },
         "unit": {
           "$ref": "#/$defs/unit"
-        },
-        "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       }
     },
@@ -178,7 +166,7 @@
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and rendered into the same kind of native assertion — no surveyed target has an outcome between pass and fail, so a violated precondition fails the run like anything else. What tells it apart is its entry in the rendering, which records that the entry is a guard. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "description": "Preconditions. Same shape as a criterion, opposite meaning: a violated guard says the run did not happen as intended, so the outcome is inconclusive rather than fail. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
           "items": {
             "allOf": [
               {
@@ -204,12 +192,6 @@
             ],
             "unevaluatedProperties": false
           }
-        },
-        "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       },
       "allOf": [
