@@ -30,6 +30,12 @@
         },
         "annotations": {
           "$ref": "#/$defs/annotations"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       }
     },
@@ -145,6 +151,12 @@
         },
         "unit": {
           "$ref": "#/$defs/unit"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       }
     },
@@ -192,6 +204,12 @@
             ],
             "unevaluatedProperties": false
           }
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       },
       "allOf": [
