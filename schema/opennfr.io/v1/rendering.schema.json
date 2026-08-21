@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opennfr.io/schema/v1/rendering.schema.json",
+  "title": "Rendering",
+  "description": "What one document becomes for one target: the target's own assertions, plus every predicate that could not be rendered, named, with a reason. This is the format's output and the path stops here — the target evaluates and reports for itself. Nothing in this repository produces a Rendering; the corpus uses it as the oracle any implementation, in any language, must reproduce.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "opennfr.io/v1" },
+    "kind": { "const": "Rendering" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["document", "target", "predicates"],
+      "properties": {
+        "document": {
+          "$ref": "#/$defs/name",
+          "description": "metadata.name of the RequirementSet this renders. Resolved inside the case's own directory, never as a path, so a case can be moved without editing its contents."
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "version", "checked"],
+          "properties": {
+            "description": { "$ref": "#/$defs/name" },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The target's version the native text below was read against. It MUST equal the target description's own version — a mismatch means one of the two is stale, and that is worth failing on."
+            },
+            "checked": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+          }
+        },
+        "predicates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/entry" },
+          "description": "ONE ordered list, not two. Exactly one entry per predicate, in document order: for each requirement in order, its guards then its criteria. `rendered` and `unrenderable` are projections of this list. That is what makes the counting rule hold by construction — there is no way to spell a predicate that appears twice, and none to spell one that appears in neither bucket."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "maxLength": 253
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement", "role", "id"],
+      "properties": {
+        "requirement": { "$ref": "#/$defs/name" },
+        "role": {
+          "enum": ["criterion", "guard"],
+          "description": "Whether this entry states a property of the system or a condition of the run. This is the only place either surveyed target can carry the distinction: neither has a field a document can write a name into, so a failed precondition is told from a failed criterion by resolving the target's report line back to this entry."
+        },
+        "id": {
+          "anyOf": [
+            { "$ref": "#/$defs/name" },
+            { "$ref": "#/$defs/aggregation" }
+          ],
+          "description": "The predicate's identity: its `name` if set, otherwise its `aggregation`. Not a name alone — `p99.9` is a legal identity and contains a dot."
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predicate"],
+      "properties": {
+        "predicate": { "$ref": "#/$defs/identity" },
+        "rendered": { "$ref": "#/$defs/rendered" },
+        "unrenderable": { "$ref": "#/$defs/unrenderable" }
+      },
+      "oneOf": [
+        { "required": ["rendered"] },
+        { "required": ["unrenderable"] }
+      ]
+    },
+    "rendered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assertions"],
+      "properties": {
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/assertion" },
+          "description": "At least one. A rendered entry with no assertion is unspellable on purpose: success by omission has no syntax here. More than one is admissible only as a conjunction that strictly narrows the pass condition — a range a target spells as two comparisons, or a companion assertion that stops the target passing on an empty selection."
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "selector", "aggregation", "op", "threshold", "unit", "native"],
+      "properties": {
+        "metric": { "type": "string", "minLength": 1, "description": "The target's own token." },
+        "selector": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number", "boolean"] },
+          "description": "The target's own selection keys. {} means every request, written explicitly rather than implied. Serialised in lexicographic key order, which is half of what makes a rendering deterministic."
+        },
+        "aggregation": { "type": "string", "minLength": 1 },
+        "percentile": {
+          "type": "number",
+          "description": "Present only where the aggregation is the target's percentile token. Two values — a token and a number — never the single string 'percentile(95)', which would have to be parsed to be understood."
+        },
+        "op": { "type": "string", "minLength": 1 },
+        "threshold": {
+          "type": "number",
+          "description": "AFTER conversion, in the target's own representation. A value that does not land exactly inside the declared numeric domain makes its predicate unrenderable rather than rounded."
+        },
+        "unit": { "$ref": "#/$defs/unit" },
+        "native": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The literal form the target receives, pinned as dated evidence. Deliberately carries NO `pattern`: a pattern is the first line of a decoder, and nothing interprets this string. When it disagrees with the structured fields above, the literal is the finding and the fields are the bug."
+            }
+          }
+        }
+      }
+    },
+    "unrenderable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reasons"],
+      "properties": {
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reason" },
+          "description": "At least one, each citing a gap the target description actually declares. That is what makes an unrenderable claim traceable rather than asserted — and it is checked in both directions, because calling something unrenderable that the target can in fact assert is as much a defect as the reverse."
+        }
+      }
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap", "detail"],
+      "properties": {
+        "gap": {
+          "enum": [
+            "no-such-metric",
+            "no-such-attribute",
+            "no-such-selection",
+            "no-such-aggregation",
+            "no-such-comparison",
+            "no-such-shape",
+            "threshold-not-representable"
+          ],
+          "description": "Which axis the target description declares a gap on. The three kinds the edge cases require — a missing statistic, a missing comparison, a threshold that does not convert — are told apart by this rather than by prose."
+        },
+        "detail": { "type": "string", "minLength": 1 }
+      }
+    },
+    "aggregation": {
+      "type": "string",
+      "anyOf": [
+        { "enum": ["avg", "min", "max", "count", "rate", "sum", "stddev"] },
+        { "pattern": "^p\\d{1,2}(\\.\\d+)?$" }
+      ]
+    },
+    "unit": {
+      "enum": ["ns", "us", "ms", "s", "min", "h", "%", "1", "By", "KiBy", "MiBy", "GiBy",
+               "{request}", "{request}/s", "{iteration}", "{iteration}/s", "{vu}"]
+    }
+  }
+}
