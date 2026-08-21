@@ -3,7 +3,8 @@
 A container. It fixes the **shape** a requirement is written in, and nothing else.
 
 The definition is [`schema/opennfr.io/v1/requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json).
-One file. This page explains it; the schema decides.
+One file. This page explains it; the schema decides — and the schema carries `examples` on
+every definition, so an editor with schema support shows the shape where the words stop.
 
 ## The minimal document
 
@@ -57,6 +58,7 @@ file or the schema.
 | | |
 |---|---|
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
+| An optional human name | `displayName`, on the document, each requirement and each predicate. Free text, any script, none of the identifier's constraints. Inert: it changes nothing measured, compared or selected, and it never restates a value the structured fields already carry |
 | Two indicator shapes | `distribution` for a distribution of values, `ratio` for a fraction. Exactly one, expressed by nesting rather than a discriminator, so a decoder needs no second pass |
 | One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
 | Guards | A violated guard means the run did not happen as intended, so the outcome is `inconclusive` — not `fail`, and never a pass |

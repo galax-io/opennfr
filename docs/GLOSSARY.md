@@ -112,6 +112,24 @@ A load generator is an HTTP client, so the canonical latency metric is
 (`http_req_duration` in k6 and friends). Reducing tool-specific names to canonical ones is
 the adapter's job, not the format's.
 
+### displayName
+
+An optional human-readable name, on the document, on a requirement and on a predicate. Free
+text in any script, with none of the identifier's constraints — `name` is restricted to
+lowercase letters, digits and hyphens because something has to point at it, and a person
+writing a requirement wants a sentence.
+
+Inert by construction: it changes nothing selected, measured or compared, and two documents
+differing only in their display names mean the same thing.
+
+It does not restate a value the structured fields already carry. `99th percentile under 500 ms`
+beside `threshold: 500` is a second source for one number, and the two diverge the first time
+the threshold moves. Write `99th percentile` — the quantity, not the answer.
+
+Rejected: `label` — in JMeter a *label* is the sampler name, so the word already means an
+address here. `title` — collides with the document's own title and with JSON Schema's `title`.
+`description` — invites paragraphs where a phrase is wanted.
+
 ### selector
 
 Selects time series by OTel attributes. A map of attribute → value.

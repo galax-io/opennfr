@@ -3,6 +3,48 @@
   "$id": "https://opennfr.io/schema/v1/requirementset.schema.json",
   "title": "RequirementSet",
   "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry rather than defined here, so measuring something new never means changing the format.",
+  "examples": [
+    {
+      "apiVersion": "opennfr.io/v1",
+      "kind": "RequirementSet",
+      "metadata": {
+        "name": "checkout-perf",
+        "displayName": "Checkout performance"
+      },
+      "spec": {
+        "requirements": [
+          {
+            "name": "get-root-duration",
+            "displayName": "Duration of GET /",
+            "indicator": {
+              "distribution": {
+                "metric": "http.client.request.duration",
+                "selector": {
+                  "loadtest.request.name": "GET /"
+                }
+              }
+            },
+            "criteria": [
+              {
+                "displayName": "99th percentile",
+                "aggregation": "p99",
+                "op": "lte",
+                "threshold": 500,
+                "unit": "ms"
+              },
+              {
+                "displayName": "Slowest",
+                "aggregation": "max",
+                "op": "lte",
+                "threshold": 1000,
+                "unit": "ms"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -30,6 +72,12 @@
         },
         "annotations": {
           "$ref": "#/$defs/annotations"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       }
     },
@@ -67,12 +115,67 @@
         "selector": {
           "$ref": "#/$defs/selector"
         }
-      }
+      },
+      "examples": [
+        {
+          "metric": "http.client.request.duration",
+          "selector": {}
+        },
+        {
+          "metric": "http.client.request.duration",
+          "selector": {
+            "loadtest.request.name": "GET /"
+          }
+        },
+        {
+          "metric": "http.client.request.duration",
+          "selector": {
+            "loadtest.group.name": "MyGroup",
+            "loadtest.request.name": "MyRequest"
+          }
+        }
+      ]
     },
     "indicator": {
       "type": "object",
       "additionalProperties": false,
       "description": "Exactly one shape. Nested keys rather than a discriminator, so a decoder needs no second pass.",
+      "examples": [
+        {
+          "distribution": {
+            "metric": "http.client.request.duration",
+            "selector": {}
+          }
+        },
+        {
+          "ratio": {
+            "total": {
+              "metric": "http.client.request.duration",
+              "selector": {}
+            },
+            "bad": {
+              "metric": "http.client.request.duration",
+              "selector": {
+                "error.type": "*"
+              }
+            }
+          }
+        },
+        {
+          "ratio": {
+            "total": {
+              "metric": "http.client.request.duration",
+              "selector": {}
+            },
+            "good": {
+              "metric": "http.client.request.duration",
+              "selector": {
+                "error.type": "*"
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "distribution": {
           "$ref": "#/$defs/series"
@@ -145,8 +248,42 @@
         },
         "unit": {
           "$ref": "#/$defs/unit"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
-      }
+      },
+      "examples": [
+        {
+          "aggregation": "p95",
+          "op": "lte",
+          "threshold": 500,
+          "unit": "ms"
+        },
+        {
+          "displayName": "99th percentile",
+          "aggregation": "p99",
+          "op": "lte",
+          "threshold": 1500,
+          "unit": "ms"
+        },
+        {
+          "name": "reached-target-rate",
+          "aggregation": "rate",
+          "op": "gte",
+          "threshold": 200,
+          "unit": "{request}/s"
+        },
+        {
+          "aggregation": "rate",
+          "op": "lte",
+          "threshold": 5,
+          "unit": "%"
+        }
+      ]
     },
     "requirement": {
       "type": "object",
@@ -166,7 +303,7 @@
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions. Same shape as a criterion, opposite meaning: a violated guard says the run did not happen as intended, so the outcome is inconclusive rather than fail. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and rendered into the same kind of native assertion — no surveyed target has an outcome between pass and fail, so a violated precondition fails the run like anything else. What tells it apart is its entry in the rendering, which records that the entry is a guard. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
           "items": {
             "allOf": [
               {
@@ -192,6 +329,12 @@
             ],
             "unevaluatedProperties": false
           }
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
         }
       },
       "allOf": [
@@ -226,12 +369,49 @@
           },
           "description": "docs/GLOSSARY.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
         }
+      ],
+      "examples": [
+        {
+          "name": "checkout-latency-under-load",
+          "displayName": "Checkout stays fast at the intended rate",
+          "indicator": {
+            "distribution": {
+              "metric": "http.client.request.duration",
+              "selector": {
+                "loadtest.request.name": "POST /checkout"
+              }
+            }
+          },
+          "guards": [
+            {
+              "name": "reached-target-rate",
+              "aggregation": "rate",
+              "op": "gte",
+              "threshold": 200,
+              "unit": "{request}/s"
+            }
+          ],
+          "criteria": [
+            {
+              "name": "tail",
+              "aggregation": "p95",
+              "op": "lte",
+              "threshold": 500,
+              "unit": "ms"
+            }
+          ]
+        }
       ]
     },
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
-      "maxLength": 253
+      "maxLength": 253,
+      "examples": [
+        "checkout-latency",
+        "get-root-duration",
+        "reached-target-rate"
+      ]
     },
     "unit": {
       "enum": [
@@ -253,7 +433,14 @@
         "{iteration}/s",
         "{vu}"
       ],
-      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
+      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers.",
+      "examples": [
+        "ms",
+        "s",
+        "%",
+        "{request}/s",
+        "{request}"
+      ]
     },
     "op": {
       "enum": [
@@ -263,11 +450,28 @@
         "gte",
         "eq",
         "neq"
+      ],
+      "examples": [
+        "lte",
+        "gte",
+        "lt",
+        "gt",
+        "eq"
       ]
     },
     "aggregation": {
       "type": "string",
       "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
+      "examples": [
+        "p50",
+        "p95",
+        "p99",
+        "p99.9",
+        "max",
+        "avg",
+        "rate",
+        "count"
+      ],
       "anyOf": [
         {
           "enum": [
@@ -288,6 +492,19 @@
     "selector": {
       "type": "object",
       "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
+      "examples": [
+        {},
+        {
+          "loadtest.request.name": "GET /"
+        },
+        {
+          "loadtest.group.name": "MyGroup",
+          "loadtest.request.name": "MyRequest"
+        },
+        {
+          "error.type": "*"
+        }
+      ],
       "additionalProperties": {
         "type": [
           "string",
@@ -301,7 +518,12 @@
       "additionalProperties": {
         "type": "string"
       },
-      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
+      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved.",
+      "examples": [
+        {
+          "opennfr.io/source": "SLA-2026-Q3, section 4.2"
+        }
+      ]
     }
   }
 }
