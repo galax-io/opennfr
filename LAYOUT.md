@@ -15,8 +15,8 @@ never becomes one.
 | **The format** | `FORMAT.md` and `schema/opennfr.io/v1/` at the repository root | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
 | **Ideas and notes** | `docs/` | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
 | Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
-| Tool mappings | `mappings/` once it exists | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — the conformance ladder is |
-| Conformance corpus | `conformance/` once it exists | Anyone, by pull request | Every case states the outcome a conforming consumer must reach | **Yes** |
+| Target descriptions | `mappings/` | Anyone, by pull request | Every claim about what the target can and cannot assert is evidenced and dated; capabilities and gaps partition each axis, so a combination in neither is a defect of the description | **Yes** — what a description may declare is a compatibility-sensitive surface |
+| Conformance corpus | `conformance/` | Anyone, by pull request | Every case states the rendering a conforming consumer must reproduce | **Yes** |
 | Validated examples | `examples/` | Anyone, by pull request | They must validate against the schema. `verify.sh` fails if they do not — that is the point of them | **Yes** |
 | Sketches | `docs/examples/` | Anyone, by pull request | Every file announces itself as a sketch in its first six lines. Nothing validates them | No |
 | Parked experiments | `docs/experimental/` | Anyone, by pull request | Status, promotion and retirement conditions, a date; nothing outside links in; markdown only | No, by construction |
@@ -77,8 +77,8 @@ and not below.
 | **follow-up spec** | One concrete future task with a boundary and a dependency | `roadmap item` — implies a schedule; these carry dependencies, not dates |
 | **obligation** | What a change to a class requires of the person making it | `policy` — pulls towards OPA and rule engines |
 | **non-conformance list** | The published record of what is currently mis-filed | `tech debt` — invites deferral rather than disclosure |
-| **component role** | A named job on the path from requirement to outcome, defined by input, output and forbidden knowledge | `layer` — already used for the vocabulary's three layers, and roles are contracts rather than strata |
-| **tool mapping** | The data that binds the format to one target | `binding` — collides with `MetricMapping`, and `binding` is already load-bearing in this repository as an adjective meaning normative |
+| **component role** | A named job on the path from a requirement to a target's own assertions, defined by input, output and forbidden knowledge | `layer` — already used for the vocabulary's three layers, and roles are contracts rather than strata |
+| **target description** | The data that says how one target names things, what it can and cannot assert, how its units convert, and where it can pass on absent data | `tool mapping` — the incumbent, superseded: it named name-correspondence rather than capability. `binding` — already load-bearing here as an adjective meaning normative |
 | **file adapter** | The sub-role of `Adapter` that reads a target's output files | `reader` — in this repository's documents `reader` means a human, and two success criteria rest on that sense |
 
 ## 3. What is currently mis-filed
@@ -91,7 +91,7 @@ cheaper to know now than to discover mid-rename.
 |---|---|---|---|
 | `docs/examples/mapping-k6.yaml` | Tool mappings | Linked from five other documents; a move turns `scripts/verify.sh` red across the tree | **`verify.sh`'s sketch-label check is hardcoded to `docs/examples/*.yaml`.** A mapping relocated to `mappings/` silently stops being checked until the script is extended. Extend it in the same PR |
 | `docs/examples/mapping-jmeter.yaml` | Tool mappings | Same | Same |
-| `docs/compatibility.md` | Three classes at once | Splitting it is a separate concern from publishing this layout | It spans conformance levels (normative), the dated tool survey (evidence) and the Go notes (proposal). A split must keep the survey's date attached to the survey |
+| `docs/compatibility.md` | Three classes at once | Splitting it is a separate concern from publishing this layout | It spans a retired conformance ladder, the dated tool survey (evidence) and the Go notes (proposal). A split must keep the survey's date attached to the survey |
 | `docs/references.md` | Evidence, which has no class | Inventing a class for one file costs a governance word | Either widen the normative core's definition or accept it as an unclassified note, stated as such |
 | `docs/units.md` | Normative core | Already correctly filed; listed because its status line predates the layout | Confirm it announces its own status |
 | `mappings/` | Tool mappings | The directory does not exist yet | Created by the first target follow-up specification, not by this document |
@@ -110,16 +110,21 @@ Extending the list is a constitutional amendment, not a layout change.
 
 The whole point of the layout: this needs no permission and touches no normative-core file.
 
-1. Write one `kind: MetricMapping` document in `mappings/`, named for the target.
-2. Declare, at minimum: the correspondence between the target's names and canonical ones; the
-   unit conversion for each; the correspondence between the target's labelling and canonical
-   attributes; how the target signals a failed request; and how it derives percentiles.
-3. Declare the conformance level the mapping claims, and **the list of constructs the target
-   cannot honour**. An undeclared gap is a defect of the mapping, not of the format.
-4. Evidence the claimed level with a **dated manual verification against the target's own
-   documentation**, in the mapping's own annotations. This is what
+1. Write one `kind: TargetDescription` document in `mappings/`, named for the target.
+2. Declare, at minimum: the correspondence between the target's names and the document's; the
+   unit conversion for each, as an exact ratio rather than a float; how the target signals a
+   failed request; how it derives percentiles; and how it builds its own report line.
+3. Declare **what the target cannot assert**, on the same axes as what it can, so the two
+   partition each axis. A combination declared in neither is a defect of the description, not
+   of the format — and a description silent about a capability is not claiming the target has
+   it.
+4. Cite, for every claim in both directions, a **source and the date it was checked** against
+   the target's own documentation or source. This is what
    [Principle IV](.specify/memory/constitution.md) requires of every claim about an external
-   tool.
+   tool, and here it is a schema constraint rather than a habit.
+5. Declare **where the target can report success on absent data** — an assertion whose scope
+   expands to nothing, a selection that received no samples. One surveyed target does exactly
+   that, and nothing outside its own description can discover it.
 5. Open a pull request. A maintainer attaches the milestone and the closing link if you cannot.
 
 **This procedure is unenforceable today, and says so.** There is no schema to validate the
@@ -137,8 +142,9 @@ should not be.
 A tool-native integration — a Gatling plugin, a k6 extension — lives in **that tool's own
 repository** and consumes this one. It never lives here.
 
-**This repository is authoritative** for the format, the vocabulary and the conformance levels.
-An integration that disagrees is wrong and is fixed there, not here.
+**This repository is authoritative** for the format and the vocabulary. An integration that
+disagrees is wrong and is fixed there, not here. It is *not* authoritative for what a target can
+do: that is the target's, and a description records it with a date rather than deciding it.
 
 How drift becomes visible is deliberately unanswered: every detection mechanism is an
 executable artifact, and this feature ships none. Detection is assigned to the conformance-corpus

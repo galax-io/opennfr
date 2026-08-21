@@ -113,9 +113,15 @@ JSONABLE
 fi
 
 section "Examples validate against the schema"
-# The real gate. Every document in examples/ must satisfy the schema. The
-# sketches under docs/examples/ are deliberately outside it — see AGENTS.md >
-# Test Model — because they illustrate ideas the format does not have.
+# The real gate. Every document in examples/, mappings/ and conformance/ must
+# satisfy the schema for its kind. The sketches under docs/examples/ are
+# deliberately outside it — see AGENTS.md > Test Model — because they illustrate
+# ideas the format does not have.
+#
+# LAYOUT.md § 6 warns that a document relocated into mappings/ silently stops
+# being checked. That hole is closed here rather than when the first file lands:
+# a kind with no schema is a FAIL, so the window in which something could arrive
+# unchecked never opens.
 if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the schema gate cannot run"
 else
@@ -128,14 +134,27 @@ except ImportError as e:
     # A gate that skips itself reads exactly like a passing one.
     print(f"  FAIL  {e.name} not installed (pip install jsonschema pyyaml)")
     sys.exit(1)
-schema = json.load(open("schema/opennfr.io/v1/requirementset.schema.json", encoding="utf-8"))
-Draft202012Validator.check_schema(schema)
-v = Draft202012Validator(schema)
+import os
+# kind -> validator. A kind absent from this table has no schema and is a failure,
+# never a pass. Entries appear as their schema files land.
+KINDS = {}
+for kind, name in (("RequirementSet", "requirementset"),
+                   ("TargetDescription", "targetdescription"),
+                   ("Rendering", "rendering")):
+    path = f"schema/opennfr.io/v1/{name}.schema.json"
+    if os.path.exists(path):
+        sch = json.load(open(path, encoding="utf-8"))
+        Draft202012Validator.check_schema(sch)
+        KINDS[kind] = Draft202012Validator(sch)
 rc = 0
 files = sorted(glob.glob("examples/*.yaml"))
 if not files:
     print("  FAIL  examples/ holds no document to validate")
     sys.exit(1)
+# mappings/ and conformance/ are validated too. They may hold only a README while
+# no YAML has landed yet, so an empty result here is not a failure — but any YAML
+# that does land is checked, or the FAIL below says nothing validates it.
+files += sorted(glob.glob("mappings/*.yaml") + glob.glob("conformance/**/*.yaml", recursive=True))
 for f in files:
     docs = [d for d in yaml.safe_load_all(open(f, encoding="utf-8"))]
     if not docs or all(d is None for d in docs):
@@ -148,10 +167,11 @@ for f in files:
             rc = 1
             continue
         kind = doc.get("kind")
-        if kind != "RequirementSet":
-            print(f"  FAIL  {f}: kind {kind!r} has no schema yet — move it out of examples/")
+        if kind not in KINDS:
+            print(f"  FAIL  {f}: kind {kind!r} has no schema — nothing validates this file")
             rc = 1
             continue
+        v = KINDS[kind]
         errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
         for e in errs:
             where = "/".join(map(str, e.path)) or "(root)"
