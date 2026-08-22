@@ -4,7 +4,7 @@
 #
 # There is no code here yet, so this checks the only things that can currently be
 # wrong: that the sketches still parse, that the notes do not link into the void,
-# and that the docs stayed in English (see docs/adr/0001-terminology.md).
+# and that the docs stayed in English (see reference/adr/0001-terminology.md).
 #
 # The schema gate validates examples/ against schema/opennfr.io/v1/. The sketches
 # under docs/examples/ are outside it on purpose — see AGENTS.md > Test Model.
@@ -288,6 +288,46 @@ elif [ "$missing" -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+section "docs/ is isolated"
+# docs/ holds ideas: constructs the format does not have, each of which will be built,
+# reworked or dropped. Real documentation must not link into it, or dropping one costs a
+# sweep through files that were never about it. Links the other way are fine — an argument
+# about a construct has to name what it would change.
+#
+# The property this buys is runnable: `git rm -r docs && bash scripts/verify.sh` stays PASS.
+# Outside references name a path in prose, inside a code span, never as link syntax.
+leaked=0
+scanned=0
+while IFS= read -r line; do
+  src="${line%%:*}"
+  target="${line#*:}"
+  # specs/ is the spec-kit working record, read as history and left as written — the
+  # constitution says so explicitly. It is not documentation and is not held to this rule.
+  case "$src" in ./docs/*|./specs/*) continue ;; esac
+  scanned=$((scanned + 1))
+  base="$(dirname "$src")"
+  path="${target%%#*}"
+  [ -z "$path" ] && continue
+  case "$path" in *'<'*|*'>'*|*'{'*) continue ;; esac
+  resolved="$(cd "$base" 2>/dev/null && printf '%s' "$(python3 -c 'import os,sys; print(os.path.normpath(os.path.join(os.getcwd(), sys.argv[1])))' "$path")")"
+  case "$resolved" in
+    "$PWD"/docs|"$PWD"/docs/*)
+      bad "$src links into docs/ -> $target"
+      leaked=1 ;;
+  esac
+done < <(
+  grep -rn --include='*.md' -oE '\]\([^)]+\)' . \
+    | grep -v '^\./\.' \
+    | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/' \
+    | grep -vE ':(https?|mailto):'
+)
+if [ "$scanned" -eq 0 ]; then
+  bad "no links found outside docs/ — the isolation scan is broken"
+elif [ "$leaked" -eq 0 ]; then
+  ok "no documentation links into docs/ ($scanned links checked)"
+fi
+
+# ---------------------------------------------------------------------------
 section "Docs are English"
 # ADR-0001 settled on English for everything published. Cyrillic left in a file
 # means a translation was missed, which is silent until someone outside reads it.
@@ -349,19 +389,28 @@ fi
 
 # ---------------------------------------------------------------------------
 section "Examples are labelled as sketches"
-# Nothing validates the examples, so each one must say so — otherwise a reader
+# Nothing validates the sketches, so each one must say so — otherwise a reader
 # mistakes an illustration for syntax.
-sketches=0
-for f in docs/examples/*.yaml; do
-  [ -e "$f" ] || continue
-  sketches=$((sketches + 1))
-  if head -6 "$f" | grep -qi 'sketch'; then
-    ok "$f"
-  else
-    bad "$f does not announce itself as a sketch in its first 6 lines"
-  fi
-done
-[ "$sketches" -gt 0 ] || bad "docs/examples/ holds no sketch to check"
+#
+# Two ways to find nothing, and they are not the same thing. A missing docs/ means the
+# whole ideas area was dropped, which is a supported operation and leaves nothing to
+# label. A docs/examples/ that exists and holds no YAML means the glob stopped matching,
+# which is a broken check reporting a clean scan. The first is ok, the second is FAIL.
+if [ ! -d docs ]; then
+  ok "docs/ is absent — the ideas area was dropped, so there is nothing to label"
+else
+  sketches=0
+  for f in docs/examples/*.yaml; do
+    [ -e "$f" ] || continue
+    sketches=$((sketches + 1))
+    if head -6 "$f" | grep -qi 'sketch'; then
+      ok "$f"
+    else
+      bad "$f does not announce itself as a sketch in its first 6 lines"
+    fi
+  done
+  [ "$sketches" -gt 0 ] || bad "docs/examples/ holds no sketch to check"
+fi
 
 # ---------------------------------------------------------------------------
 printf '\n'

@@ -30,19 +30,26 @@ Classes differ by what a change **obliges**, not by who may propose it. No role 
 introduced here, because [Principle I](.specify/memory/constitution.md) prices every added
 governance word and a role taxonomy would buy nothing mechanical.
 
-### `docs/` is isolated
+### `docs/` is isolated, and that is checkable
 
-Nothing outside `docs/` links into it. Outside references name a path in prose, inside a code
-span, never as markdown link syntax. Links out of `docs/` into the format are fine and expected
-— an argument about a construct has to be able to name what it would change.
+Nothing outside `docs/` may link into it. Outside references name a path in prose, inside a code
+span, never as markdown link syntax; `scripts/verify.sh` fails the build on any markdown link
+that crosses the boundary in the wrong direction. Links out of `docs/` into the format are fine
+and expected — an argument about a construct has to be able to name what it would change.
 
-The rule buys one property: every idea can be dropped without breaking a real document. An idea
-that cannot be cheaply abandoned is one that gets kept for the wrong reasons — and the previous
-arrangement, where the vocabulary the format carries sat in the same directory and the same
-voice as the vocabulary it had retired, is what this replaces.
+The rule buys one property, and it is a property you can run:
 
-`docs/experimental/` keeps its own, stricter version: markdown only, and a status, promotion
-conditions, retirement conditions and a date in every file.
+```bash
+git rm -r docs && bash scripts/verify.sh
+```
+
+Every idea can be dropped in one operation without breaking a real document. An idea that cannot
+be cheaply abandoned is one that gets kept for the wrong reasons — and the previous arrangement,
+where the vocabulary the format carries sat in the same directory and the same voice as the
+vocabulary it had retired, is what this replaces.
+
+`docs/experimental/` keeps its own, stricter version of the rule: markdown only, and a status,
+promotion conditions, retirement conditions and a date in every file.
 
 ### How an idea becomes part of the format
 

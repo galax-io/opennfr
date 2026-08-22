@@ -44,7 +44,7 @@ Answer each gate explicitly. A "no" is either fixed or justified in Complexity T
 below — never left blank. See `.specify/memory/constitution.md` (v2.0.0).
 
 - [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term?
-      If so, is `docs/GLOSSARY.md` updated in the same change, with a rejected
+      If so, is `reference/glossary.md` updated in the same change, with a rejected
       alternative and its reason? Does any ADR now contradict it?
 - [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken
       from OpenTelemetry semconv where an equivalent exists? Is anything new confined to

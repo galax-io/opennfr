@@ -1,6 +1,36 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 2.0.0 → 2.1.0
+
+Bump rationale: MINOR — a binding constraint is ADDED to Principle VIII and nothing existing
+is removed or redefined to permit what it forbade. No principle is renumbered.
+
+Travelling with other work, disclosed as the amendment procedure requires: this amendment ships
+in the pull request that moves the reference documentation out of `docs/`. What breaks without
+it is stated rather than implied — Principle I would still require a term to appear in
+`docs/GLOSSARY.md`, a file that no longer exists, and the supreme document would be the only one
+in the repository pointing at nothing.
+
+What changed:
+  - Principle VIII gains three clauses: `docs/` holds ideas and nothing else, nothing outside it
+    may link in, and both are enforced by `scripts/verify.sh` rather than asserted. `specs/` is
+    exempt as history. The experimental area's stricter rules are unchanged and now sit on top
+    of a general one instead of standing alone.
+  - Paths follow the move. `docs/GLOSSARY.md` → `reference/glossary.md`, `docs/adr/` →
+    `reference/adr/`, `docs/references.md` → `reference/prior-art.md`. `docs/semconv/loadtest.md`
+    and `docs/examples/mapping-k6.yaml` are unchanged: both are ideas, and both stay.
+  - Nothing else. Principles I–VII, the Compatibility Constraints and the Governance section
+    carry no change beyond those paths, and the obligations owed by 2.0.0 — issues #35 and #36 —
+    are untouched and still owed.
+
+Templates and docs reviewed:
+  ✅ .specify/templates/plan-template.md   — glossary path corrected; gates unchanged
+  ✅ .specify/templates/spec-template.md   — no change needed
+  ✅ .specify/templates/tasks-template.md  — no change needed
+  ✅ .specify/templates/checklist-template.md — no change needed
+
+--------------------------------------------------------------------------------
 Version change: 1.1.0 → 2.0.0
 
 Bump rationale: MAJOR on three counts, each independently sufficient under this document's
@@ -55,7 +85,7 @@ live only in this comment block:
     Its § 2 role table is where a rendering would get a definition to point at.
   - An ADR superseding ADR-0002 § D13 — issue #36. The Compatibility Constraints text forbids
     only NEW citations; the four documents that carry existing ones — ARCHITECTURE.md,
-    docs/GLOSSARY.md, LAYOUT.md, docs/adr/0002-compatibility.md — are corrected by that ADR,
+    reference/glossary.md, LAYOUT.md, reference/adr/0002-compatibility.md — are corrected by that ADR,
     and specs/ is history and stays as written.
 
 Deferred: whether the compatibility-surface list should also cover names the format defines
@@ -71,7 +101,7 @@ under `loadtest.*` — carried forward unresolved from 1.1.0.
 The vocabulary is the product. This repository ships terms, not code, and a term is
 harder to withdraw than a feature.
 
-- A new term MUST appear in `docs/GLOSSARY.md` before it appears in an example, a
+- A new term MUST appear in `reference/glossary.md` before it appears in an example, a
   schema, or an implementation.
 - Every glossary entry MUST record at least one rejected alternative and the reason it
   was rejected. The rejection outlives the term it protects.
@@ -177,7 +207,7 @@ contributions and, worse, invites someone to build against names that will chang
 
 **Rationale**: a grammar inside a specification has to be reimplemented, identically, in
 every backend that reads it — and it never is. This is precisely where the string-DSL
-formats surveyed in `docs/references.md` fail.
+formats surveyed in `reference/prior-art.md` fail.
 
 ### VI. The Requirement Is Target-Blind
 
@@ -250,6 +280,16 @@ meet here rather than compete.
   promote it, what would retire it, and the date the statement was last true.
 - The experimental area MUST be removable in one operation without changing anything outside
   it, and nothing outside it may link into it.
+- **`docs/` holds ideas and nothing else.** Every artifact in it is a construct the format does
+  not have, to be built, reworked or dropped. Documentation of what the format *is* MUST NOT
+  live there, and **nothing outside `docs/` may link into it** — an outside reference names a
+  path in prose, inside a code span, never as markdown link syntax. Links out of `docs/` into
+  the format are permitted and expected.
+- That rule is not a convention. `scripts/verify.sh` MUST fail on any markdown link crossing
+  the boundary in the wrong direction, and `git rm -r docs && bash scripts/verify.sh` MUST stay
+  green. `specs/` is exempt: it is read as history, not as documentation.
+- The experimental area keeps its own stricter rules on top: markdown only, and a status,
+  promotion conditions, retirement conditions and a date in every file.
 - This principle binds work admitted **after 2026-08-18**. Two artifacts predate it and are
   grandfathered: `docs/semconv/loadtest.md`, an unsubmitted upstream proposal that core
   constructs already depend on, and the `errorSignal` sketch in
@@ -258,7 +298,16 @@ meet here rather than compete.
 
 **Rationale**: the failure this prevents is "it mostly works, call it v1" — a four-query-language
 experiment with four different percentile implementations treated as settled because it is
-nearly right. The grandfather clause is written down rather than hidden because two committed
+nearly right.
+
+The extension to all of `docs/` in 2.1.0 answers a failure the repository had already produced
+rather than a hypothetical one. The vocabulary the schema carries and the vocabulary the format
+had retired sat in one directory, in one voice, under one banner, and a reader could not tell
+which was which without the git history — the same "two sources for one decision" the format
+exists to prevent, turned inward. Containment without a checkable boundary is a label, and this
+principle already says a label is not containment. The boundary is therefore a gate, and the
+property it buys is one you can run: an idea nobody can cheaply abandon is an idea that gets
+kept for the wrong reasons. The grandfather clause is written down rather than hidden because two committed
 artifacts already practise labelling without containment, and a principle that made them
 retroactively non-compliant on the day it shipped would be a rule the repository breaks on
 arrival.
@@ -304,7 +353,7 @@ Retiring the ladder changes a compatibility-sensitive surface and therefore requ
 its own, which supersedes ADR-0002 § D13 with a dated note rather than rewriting it. From this
 amendment, **no new artifact may cite a conformance level**. Existing citations are not
 retroactively invalid and are not to be edited out one by one: `ARCHITECTURE.md`,
-`docs/GLOSSARY.md`, `LAYOUT.md` and `docs/adr/0002-compatibility.md` are corrected by the
+`reference/glossary.md`, `LAYOUT.md` and `reference/adr/0002-compatibility.md` are corrected by the
 pull requests this amendment already owes, and the `specs/` directory is a record of what was
 decided when — it is read as history and left alone.
 
@@ -317,7 +366,7 @@ adds only the constraints that outrank convenience:
   the gate MUST justify it in the PR, not in the script.
 - Every change MUST travel through an issue, a branch, and a PR carrying a milestone and
   a closing link, as enforced by `scripts/check-linkage.sh`.
-- A PR that changes a term MUST update `docs/GLOSSARY.md` in the same PR. Vocabulary
+- A PR that changes a term MUST update `reference/glossary.md` in the same PR. Vocabulary
   drift between a change and its documentation is not acceptable, however brief.
 - A PR that contradicts an ADR MUST amend that ADR instead.
 
@@ -364,7 +413,7 @@ MUST verify compliance; a violation is either fixed or the constitution is amend
 never silently accepted. Complexity that appears to require a violation MUST be
 justified in writing in the plan's Complexity Tracking section.
 
-**Runtime guidance**: `AGENTS.md` for process, `docs/GLOSSARY.md` for vocabulary,
-`docs/adr/` for why any of it is the way it is.
+**Runtime guidance**: `AGENTS.md` for process, `reference/glossary.md` for vocabulary,
+`reference/adr/` for why any of it is the way it is.
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-21
+**Version**: 2.1.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-22
