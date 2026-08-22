@@ -54,116 +54,32 @@
     }
   },
   "$defs": {
-    "series": {
+    "indicator": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "metric",
         "selector"
       ],
+      "description": "What the requirement is about. `selector` says which requests; `metric` says what to measure of them, and is omitted when the requirement is about the requests themselves rather than a quantity they carry. There is no second shape: whether you get a value, a count or a share is decided by the aggregation, which is where it belongs.",
       "properties": {
+        "selector": {
+          "$ref": "#/$defs/selector"
+        },
         "metric": {
           "type": "string",
           "minLength": 1,
-          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format."
-        },
-        "selector": {
-          "$ref": "#/$defs/selector"
+          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format. Omit it when nothing is measured — an error share counts requests, and naming a metric it never reads is how a document ends up saying `duration` in a requirement about failures."
         }
       },
       "examples": [
         {
           "metric": "http.client.request.duration",
+          "selector": {
+            "loadtest.request.name": "GET /"
+          }
+        },
+        {
           "selector": {}
-        }
-      ]
-    },
-    "indicator": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "What is measured, in one of two shapes, and exactly one of them. `distribution` for a quantity with values (how long did it take); `ratio` for a fraction of requests (how many went wrong). Nested keys rather than a discriminator, so a decoder needs no second pass.",
-      "examples": [
-        {
-          "distribution": {
-            "metric": "http.client.request.duration",
-            "selector": {}
-          }
-        },
-        {
-          "ratio": {
-            "total": {},
-            "bad": {
-              "error.type": "*"
-            }
-          }
-        }
-      ],
-      "properties": {
-        "distribution": {
-          "$ref": "#/$defs/series",
-          "description": "A distribution of measured values — latencies, sizes. Names the metric, because the values are what the criterion reduces."
-        },
-        "ratio": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "total"
-          ],
-          "description": "A fraction of requests. It names no metric on purpose: nothing here is measured, only counted, and naming a metric whose values are never read is how a document ends up saying 'duration' in a requirement about errors. `total` selects the population; `bad` or `good` narrows it, and the fraction is the narrowed count over the population count.",
-          "properties": {
-            "total": {
-              "$ref": "#/$defs/selector",
-              "description": "The population. `{}` is every request."
-            },
-            "bad": {
-              "$ref": "#/$defs/selector",
-              "description": "Narrows `total` to the requests that went wrong. Applied on top of `total`, not instead of it, so it carries only what makes a request bad."
-            },
-            "good": {
-              "$ref": "#/$defs/selector",
-              "description": "The same, for the requests that went right. Exactly one of `bad` or `good`."
-            }
-          },
-          "oneOf": [
-            {
-              "required": [
-                "bad"
-              ]
-            },
-            {
-              "required": [
-                "good"
-              ]
-            }
-          ],
-          "examples": [
-            {
-              "total": {},
-              "bad": {
-                "error.type": "*"
-              }
-            },
-            {
-              "total": {
-                "loadtest.request.name": "POST /checkout"
-              },
-              "bad": {
-                "error.type": "*"
-              }
-            }
-          ]
-        }
-      },
-      "oneOf": [
-        {
-          "required": [
-            "distribution"
-          ]
-        },
-        {
-          "required": [
-            "ratio"
-          ]
         }
       ]
     },
@@ -182,6 +98,10 @@
         },
         "aggregation": {
           "$ref": "#/$defs/aggregation"
+        },
+        "of": {
+          "$ref": "#/$defs/selector",
+          "description": "Narrows the indicator's selection to the requests this predicate counts — the failed ones, typically. Applied on top of the indicator's selector, never instead of it. Required by `share`, allowed with `count`, meaningless elsewhere: a percentile of a subset is a percentile of a different indicator."
         },
         "op": {
           "$ref": "#/$defs/op"
@@ -204,11 +124,72 @@
           "unit": "ms"
         },
         {
+          "aggregation": "share",
+          "of": {
+            "error.type": "*"
+          },
+          "op": "lte",
+          "threshold": 5,
+          "unit": "%"
+        },
+        {
+          "aggregation": "count",
+          "of": {
+            "error.type": "*"
+          },
+          "op": "lte",
+          "threshold": 100,
+          "unit": "{request}"
+        },
+        {
           "name": "reached-target-rate",
           "aggregation": "rate",
           "op": "gte",
           "threshold": 200,
           "unit": "{request}/s"
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "aggregation": {
+                "const": "share"
+              }
+            },
+            "required": [
+              "aggregation"
+            ]
+          },
+          "then": {
+            "required": [
+              "of"
+            ]
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "properties": {
+                "aggregation": {
+                  "enum": [
+                    "count",
+                    "share"
+                  ]
+                }
+              },
+              "required": [
+                "aggregation"
+              ]
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "of"
+              ]
+            }
+          }
         }
       ]
     },
@@ -299,11 +280,9 @@
           "name": "checkout-latency-under-load",
           "displayName": "Checkout stays fast at the intended rate",
           "indicator": {
-            "distribution": {
-              "metric": "http.client.request.duration",
-              "selector": {
-                "loadtest.request.name": "POST /checkout"
-              }
+            "metric": "http.client.request.duration",
+            "selector": {
+              "loadtest.request.name": "POST /checkout"
             }
           },
           "guards": [
@@ -366,23 +345,24 @@
     },
     "aggregation": {
       "type": "string",
-      "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
       "anyOf": [
         {
           "enum": [
-            "avg",
             "min",
             "max",
+            "avg",
+            "stddev",
+            "sum",
             "count",
             "rate",
-            "sum",
-            "stddev"
+            "share"
           ]
         },
         {
           "pattern": "^p\\d{1,2}(\\.\\d+)?$"
         }
-      ]
+      ],
+      "description": "How the selected requests are reduced to one number. Two families, and which one you are in is decided by whether the indicator names a metric.\n  Over a metric's VALUES: p50/p95/p99/p99.9 and any other percentile, min, max, avg, stddev, sum.\n  Over the REQUESTS themselves: count (how many), rate (how many per second), share (what fraction of them — needs `of`).\n`rate` is per second and nothing else; the fraction is `share`, because one word meaning both is a word that means neither."
     },
     "selector": {
       "type": "object",

@@ -90,16 +90,24 @@ checkable statement rather than metadata; `workload` — [reserved](#workload).
 
 ### Indicator
 
-The definition of the measured quantity: metric name + selector + shape (`distribution`
-or `ratio`). The counterpart of an SLI in OpenSLO. Declared inline (`indicator`) or reused
-by reference (`indicatorRef`).
+**In the schema.** What the requirement is about: `selector` for which requests, and
+`metric` — **optional** — for what to measure of them. The counterpart of an SLI in OpenSLO.
 
-Two shapes:
+One shape, not two. Whether you get a value, a count or a share is decided by the
+aggregation, which is where that belongs:
 
-| Shape | When | Allowed aggregations |
+| `metric` | The requirement is about | Aggregations that mean anything |
 |---|---|---|
-| `distribution` | measuring the distribution of one metric's values | `p*`, `avg`, `min`, `max`, `count`, `rate`, `sum`, `stddev` |
-| `ratio` | measuring a fraction: `bad`/`total` or `good`/`total` | `rate` (the fraction), `count` |
+| present | a quantity the requests carry | `p*`, `avg`, `min`, `max`, `stddev`, `sum` |
+| absent | the requests themselves | `count`, `rate`, `share` |
+
+Omit it when nothing is measured. It used to be mandatory, and a fraction of failed requests
+had to name `http.client.request.duration` on both sides to satisfy the shape — a requirement
+about errors that said `duration` twice. [ADR-0003](adr/0003-one-indicator-shape.md) records
+what that cost and what replaced it.
+
+Rejected: `distribution` and `ratio` as two shapes — the fraction was stated once by the shape
+and again by the aggregation, and it forced a metric on the case that measures nothing.
 
 Rejected: `Metric` — the word is needed for the metric *name*. `SLI` — an acronym, and it
 drags error-budget semantics along. `thresholdMetric` (OpenSLO) — collides with the
@@ -166,9 +174,14 @@ plus percentiles matching `^p\d{1,2}(\.\d+)?$` — `p50`, `p95`, `p99.9`.
 This is still structure, not an expression: the pattern is validated by JSON Schema and
 needs no parser.
 
-`rate` over a `distribution` equals `count / window duration`, i.e. exactly
-`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric — OTel has
-none either, because it is always derived.
+`rate` is **per second and nothing else** — `count / window duration`, exactly
+`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric; OTel has none
+either, because it is always derived.
+
+`share` is the fraction, and it is a separate word on purpose. `rate` once meant both, told
+apart only by which indicator shape enclosed it, so the same word in the same field meant
+`{request}/s` in one document and `%` in the next. `share` takes `of`, which narrows the
+indicator to the requests being counted.
 
 `avg` rather than `mean`: that is the spelling in all four reference formats.
 

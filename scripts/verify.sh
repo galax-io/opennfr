@@ -215,7 +215,7 @@ def sub(node):
 # FORMAT.md points a reader at the schema's examples, so a definition that carries none
 # is a promise broken in the one place nobody looks. Counted per definition: a total
 # hides the empty one behind the full ones.
-WANT = ["series", "indicator", "selector", "predicate", "requirement"]
+WANT = ["indicator", "selector", "predicate", "requirement"]
 for name in WANT:
     if not schema["$defs"].get(name, {}).get("examples"):
         print(f"  FAIL  {path}: $defs/{name} carries no examples")

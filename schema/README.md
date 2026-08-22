@@ -21,76 +21,77 @@ spec:
 
 ---
 
-## The one real choice: which indicator shape
+## The one real choice: is a metric involved
 
-There are two, and picking the wrong one is the mistake worth preventing.
+An **indicator** is `selector` (which requests) and optionally `metric` (what to measure of
+them). There is one shape. Whether you get a value, a count or a share is decided by the
+**aggregation**, which is where that belongs.
 
-| | `distribution` | `ratio` |
+| | `metric` present | `metric` absent |
 |---|---|---|
-| Answers | *how long / how big?* | *how many of them?* |
-| Names a metric | **yes** — its values are what you compare | **no** — nothing is measured, only counted |
-| Typical use | latency, payload size | error share, success share |
-| Reduced by | `p95`, `p99`, `max`, `avg`, `min`, `stddev`, `rate`, `count` | `rate`, `count` |
+| The requirement is about | a quantity the requests carry | the requests themselves |
+| Reduced by | `p95`, `p99`, `max`, `min`, `avg`, `stddev`, `sum` | `count`, `rate`, `share` |
+| Example | latency, payload size | throughput, error share |
 
-### `distribution` — a quantity with values
+**Omit `metric` when nothing is measured.** An error share counts requests; naming a metric it
+never reads is how a document ends up saying `duration` in a requirement about failures.
 
-You are measuring something and asking about the shape of the numbers.
+### Measuring a quantity
 
 ```yaml
 indicator:
-  distribution:
-    metric: http.client.request.duration   # an OpenTelemetry name, not ours
-    selector:
-      loadtest.request.name: GET /
+  metric: http.client.request.duration   # an OpenTelemetry name, not ours
+  selector:
+    loadtest.request.name: GET /
 criteria:
   - {aggregation: p99, op: lte, threshold: 500, unit: ms}
 ```
 
 *The 99th percentile of how long `GET /` took is at most 500 ms.*
 
-### `ratio` — a fraction of requests
-
-You are counting requests, not measuring them. **It names no metric**, because naming one is
-how a document ends up saying `duration` in a requirement about errors.
+### Counting requests
 
 ```yaml
 indicator:
-  ratio:
-    total: {}                    # the population: every request
-    bad:                         # narrows it: those that went wrong
-      error.type: "*"
+  selector: {}                 # every request; no metric, nothing is measured
 criteria:
-  - {aggregation: rate, op: lte, threshold: 5, unit: "%"}
+  - {aggregation: share, of: {error.type: "*"}, op: lte, threshold: 5,   unit: "%"}
+  - {aggregation: count, of: {error.type: "*"}, op: lte, threshold: 100, unit: "{request}"}
+  - {aggregation: rate,                          op: gte, threshold: 200, unit: "{request}/s"}
 ```
 
-*At most 5% of all requests failed.*
+*At most 5% of requests failed; at most 100 of them; and at least 200 requests per second.*
 
-`bad` is applied **on top of** `total`, not instead of it, so it carries only what makes a
-request bad. To ask about one endpoint, narrow the population and leave `bad` alone:
+### `of` — the subset this predicate counts
+
+`of` narrows the indicator's selection, on top of it and never instead of it. It carries only
+what makes a request one of the ones you are counting.
 
 ```yaml
-ratio:
-  total: {loadtest.request.name: POST /checkout}
-  bad:   {error.type: "*"}
+indicator:
+  selector: {loadtest.request.name: POST /checkout}   # the population
+criteria:
+  - {aggregation: share, of: {error.type: "*"}, op: lte, threshold: 5, unit: "%"}
 ```
 
-*At most 5% of checkout requests failed.*
+*At most 5% of **checkout** requests failed.* The population moved; the predicate did not.
 
-### `bad` or `good`, exactly one
+`share` requires it — a share of nothing is not a number. `count` accepts it. Everything else
+rejects it: a percentile of a subset is a percentile of a different indicator, and writing it
+as one predicate would hide that.
 
-Two ways to say the same thing, and which you pick decides the direction of the comparison:
+### `rate` is per second. `share` is a fraction.
+
+Two words, because one word meaning both is a word that means neither.
 
 ```yaml
-ratio: {total: {}, bad:  {error.type: "*"}}    # criteria: rate lte 5   — at most 5% failed
-ratio: {total: {}, good: {...}}                # criteria: rate gte 95  — at least 95% succeeded
+{aggregation: rate,  op: gte, threshold: 200, unit: "{request}/s"}   # throughput
+{aggregation: share, of: {...}, op: lte, threshold: 5, unit: "%"}    # proportion
 ```
 
-Write whichever your requirement is actually about. `bad` with a `lte` is the common one, and
-it is the one every load tool reports directly.
-
-> **A known limitation.** The format has no way to write "the request succeeded". A selector
-> can say an attribute is present (`error.type: "*"`) but not that it is absent, so `good`
-> currently has nothing to select on and only `bad` is usable in practice. This is recorded
+> **A known limitation.** A selector can say an attribute is present (`error.type: "*"`) but
+> not that it is absent, so `of` can select the failures and not the successes. Write the
+> failed share and compare with `lte`; the successful share has nothing to select on. Recorded
 > rather than hidden.
 
 ---

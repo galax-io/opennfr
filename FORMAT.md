@@ -18,10 +18,9 @@ spec:
   requirements:
     - name: checkout-latency
       indicator:
-        distribution:
-          metric: http.client.request.duration
-          selector:
-            http.route: /api/v1/checkout
+        metric: http.client.request.duration
+        selector:
+          http.route: /api/v1/checkout
       criteria:
         - aggregation: p95
           op: lte
@@ -48,8 +47,8 @@ it is a note rather than a rule.
 **Attribute names.** `selector` is attribute → value. Same reasoning. `{}` means every series;
 `"*"` means the attribute is present with any value.
 
-**Derived quantities.** Throughput is `aggregation: rate`. An error rate is a `ratio` whose
-`bad` narrows `total` by `error.type: "*"`. Neither is a metric, and neither gets a name.
+**Derived quantities.** Throughput is `aggregation: rate`. An error share is
+`aggregation: share` with `of: {error.type: "*"}`. Neither is a metric, and neither gets a name.
 
 So: to measure something new, you write a different `metric` string. You do not touch this
 file or the schema.
@@ -60,12 +59,14 @@ file or the schema.
 |---|---|
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
 | An optional human name | `displayName`, on the document, each requirement and each predicate. Free text, any script, at most 200 characters — a phrase, not a paragraph. Inert: it changes nothing measured, compared or selected, and it never restates a value the structured fields already carry |
-| Two indicator shapes | `distribution` names a metric, because its values are what you compare. `ratio` names **none** — it counts requests, and a fraction that named a metric would be saying `duration` in a requirement about errors. Exactly one, by nesting rather than a discriminator, so a decoder needs no second pass |
+| One indicator shape | `selector` says which requests, `metric` says what to measure of them and is **omitted when nothing is measured**. Whether you get a value, a count or a share is decided by the aggregation, which is where that belongs |
+| `rate` and `share` are different words | `rate` is per second; `share` is a fraction. One word meaning both is a word that means neither |
+| `of` on a predicate | Narrows the indicator to the requests this predicate counts — the failed ones, typically. Required by `share`, allowed with `count`, rejected elsewhere: a percentile of a subset is a percentile of a different indicator |
 | One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
 | Guards | A violated guard means the run did not happen as intended — a different thing from the system not holding, and a green criterion beside one is not evidence of anything |
 | Strictness | Unknown fields are rejected everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
 | Closed units | `unit` is an enumeration from [`docs/units.md`](docs/units.md), so `mss` is caught here rather than three orders of magnitude later |
-| Aggregations that fit the shape | A `ratio` is a fraction, so only `rate` and `count` mean anything over it. A percentile of a fraction is rejected |
+| Aggregations that fit what is there | A percentile needs values, so it needs a metric. `count`, `rate` and `share` are about the requests and need none |
 
 That is the whole container. One file — about 12 KB, of which roughly half is description
 and examples.
