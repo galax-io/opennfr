@@ -10,9 +10,10 @@ spec:
   requirements:
     - name: latency
       indicator:
-        metric: http.client.request.duration
-        selector:
-          http.route: /api/v1/orders
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            http.route: /api/v1/orders
       criteria:
         - aggregation: p95
           op: lte

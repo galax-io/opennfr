@@ -57,29 +57,81 @@
     "indicator": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "selector"
-      ],
-      "description": "What the requirement is about. `selector` says which requests; `metric` says what to measure of them, and is omitted when the requirement is about the requests themselves rather than a quantity they carry. There is no second shape: whether you get a value, a count or a share is decided by the aggregation, which is where it belongs.",
+      "description": "What is measured, in one of two shapes, exactly one of them. Modelled on OpenSLO's thresholdMetric/ratioMetric — see ADR-0001 D8 for why the names differ. Nested keys rather than a discriminator, so a decoder needs no second pass.",
       "properties": {
-        "selector": {
-          "$ref": "#/$defs/selector"
+        "distribution": {
+          "$ref": "#/$defs/series",
+          "description": "A distribution of measured values — latency, size. Reduced by a percentile, min, max, avg, stddev or sum."
         },
-        "metric": {
-          "type": "string",
-          "minLength": 1,
-          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format. Omit it when nothing is measured — an error share counts requests, and naming a metric it never reads is how a document ends up saying `duration` in a requirement about failures."
+        "ratio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total"
+          ],
+          "description": "A fraction of requests: the numerator over the denominator. It names no metric, because nothing here is measured — only counted. `total` is the denominator; `good` or `bad` is the numerator, applied on top of `total` and carrying only what puts a request on that side. This is ADR-0001 D8's shape, and an error rate is a `ratio` with `bad: {error.type: \"*\"}` — no invented errors metric, which OpenTelemetry does not have either.",
+          "properties": {
+            "total": {
+              "$ref": "#/$defs/selector",
+              "description": "The denominator. `{}` is every request."
+            },
+            "bad": {
+              "$ref": "#/$defs/selector",
+              "description": "The numerator: what went wrong. Narrows `total`."
+            },
+            "good": {
+              "$ref": "#/$defs/selector",
+              "description": "The numerator: what went right. Exactly one of `bad` or `good`."
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "bad"
+              ]
+            },
+            {
+              "required": [
+                "good"
+              ]
+            }
+          ],
+          "examples": [
+            {
+              "total": {},
+              "bad": {
+                "error.type": "*"
+              }
+            }
+          ]
         }
       },
+      "oneOf": [
+        {
+          "required": [
+            "distribution"
+          ]
+        },
+        {
+          "required": [
+            "ratio"
+          ]
+        }
+      ],
       "examples": [
         {
-          "metric": "http.client.request.duration",
-          "selector": {
-            "loadtest.request.name": "GET /"
+          "distribution": {
+            "metric": "http.client.request.duration",
+            "selector": {}
           }
         },
         {
-          "selector": {}
+          "ratio": {
+            "total": {},
+            "bad": {
+              "error.type": "*"
+            }
+          }
         }
       ]
     },
@@ -98,10 +150,6 @@
         },
         "aggregation": {
           "$ref": "#/$defs/aggregation"
-        },
-        "of": {
-          "$ref": "#/$defs/selector",
-          "description": "Narrows the indicator's selection to the requests this predicate counts — the failed ones, typically. Applied on top of the indicator's selector, never instead of it. Required by `share`, allowed with `count`, meaningless elsewhere: a percentile of a subset is a percentile of a different indicator."
         },
         "op": {
           "$ref": "#/$defs/op"
@@ -124,72 +172,11 @@
           "unit": "ms"
         },
         {
-          "aggregation": "share",
-          "of": {
-            "error.type": "*"
-          },
-          "op": "lte",
-          "threshold": 5,
-          "unit": "%"
-        },
-        {
-          "aggregation": "count",
-          "of": {
-            "error.type": "*"
-          },
-          "op": "lte",
-          "threshold": 100,
-          "unit": "{request}"
-        },
-        {
           "name": "reached-target-rate",
           "aggregation": "rate",
           "op": "gte",
           "threshold": 200,
           "unit": "{request}/s"
-        }
-      ],
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "aggregation": {
-                "const": "share"
-              }
-            },
-            "required": [
-              "aggregation"
-            ]
-          },
-          "then": {
-            "required": [
-              "of"
-            ]
-          }
-        },
-        {
-          "if": {
-            "not": {
-              "properties": {
-                "aggregation": {
-                  "enum": [
-                    "count",
-                    "share"
-                  ]
-                }
-              },
-              "required": [
-                "aggregation"
-              ]
-            }
-          },
-          "then": {
-            "not": {
-              "required": [
-                "of"
-              ]
-            }
-          }
         }
       ]
     },
@@ -280,9 +267,11 @@
           "name": "checkout-latency-under-load",
           "displayName": "Checkout stays fast at the intended rate",
           "indicator": {
-            "metric": "http.client.request.duration",
-            "selector": {
-              "loadtest.request.name": "POST /checkout"
+            "distribution": {
+              "metric": "http.client.request.duration",
+              "selector": {
+                "loadtest.request.name": "POST /checkout"
+              }
             }
           },
           "guards": [
@@ -348,21 +337,20 @@
       "anyOf": [
         {
           "enum": [
+            "avg",
             "min",
             "max",
-            "avg",
-            "stddev",
-            "sum",
             "count",
             "rate",
-            "share"
+            "sum",
+            "stddev"
           ]
         },
         {
           "pattern": "^p\\d{1,2}(\\.\\d+)?$"
         }
       ],
-      "description": "How the selected requests are reduced to one number. Two families, and which one you are in is decided by whether the indicator names a metric.\n  Over a metric's VALUES: p50/p95/p99/p99.9 and any other percentile, min, max, avg, stddev, sum.\n  Over the REQUESTS themselves: count (how many), rate (how many per second), share (what fraction of them — needs `of`).\n`rate` is per second and nothing else; the fraction is `share`, because one word meaning both is a word that means neither."
+      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape it is applied to, as it does in k6: over a `distribution` it is per second, over a `ratio` it is the fraction. k6 resolves the same overload the same way, by the metric's type."
     },
     "selector": {
       "type": "object",
@@ -397,6 +385,33 @@
       "minLength": 1,
       "maxLength": 200,
       "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "selector"
+      ],
+      "description": "A metric and the requests it is measured over.",
+      "properties": {
+        "metric": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format."
+        },
+        "selector": {
+          "$ref": "#/$defs/selector"
+        }
+      },
+      "examples": [
+        {
+          "metric": "http.client.request.duration",
+          "selector": {
+            "loadtest.request.name": "GET /"
+          }
+        }
+      ]
     }
   }
 }

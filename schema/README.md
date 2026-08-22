@@ -21,78 +21,72 @@ spec:
 
 ---
 
-## The one real choice: is a metric involved
+## The one real choice: which indicator shape
 
-An **indicator** is `selector` (which requests) and optionally `metric` (what to measure of
-them). There is one shape. Whether you get a value, a count or a share is decided by the
-**aggregation**, which is where that belongs.
+Two shapes, exactly one per requirement. They come from OpenSLO's `thresholdMetric` and
+`ratioMetric`; the names differ because `thresholdMetric` would collide with the threshold
+value, and that rename is recorded in [ADR-0001 § D8](../docs/adr/0001-terminology.md).
 
-| | `metric` present | `metric` absent |
+| | `distribution` | `ratio` |
 |---|---|---|
-| The requirement is about | a quantity the requests carry | the requests themselves |
-| Reduced by | `p95`, `p99`, `max`, `min`, `avg`, `stddev`, `sum` | `count`, `rate`, `share` |
-| Example | latency, payload size | throughput, error share |
+| Answers | *how long / how big?* | *how many of them?* |
+| Names a metric | **yes** — its values are what you compare | **no** — nothing is measured, only counted |
+| Typical use | latency, payload size | error rate |
+| Reduced by | `p95`, `p99`, `max`, `min`, `avg`, `stddev`, `sum`, `count`, `rate` | `rate` (the fraction), `count` |
 
-**Omit `metric` when nothing is measured.** An error share counts requests; naming a metric it
-never reads is how a document ends up saying `duration` in a requirement about failures.
-
-### Measuring a quantity
+### `distribution` — a quantity with values
 
 ```yaml
 indicator:
-  metric: http.client.request.duration   # an OpenTelemetry name, not ours
-  selector:
-    loadtest.request.name: GET /
+  distribution:
+    metric: http.client.request.duration   # an OpenTelemetry name, not ours
+    selector:
+      loadtest.request.name: GET /
 criteria:
   - {aggregation: p99, op: lte, threshold: 500, unit: ms}
 ```
 
 *The 99th percentile of how long `GET /` took is at most 500 ms.*
 
-### Counting requests
+### `ratio` — a fraction of requests
+
+Both sides are **selectors, not metrics**. Nothing here is measured; requests are counted.
+`total` is the denominator, `bad` or `good` the numerator.
 
 ```yaml
 indicator:
-  selector: {}                 # every request; no metric, nothing is measured
+  ratio:
+    total: {}                    # every request
+    bad:
+      error.type: "*"            # those carrying an error
 criteria:
-  - {aggregation: share, of: {error.type: "*"}, op: lte, threshold: 5,   unit: "%"}
-  - {aggregation: count, of: {error.type: "*"}, op: lte, threshold: 100, unit: "{request}"}
-  - {aggregation: rate,                          op: gte, threshold: 200, unit: "{request}/s"}
+  - {aggregation: rate,  op: lte, threshold: 5,   unit: "%"}          # the share
+  - {aggregation: count, op: lte, threshold: 100, unit: "{request}"}  # the number
 ```
 
-*At most 5% of requests failed; at most 100 of them; and at least 200 requests per second.*
+*At most 5% of requests failed, and at most 100 of them.*
 
-### `of` — the subset this predicate counts
+For errors you want one of exactly those two — a percentage or a count. Both read off the same
+indicator; the aggregation picks which.
 
-`of` narrows the indicator's selection, on top of it and never instead of it. It carries only
-what makes a request one of the ones you are counting.
+`bad` narrows `total`, so asking about one endpoint is a change to `total` alone:
 
 ```yaml
-indicator:
-  selector: {loadtest.request.name: POST /checkout}   # the population
-criteria:
-  - {aggregation: share, of: {error.type: "*"}, op: lte, threshold: 5, unit: "%"}
+ratio:
+  total: {loadtest.request.name: POST /checkout}
+  bad:   {error.type: "*"}
 ```
 
-*At most 5% of **checkout** requests failed.* The population moved; the predicate did not.
+### `rate` means two things, and that is borrowed
 
-`share` requires it — a share of nothing is not a number. `count` accepts it. Everything else
-rejects it: a percentile of a subset is a percentile of a different indicator, and writing it
-as one predicate would hide that.
+Over a `distribution` it is **per second**; over a `ratio` it is **the fraction**. The shape
+tells them apart. k6 carries the same overload and resolves it the same way — `rate` on a
+Counter is per second, on a Rate metric it is a proportion — so this is inherited rather than
+invented, and a second word to avoid it would cost more than it saves.
 
-### `rate` is per second. `share` is a fraction.
-
-Two words, because one word meaning both is a word that means neither.
-
-```yaml
-{aggregation: rate,  op: gte, threshold: 200, unit: "{request}/s"}   # throughput
-{aggregation: share, of: {...}, op: lte, threshold: 5, unit: "%"}    # proportion
-```
-
-> **A known limitation.** A selector can say an attribute is present (`error.type: "*"`) but
-> not that it is absent, so `of` can select the failures and not the successes. Write the
-> failed share and compare with `lte`; the successful share has nothing to select on. Recorded
-> rather than hidden.
+> **A known limitation.** A selector can say an attribute is present (`error.type: "*"`) but not
+> that it is absent, so `bad` has something to select and `good` does not. Write the failed
+> fraction and compare with `lte`. Recorded rather than hidden.
 
 ---
 

@@ -17,9 +17,10 @@ spec:
     - name: get-root-duration
       displayName: Duration of GET /
       indicator:
-        metric: http.client.request.duration     # measuring a quantity, so it is named
-        selector:
-          loadtest.request.name: GET /
+        distribution:                            # measuring values, so the metric is named
+          metric: http.client.request.duration
+          selector:
+            loadtest.request.name: GET /
       criteria:
         - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 500, unit: ms}
         - {displayName: 95th percentile, aggregation: p95, op: lte, threshold: 400, unit: ms}
@@ -31,10 +32,11 @@ spec:
     - name: checkout-submit-duration
       displayName: Duration of the checkout submit, inside its group
       indicator:
-        metric: http.client.request.duration
-        selector:
-          loadtest.group.name: MyGroup
-          loadtest.request.name: MyRequest
+        distribution:
+          metric: http.client.request.duration
+          selector:
+            loadtest.group.name: MyGroup
+            loadtest.request.name: MyRequest
       criteria:
         - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 900, unit: ms}
 
@@ -42,28 +44,23 @@ spec:
     - name: all-requests-duration
       displayName: Duration across every request
       indicator:
-        metric: http.client.request.duration
-        selector: {}
+        distribution:
+          metric: http.client.request.duration
+          selector: {}
       criteria:
         - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 1000, unit: ms}
         - {displayName: Slowest,         aggregation: max, op: lte, threshold: 2000, unit: ms}
 
-    # 5-6. the failed share. No metric: nothing is measured, the requests are counted.
-    #      `of` narrows the indicator to the ones that went wrong.
+    # 5-6. the failed share, as a fraction of requests. Neither side names a metric:
+    #      nothing is measured here, the requests are counted. `total` is the denominator,
+    #      `bad` the numerator — ADR-0001 D8, and OpenSLO's ratioMetric before it.
     - name: all-requests-errors
       displayName: Failures across every request
       indicator:
-        selector: {}
+        ratio:
+          total: {}                  # every request
+          bad:
+            error.type: "*"          # those carrying an error
       criteria:
-        - displayName: Failed share
-          aggregation: share
-          of: {error.type: "*"}
-          op: lte
-          threshold: 5
-          unit: "%"
-        - displayName: Failed count
-          aggregation: count
-          of: {error.type: "*"}
-          op: lte
-          threshold: 100
-          unit: "{request}"
+        - {displayName: Failed share, aggregation: rate,  op: lte, threshold: 5,   unit: "%"}
+        - {displayName: Failed count, aggregation: count, op: lte, threshold: 100, unit: "{request}"}

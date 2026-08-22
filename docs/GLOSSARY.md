@@ -90,24 +90,18 @@ checkable statement rather than metadata; `workload` — [reserved](#workload).
 
 ### Indicator
 
-**In the schema.** What the requirement is about: `selector` for which requests, and
-`metric` — **optional** — for what to measure of them. The counterpart of an SLI in OpenSLO.
+**In the schema.** What is measured. The counterpart of an SLI in OpenSLO, and modelled on its
+`thresholdMetric`/`ratioMetric` — see [ADR-0001 § D8](adr/0001-terminology.md) for why the names
+differ. Two shapes, exactly one of them:
 
-One shape, not two. Whether you get a value, a count or a share is decided by the
-aggregation, which is where that belongs:
+| Shape | What it is | Names a metric | Reduced by |
+|---|---|---|---|
+| `distribution` | a distribution of measured values | **yes** — its values are what you compare | `p*`, `avg`, `min`, `max`, `stddev`, `sum`, `count`, `rate` |
+| `ratio` | a fraction of requests: `bad`/`total` or `good`/`total` | **no** — nothing is measured, only counted | `rate` (the fraction), `count` |
 
-| `metric` | The requirement is about | Aggregations that mean anything |
-|---|---|---|
-| present | a quantity the requests carry | `p*`, `avg`, `min`, `max`, `stddev`, `sum` |
-| absent | the requests themselves | `count`, `rate`, `share` |
-
-Omit it when nothing is measured. It used to be mandatory, and a fraction of failed requests
-had to name `http.client.request.duration` on both sides to satisfy the shape — a requirement
-about errors that said `duration` twice. [ADR-0003](adr/0003-one-indicator-shape.md) records
-what that cost and what replaced it.
-
-Rejected: `distribution` and `ratio` as two shapes — the fraction was stated once by the shape
-and again by the aggregation, and it forced a metric on the case that measures nothing.
+`ratio`'s sides are selectors, not metrics. `total` is the denominator, `bad` or `good` the
+numerator, and an error rate is `bad: {error.type: "*"}` — which is what ADR-0001 § D8 wrote,
+without inventing an errors metric that OpenTelemetry does not have either.
 
 Rejected: `Metric` — the word is needed for the metric *name*. `SLI` — an acronym, and it
 drags error-budget semantics along. `thresholdMetric` (OpenSLO) — collides with the
@@ -178,10 +172,10 @@ needs no parser.
 `rate(..._count[…])` in Prometheus. There is no separate "throughput" metric; OTel has none
 either, because it is always derived.
 
-`share` is the fraction, and it is a separate word on purpose. `rate` once meant both, told
-apart only by which indicator shape enclosed it, so the same word in the same field meant
-`{request}/s` in one document and `%` in the next. `share` takes `of`, which narrows the
-indicator to the requests being counted.
+Over a `ratio` the same word is the fraction instead, and the shape is what tells them apart.
+k6 carries the identical overload and resolves it the identical way — `rate` on a Counter is
+per second, `rate` on a Rate is a proportion — so the wart is borrowed rather than invented,
+and inventing a second word to avoid it would cost more than it saves.
 
 `avg` rather than `mean`: that is the spelling in all four reference formats.
 
