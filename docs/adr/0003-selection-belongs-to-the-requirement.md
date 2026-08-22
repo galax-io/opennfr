@@ -107,7 +107,7 @@ a requirement has one criterion and stops being defensible at two, which is the 
 
 **A shared-defaults construct** — write the selector once at the document level and inherit it.
 It removes the same duplication and adds merge semantics: what happens when a requirement
-overrides one key of an inherited selector, and does a reader know without checking. FORMAT.md
+overrides one key of an inherited selector, and does a reader know without checking. The README
 already lists `defaults` among the things left out, and this decision does not need it.
 
 **Let a requirement hold several indicators.** Keeps the shapes intact and makes the requirement
@@ -118,4 +118,4 @@ nesting.
 
 - [ADR-0001 § D8](0001-terminology.md) — the two shapes, and the OpenSLO names they came from
 - [`schema/README.md`](../../schema/README.md) — the shape, worked on one run
-- [`FORMAT.md`](../../FORMAT.md)
+- [`README.md`](../../README.md)

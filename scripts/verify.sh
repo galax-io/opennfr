@@ -212,7 +212,7 @@ def sub(node):
     out["$defs"] = schema["$defs"]
     return out
 
-# FORMAT.md points a reader at the schema's examples, so a definition that carries none
+# The schema reference points a reader at the schema's examples, so a definition that carries none
 # is a promise broken in the one place nobody looks. Counted per definition: a total
 # hides the empty one behind the full ones.
 WANT = ["selector", "predicate", "requirement"]

@@ -12,8 +12,8 @@ never becomes one.
 
 | Class | Home | Who may change it | Changing it obliges | Binds later work |
 |---|---|---|---|---|
-| **The format** | `FORMAT.md` and `schema/opennfr.io/v1/` at the repository root | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
-| **Ideas and notes** | `docs/` | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
+| **The format** | `schema/opennfr.io/v1/`, with [README.md](README.md) as its entry point and [schema/README.md](schema/README.md) as its reference | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
+| **Ideas and notes** | `docs/` — with [`docs/ideas/`](docs/ideas/) for constructs the format does not have, and [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for the vocabulary it does | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
 | Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
 | Tool mappings | `mappings/` once it exists | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — the conformance ladder is |
 | Conformance corpus | `conformance/` once it exists | Anyone, by pull request | Every case states the outcome a conforming consumer must reach | **Yes** |
@@ -28,6 +28,23 @@ maintainers can extend is not tool-agnostic"* — and no other class has a reaso
 Classes differ by what a change **obliges**, not by who may propose it. No role vocabulary is
 introduced here, because [Principle I](.specify/memory/constitution.md) prices every added
 governance word and a role taxonomy would buy nothing mechanical.
+
+### How an idea becomes part of the format
+
+```
+note in docs/  ->  argued in an issue  ->  ADR  ->  glossary entry  ->  schema  ->  the note is deleted
+```
+
+Rules that hold at every step:
+
+- A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a **rejected alternative** before it
+  appears in an example or in the schema. The rejection outlives the term it protects.
+- A metric or attribute name is **borrowed**, never invented, wherever a semantic convention
+  has one.
+- Nothing reports success by omission. A check that found no data is not a pass — the format
+  states the condition; what a run does with it is the target's.
+
+The last step is the one people skip, so it has a section of its own.
 
 ### A note is deleted when it stops being a note
 
@@ -55,8 +72,8 @@ cover. It states in its own text that it has been submitted nowhere and that not
 those names today — which makes it an idea, and `docs/` is where ideas live.
 
 Nothing in the format uses these names yet. `window` — the construct that would have rested on
-`loadtest.phase` — is listed in FORMAT.md under *Deliberately not in it — yet*, and the schema
-rejects it. A name graduates from note to format by entering the schema, not by moving
+`loadtest.phase` — is listed in [the README](README.md#what-is-not-in-it-yet) under *What is
+not in it yet*, and the schema rejects it. A name graduates from note to format by entering the schema, not by moving
 directory.
 
 ## 2. Governance vocabulary
@@ -93,7 +110,7 @@ cheaper to know now than to discover mid-rename.
 | `docs/examples/mapping-jmeter.yaml` | Tool mappings | Same | Same |
 | `docs/compatibility.md` | Three classes at once | Splitting it is a separate concern from publishing this layout | It spans conformance levels (normative), the dated tool survey (evidence) and the Go notes (proposal). A split must keep the survey's date attached to the survey |
 | `docs/references.md` | Evidence, which has no class | Inventing a class for one file costs a governance word | Either widen the normative core's definition or accept it as an unclassified note, stated as such |
-| `docs/units.md` | Normative core | Already correctly filed; listed because its status line predates the layout | Confirm it announces its own status |
+| `docs/units.md` | Normative core | Already correctly filed; listed because its status line predates the layout | **Done** — the page now separates the enumeration the schema enforces from the conversions nothing implements |
 | `mappings/` | Tool mappings | The directory does not exist yet | Created by the first target follow-up specification, not by this document |
 
 ## 4. The compatibility-sensitive surface

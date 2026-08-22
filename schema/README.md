@@ -1,139 +1,99 @@
-# The schema, and how to choose within it
+# The schema — reference
 
 One file: [`opennfr.io/v1/requirementset.schema.json`](opennfr.io/v1/requirementset.schema.json).
-It fixes the shape a requirement is written in. It decides; this page explains.
+It is an ordinary [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema)
+document, so any validator in any language will read it.
 
-A document is a list of **requirements**. Each one says *what is measured* (an indicator) and
-*what must be true of it* (criteria, and optionally guards).
+**This page states the constraints. The schema decides.** Where the two disagree the schema is
+right and this page is a bug — say so in an issue.
 
-```yaml
-apiVersion: opennfr.io/v1
-kind: RequirementSet
-metadata:
-  name: checkout-perf
-spec:
-  requirements:
-    - name: ...
-      indicator: ...        # what is measured
-      guards: [...]         # optional — was the run valid at all
-      criteria: [...]       # what must hold
-```
+If you have not written a document before, start with the
+[README](../README.md#how-the-format-works), which explains what the fields are *for*. This
+page is what you come back to when you want to know exactly what is allowed.
 
 ---
 
-## The shape
+## The tree
 
-A requirement says **which requests** once, and then everything that must be true of them.
-
-```yaml
-- name: checkout
-  displayName: Checkout is fast and reliable
-  selector:                                    # which requests — written once
-    http.route: /api/v1/checkout
-  guards: [...]                                # optional: was the run valid at all
-  criteria:                                    # what must hold
-    - {metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
-    - {bad: {error.type: "*"},               aggregation: rate, op: lte, threshold: 5,   unit: "%"}
+```
+RequirementSet                        object, closed
+├── apiVersion    "opennfr.io/v1"     required, const
+├── kind          "RequirementSet"    required, const
+├── metadata                          required, object, closed
+│   ├── name                          required — name
+│   ├── displayName                   optional — displayName
+│   └── annotations                   optional — map of string to string
+└── spec                              required, object, closed
+    └── requirements                  required, array, minItems 1
+        └── requirement               object, closed
+            ├── name                  required — name
+            ├── selector              required — selector
+            ├── criteria              required, array, minItems 1 — predicate
+            ├── guards                optional, array, minItems 1 — predicate
+            └── displayName           optional — displayName
 ```
 
-One selector, two statements about the same endpoint: it is fast, and it does not fail. That is
-one requirement because it is one human sentence.
+**Closed** means `additionalProperties: false`: an unknown key is an error, not an ignored
+one. `criteria` and `guards` close the same way, through `unevaluatedProperties: false` over
+the shared `predicate` definition.
 
-## What a criterion can be about
+The one open object is `selector`, whose keys are attribute names. Enumerating those would
+mean the format had to change every time somebody measured something new.
 
-Every criterion is `aggregation` + `op` + `threshold` + `unit`. What it reduces depends on which
-optional key it carries — and it carries at most one.
+---
 
-| Carries | It is about | Aggregations that mean anything |
+## `predicate`
+
+The shape shared by every entry of `criteria` and every entry of `guards`. Four keys are
+always required; the rest describe what the four reduce.
+
+| Key | Required | Type | Constraint |
+|---|---|---|---|
+| `aggregation` | **yes** | string | one of `avg` `min` `max` `count` `rate` `sum` `stddev`, or a percentile matching `^p\d{1,2}(\.\d+)?$` |
+| `op` | **yes** | string | one of `lt` `lte` `gt` `gte` `eq` `neq` |
+| `threshold` | **yes** | number | any number; not a string, so `"500ms"` is rejected |
+| `unit` | **yes** | string | one of the 17 units below |
+| `metric` | no | string | non-empty; not enumerated |
+| `bad` | no | selector | mutually exclusive with `metric` and with `good` |
+| `good` | no | selector | mutually exclusive with `metric` and with `bad` |
+| `name` | no | string | same pattern as any other `name` |
+| `displayName` | no | string | 1–200 characters |
+
+### The three shapes, and what each may aggregate
+
+A predicate carries **at most one** of `metric`, `bad`, `good`. Which one it carries decides
+what the aggregation is allowed to be.
+
+| Carries | Reduces | `aggregation` may be |
 |---|---|---|
-| `metric` | a quantity the selected requests carry | `p50`…`p99.9`, `avg`, `min`, `max`, `stddev`, `sum`, `count`, `rate` |
-| `bad` or `good` | a fraction of the selected requests | `rate` (the share), `count` (how many) |
-| neither | the selected requests themselves | `count` (how many), `rate` (per second) |
+| `metric` | the values of that metric, over the selected requests | anything: percentiles, `avg`, `min`, `max`, `stddev`, `sum`, `count`, `rate` |
+| `bad` or `good` | a fraction of the selected requests | `rate` or `count` only |
+| neither | the selected requests themselves | `count` or `rate` in practice; the schema does not narrow this case |
 
-**`metric`** names what to measure — an OpenTelemetry name, borrowed. The criterion reduces its
-values.
+Four rules enforce it, and each is a separate `allOf` branch carrying its own description:
 
-**`bad`** narrows the requirement's selection to the ones that went wrong; the denominator is
-the requirement's selection, so it is never written twice. An error rate is
-`bad: {error.type: "*"}` — no invented errors metric, which OpenTelemetry does not have either.
-`good` is the same for the other side, and at most one of them appears.
+1. **A metric is measured; a fraction is counted. Not both.** `metric` with `bad`, or `metric`
+   with `good`, is rejected.
+2. **At most one side of a fraction.** `bad` with `good` is rejected.
+3. **A fraction has no percentile.** With `bad` or `good` present, `aggregation` is held to
+   `rate` or `count`.
+4. **A percentile, mean or spread needs values, so it needs a metric.** With `aggregation` set
+   to a percentile or to `avg`, `min`, `max`, `stddev` or `sum`, `metric` becomes required.
 
-**Neither** counts the requests: `count` is how many, `rate` is how many per second.
+Note what rule 4 does *not* cover: `count` and `rate` are absent from it, which is what lets a
+predicate carrying neither `metric` nor `bad` count the requests themselves.
 
-The schema enforces the combinations. A percentile without a metric is rejected — there are no
-values to take a percentile of. A percentile with `bad` is rejected — a percentile of a fraction
-is not a number anyone wants. `metric` with `bad` is rejected: one measures, the other counts.
+### `rate` reads from the shape it is applied to
 
-## Both together, on one run
-
-Say the run made **1000 requests** to `/api/v1/checkout`, **30** carrying `error.type`, with a
-99th-percentile duration of 480 ms and a slowest of 1200 ms:
-
-```yaml
-- name: checkout
-  selector: {http.route: /api/v1/checkout}
-  criteria:
-    - {metric: http.client.request.duration, aggregation: p99,   op: lte, threshold: 500,  unit: ms}
-    - {metric: http.client.request.duration, aggregation: max,   op: lte, threshold: 1000, unit: ms}
-    - {bad: {error.type: "*"},               aggregation: rate,  op: lte, threshold: 5,    unit: "%"}
-    - {bad: {error.type: "*"},               aggregation: count, op: lte, threshold: 20,   unit: "{request}"}
-```
-
-| Criterion | What the aggregation reduces | Actual | Must be | |
-|---|---|---|---|---|
-| `p99` of the metric | the **durations** of the 1000 requests | 480 ms | ≤ 500 ms | pass |
-| `max` of the metric | the same durations | 1200 ms | ≤ 1000 ms | **fail** |
-| `rate` with `bad` | 30 **÷** 1000 | 3% | ≤ 5% | pass |
-| `count` with `bad` | how many matched `bad` | 30 | ≤ 20 | **fail** |
-
-The same four keys in every row. In the top two they reduce the values a metric carries; in the
-bottom two they reduce counts of requests, and no metric is involved.
-
-> **A known limitation.** A selector says an attribute is *present* (`error.type: "*"`), not
-> that it is absent, so `bad` has something to select and `good` does not. Write the failed
-> fraction and compare with `lte`. Recorded rather than hidden.
-
----
-
-## `selector` — which requests
-
-A map of attribute to value. Every key must match.
-
-```yaml
-selector: {}                                   # every request
-selector: {loadtest.request.name: GET /}       # one named request
-selector:                                      # one request inside a group
-  loadtest.group.name: MyGroup
-  loadtest.request.name: MyRequest
-selector: {error.type: "*"}                    # the attribute is present, any value
-```
-
-Attribute names are borrowed from OpenTelemetry where an equivalent exists. `http.route` is the
-portable way to address an endpoint; almost no load generator emits it, so `loadtest.request.name`
-is the honest fallback — at the cost that such a document does not travel between tools unchanged.
-
----
-
-## `criteria` and `guards` — the same shape, different meaning
-
-Both are *predicates*: `aggregation` + `op` + `threshold` + `unit`.
-
-```yaml
-criteria:
-  - {aggregation: p95, op: lte, threshold: 500, unit: ms}
-guards:
-  - {name: reached-target-rate, aggregation: rate, op: gte, threshold: 200, unit: "{request}/s"}
-```
-
-A violated **criterion** says *the system did not hold*. A violated **guard** says *the run did
-not happen as intended* — the generator never reached the load the requirement assumes, so a
-green criterion beside it is not evidence of anything. That distinction is the reason guards
-exist: a test at 5 rps shows an excellent p95 and tells you nothing.
+Over requests it is per second. Over a fraction it is the share. One word, two readings,
+disambiguated by whether `bad`/`good` is present — the same overload k6 carries and resolves
+the same way. It is a borrowed wart, and a second word to avoid it would cost more than it
+saves.
 
 ### When a predicate needs a `name`
 
-Only when two predicates of one requirement would otherwise be indistinguishable. Identity is
-the `name` if set, otherwise the `aggregation`:
+A predicate's identity is its `name` if set, and its `aggregation` otherwise. Two predicates in
+the same list may not share an identity:
 
 ```yaml
 guards:   [{aggregation: rate, op: gte, threshold: 200, unit: "{request}/s"}]
@@ -141,35 +101,174 @@ criteria: [{aggregation: rate, op: lte, threshold: 400, unit: "{request}/s"}]
 # both identities are "rate" — one of them must be named
 ```
 
-With different aggregations (`p99` and `max`), no name is needed and adding one is noise.
+**JSON Schema cannot express that fallback**, so uniqueness is checked by
+`scripts/verify.sh` rather than by the schema. `criteria` and `guards` are checked separately:
+a guard and a criterion may both be `rate`.
 
 ---
 
-## `displayName` — optional, for people
+## `selector`
 
-Free text in any script, up to 200 characters, on the document, on a requirement and on a
-predicate. It changes nothing: two documents differing only in display names mean the same thing.
+An object mapping attribute name to expected value. Every entry must match; an empty object
+matches everything.
 
-Keep it to the quantity, never the answer:
+| | |
+|---|---|
+| Keys | any string — attribute names are borrowed from OpenTelemetry, never enumerated here |
+| Values | string, number or boolean. `null` is rejected |
+| `{}` | every request |
+| `"*"` | the attribute is present, with any value |
 
 ```yaml
-- {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 500, unit: ms}   # yes
-- {displayName: 99th percentile under 500 ms, ...}                                      # no
+selector: {}
+selector: {http.route: /api/v1/checkout}
+selector: {loadtest.group.name: MyGroup, loadtest.request.name: MyRequest}
+selector: {error.type: "*"}
 ```
 
-The second is a copy of `threshold`, and the copy stops being true the first time the threshold
-moves.
+`"*"` is presence, not a glob: there is no pattern matching in a selector, and
+`{http.route: "/api/*"}` selects the literal string `/api/*`.
+
+A selector cannot say an attribute is **absent**. That is why `bad: {error.type: "*"}` works
+and the mirror-image `good` does not — write the failed fraction and compare with `lte`.
 
 ---
 
-## What the schema will not do
+## `name`
 
-- **It does not enumerate metric names.** Measuring something new must never require changing
-  the format, so `metric` is any string and the vocabulary comes from OpenTelemetry.
-- **It does not name derived quantities.** There is no `error_rate` metric and no `throughput`
-  metric — both are `aggregation` over something that already exists. A second vocabulary is a
-  second source of truth.
-- **It rejects unknown fields, everywhere.** A misspelled `agregation` would otherwise disable a
-  criterion silently and turn a run green.
-- **It requires a unit on every threshold.** `500` alone is three orders of magnitude away from
-  being unambiguous.
+```
+pattern     ^ [a-z0-9] ( [a-z0-9-]* [a-z0-9] )? $     # spaces added for legibility
+maxLength   253
+```
+
+Lowercase letters, digits and hyphens; no leading or trailing hyphen. The schema's pattern has
+no spaces in it — they are here only because a bare `]` followed by `(` reads as a markdown
+link to the repository's own link checker. The same definition is
+used for `metadata.name`, a requirement's `name` and a predicate's `name`. It is restrictive
+because something — a report line, a CI annotation, a URL fragment — has to be able to point
+at it.
+
+## `displayName`
+
+String, 1 to 200 characters, any script. Allowed on `metadata`, on a requirement and on a
+predicate; **not** on `spec`.
+
+It is inert: nothing selected, measured or compared depends on it, and two documents differing
+only in their display names say the same thing.
+
+It should not restate a value the structured fields already carry. `99th percentile under
+500 ms` beside `threshold: 500` is a second source for one number, and the two diverge the
+first time the threshold moves.
+
+## `annotations`
+
+`metadata.annotations` only. A map of string to string, and the format's only extension point.
+The `opennfr.io/` prefix is reserved.
+
+## `unit`
+
+A closed enumeration of 17, a subset of UCUM. Conversions and the argument for closing the
+list are in [`docs/units.md`](../docs/units.md).
+
+| Group | Values | Canonical |
+|---|---|---|
+| Time | `ns` `us` `ms` `s` `min` `h` | `s` |
+| Fraction | `%` `1` | `1` |
+| Data | `By` `KiBy` `MiBy` `GiBy` | `By` |
+| Counts | `{request}` `{request}/s` `{iteration}` `{iteration}/s` `{vu}` | — |
+
+Closed rather than parsed: `mss` is then a validation error in your editor rather than a
+disagreement three orders of magnitude wide between two consumers. Full UCUM would need a
+grammar, which is the string-DSL mistake wearing a different hat.
+
+## `op`
+
+`lt` `lte` `gt` `gte` `eq` `neq`. Words, not symbols — `<=` has to be parsed out of a string,
+and `>` needs escaping in half the places a document travels through.
+
+## `aggregation`
+
+`avg` `min` `max` `count` `rate` `sum` `stddev`, plus any percentile matching
+`^p\d{1,2}(\.\d+)?$`.
+
+So `p50`, `p95`, `p99`, `p99.9` and `p0.1` are all valid, and **`p999` is not** — the pattern
+allows at most two digits before the decimal point. Write `p99.9`.
+
+`avg` rather than `mean`: that is the spelling in every format the survey covers.
+
+---
+
+## What the schema rejects, and what you will see
+
+Every message below is what a Draft 2020-12 validator actually emits today.
+
+| You wrote | Message |
+|---|---|
+| `agregation:` | `'aggregation' is a required property` |
+| `p95` with no `metric` | `'metric' is a required property` |
+| `p95` with `bad` | `'p95' is not one of ['rate', 'count']` |
+| `metric` and `bad` together | `... should not be valid under {'anyOf': ...}` |
+| `bad` and `good` together | `... should not be valid under {'required': ['bad', 'good']}` |
+| `unit: mss` | `'mss' is not one of ['ns', 'us', 'ms', ...]` |
+| `op: "<="` | `'<=' is not one of ['lt', 'lte', 'gt', 'gte', 'eq', 'neq']` |
+| `threshold: "500ms"` | `'500ms' is not of type 'number'` |
+| `name: Checkout` | `'Checkout' does not match` — followed by the `name` pattern above |
+| a requirement with no `selector` | `'selector' is a required property` |
+| `criteria: []` | `[] should be non-empty` |
+
+> **A wart worth knowing.** When a predicate is wrong for any reason, the closure over it
+> fails too, and you get a second message alongside the useful one:
+> `Unevaluated properties are not allowed ('aggregation', 'metric', 'op', 'threshold', 'unit'
+> were unexpected)` — listing keys that are all perfectly valid. It is noise from how
+> `unevaluatedProperties` composes with a failed `$ref`. Read the other message.
+
+---
+
+## What the schema does **not** check
+
+Published rather than implied, because a constraint people believe in and nothing enforces is
+worse than one nobody claims.
+
+- **That the unit fits the aggregation.** `{metric: http.client.request.duration,
+  aggregation: p95, unit: "{vu}"}` validates. So does an error share in `ms`. This is
+  [issue #39](https://github.com/galax-io/opennfr/issues/39).
+- **That a metric name exists**, anywhere. `metric` is any non-empty string, deliberately —
+  see [README § What the format deliberately does not define](../README.md#what-the-format-deliberately-does-not-define).
+- **That an attribute name exists.** Same, for selector keys.
+- **That a threshold is sensible.** `threshold: -5` for a duration validates. There is no
+  minimum, because `neq` and `gte` make a negative threshold meaningful in principle.
+- **That two predicates have distinct identities.** `scripts/verify.sh` checks it; the schema
+  cannot.
+- **Anything about a run.** The schema validates a document. Nothing in this repository yet
+  executes one.
+
+---
+
+## Running it
+
+```bash
+bash scripts/verify.sh
+```
+
+Needs `python3` with `pyyaml` and `jsonschema`. It validates every document in
+[`examples/`](../examples/), checks that the schema's own embedded `examples` still satisfy the
+definitions that carry them, checks predicate identity uniqueness, and — separately from all of
+that — checks the repository's links and language.
+
+To validate a document of your own without the repository:
+
+```bash
+python3 -c "
+import json, sys, yaml
+from jsonschema import Draft202012Validator as V
+schema = json.load(open('schema/opennfr.io/v1/requirementset.schema.json'))
+for e in V(schema).iter_errors(yaml.safe_load(open(sys.argv[1]))):
+    print('/'.join(map(str, e.path)) or '(root)', ':', e.message)
+" my-requirements.yaml
+```
+
+**In an editor.** Every definition in the schema carries `examples`, so an editor with YAML
+schema support completes the fields and offers a shape as you type. Point it at
+`schema/opennfr.io/v1/requirementset.schema.json`; the schema's `$id` is
+`https://opennfr.io/schema/v1/requirementset.schema.json`, which is an identifier and not yet a
+URL that resolves.

@@ -1,7 +1,7 @@
 # Sketch: a `loadtest.*` registry
 
 > **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [FORMAT.md](../../FORMAT.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
+> The format itself is [README.md](../../README.md) and [the schema reference](../../schema/README.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 What an OpenTelemetry semantic conventions extension for load testing might contain.
 
