@@ -41,7 +41,7 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 Answer each gate explicitly. A "no" is either fixed or justified in Complexity Tracking
-below — never left blank. See `.specify/memory/constitution.md` (v1.1.0).
+below — never left blank. See `.specify/memory/constitution.md` (v2.0.0).
 
 - [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term?
       If so, is `docs/GLOSSARY.md` updated in the same change, with a rejected
@@ -49,18 +49,23 @@ below — never left blank. See `.specify/memory/constitution.md` (v1.1.0).
 - [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken
       from OpenTelemetry semconv where an equivalent exists? Is anything new confined to
       `loadtest.*`? Are there aliases or derived quantities masquerading as metrics?
-- [ ] **III. No Silent Green** — for every check this feature adds: what happens when the
-      data is missing, and when the run did not meet its assumed conditions? Is either
-      answer "pass"?
+- [ ] **III. No Silent Green** — for every predicate a document can carry: is it either
+      rendered into the target's assertions or reported by name as one that target cannot
+      express, with the two lists covering the document exactly and arriving before the run?
+      Is any approximation substituted for a construct a target cannot express? Where a
+      target can pass on absent data, is that declared in its description, dated and sourced?
+      Does any check this adds skip rather than fail when it cannot run?
 - [ ] **IV. Honest Status** — do the artifacts state what is verified and what is
       speculation? Is every claim about an external tool dated and sourced?
 - [ ] **V. Structure Over Grammar** — is every new field validatable by schema without a
       bespoke parser? Are value sets closed? Does anything need custom decoding, and is
       that justified in an ADR?
-- [ ] **VI. Evaluation Is Target-Blind** — does anything here let the component that
-      produces verdicts learn which target supplied the measurements, or consume a statistic
-      a target computed for itself? Is percentile provenance recorded? Is any measurement
-      from one vantage point standing in for another?
+- [ ] **VI. The Requirement Is Target-Blind** — does any requirement document name a
+      target, in a field, a value, a metric name or an example? Does adding a target change
+      the format, the schema, or an existing document? Where two targets derive the same
+      criterion differently — the percentile, the vantage point, the unit, the precision — is
+      each difference recorded in that target's description, dated and sourced, rather than
+      closed by the format?
 - [ ] **VII. Architecture Before Implementation** — does every component this adds or alters
       name the architectural role it fills? If it needs a role the architecture lacks, does
       an earlier PR amend the architecture rather than diverging from it?
@@ -69,8 +74,12 @@ below — never left blank. See `.specify/memory/constitution.md` (v1.1.0).
       promotion and retirement conditions, and the date? Is the experimental area still
       removable in one operation, with nothing outside linking into it?
 - [ ] **Compatibility** — does this touch a borrowed OTel name, a published example's
-      field name, or the conformance levels? Is any construct expressible only at
-      conformance level `assert` or above?
+      field name, or what a target description may declare? For every construct added: can
+      **at least one surveyed target assert it exactly**, and is it being added for a reason
+      beyond reaching that one target's feature? Does anything **this feature adds** cite a
+      conformance level? (The ladder is retired; several documents still carry old citations
+      and are corrected by the amendments the constitution names as owed — those are not this
+      feature's to answer for.)
 
 ## Project Structure
 

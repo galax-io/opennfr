@@ -30,6 +30,9 @@
         },
         "annotations": {
           "$ref": "#/$defs/annotations"
+        },
+        "displayName": {
+          "$ref": "#/$defs/displayName"
         }
       }
     },
@@ -51,76 +54,6 @@
     }
   },
   "$defs": {
-    "series": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "metric",
-        "selector"
-      ],
-      "properties": {
-        "metric": {
-          "type": "string",
-          "minLength": 1,
-          "description": "A metric name, borrowed from OpenTelemetry semantic conventions where one exists. This schema does not enumerate metric names and never will: enumerating them would make every new metric a change to the format."
-        },
-        "selector": {
-          "$ref": "#/$defs/selector"
-        }
-      }
-    },
-    "indicator": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Exactly one shape. Nested keys rather than a discriminator, so a decoder needs no second pass.",
-      "properties": {
-        "distribution": {
-          "$ref": "#/$defs/series"
-        },
-        "ratio": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "total"
-          ],
-          "properties": {
-            "total": {
-              "$ref": "#/$defs/series"
-            },
-            "bad": {
-              "$ref": "#/$defs/series"
-            },
-            "good": {
-              "$ref": "#/$defs/series"
-            }
-          },
-          "oneOf": [
-            {
-              "required": [
-                "bad"
-              ]
-            },
-            {
-              "required": [
-                "good"
-              ]
-            }
-          ]
-        }
-      },
-      "oneOf": [
-        {
-          "required": [
-            "distribution"
-          ]
-        },
-        {
-          "required": [
-            "ratio"
-          ]
-        }
-      ]
-    },
     "predicate": {
       "type": "object",
       "required": [
@@ -145,39 +78,171 @@
         },
         "unit": {
           "$ref": "#/$defs/unit"
+        },
+        "displayName": {
+          "$ref": "#/$defs/displayName"
+        },
+        "metric": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What to measure of the selected requests. A name borrowed from OpenTelemetry semantic conventions where one exists; this schema does not enumerate metric names and never will. Omit it to reduce the requests themselves rather than a quantity they carry — a count, a rate, or a fraction with `bad`/`good`."
+        },
+        "bad": {
+          "$ref": "#/$defs/selector",
+          "description": "Makes this a fraction: the numerator is the selected requests that also match this, the denominator is the requirement's selection. Narrows, never replaces, so it carries only what puts a request on that side. An error rate is `bad: {error.type: \"*\"}` — ADR-0001 D8, and OpenSLO's ratioMetric before it."
+        },
+        "good": {
+          "$ref": "#/$defs/selector",
+          "description": "The same, for the side that went right. At most one of `bad` or `good`."
         }
-      }
+      },
+      "examples": [
+        {
+          "metric": "http.client.request.duration",
+          "aggregation": "p99",
+          "op": "lte",
+          "threshold": 500,
+          "unit": "ms"
+        },
+        {
+          "bad": {
+            "error.type": "*"
+          },
+          "aggregation": "rate",
+          "op": "lte",
+          "threshold": 5,
+          "unit": "%"
+        },
+        {
+          "bad": {
+            "error.type": "*"
+          },
+          "aggregation": "count",
+          "op": "lte",
+          "threshold": 20,
+          "unit": "{request}"
+        },
+        {
+          "name": "reached-target-rate",
+          "aggregation": "rate",
+          "op": "gte",
+          "threshold": 200,
+          "unit": "{request}/s"
+        }
+      ],
+      "allOf": [
+        {
+          "description": "A metric is measured; a fraction is counted. Not both.",
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "metric",
+                  "bad"
+                ]
+              },
+              {
+                "required": [
+                  "metric",
+                  "good"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "description": "At most one side of a fraction.",
+          "not": {
+            "required": [
+              "bad",
+              "good"
+            ]
+          }
+        },
+        {
+          "description": "A fraction has no percentile: only how many, or what share.",
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "bad"
+                ]
+              },
+              {
+                "required": [
+                  "good"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "aggregation": {
+                "enum": [
+                  "rate",
+                  "count"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "description": "A percentile, mean or spread needs values, so it needs a metric.",
+          "if": {
+            "properties": {
+              "aggregation": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "avg",
+                      "min",
+                      "max",
+                      "stddev",
+                      "sum"
+                    ]
+                  },
+                  {
+                    "pattern": "^p\\d{1,2}(\\.\\d+)?$"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "aggregation"
+            ]
+          },
+          "then": {
+            "required": [
+              "metric"
+            ]
+          }
+        }
+      ],
+      "description": "One machine-checkable statement about the requests the requirement selects. `aggregation` + `op` + `threshold` + `unit` is the whole shape; `metric` says what to measure of them, and `bad`/`good` makes it a fraction of them instead."
     },
     "requirement": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "name",
-        "indicator",
+        "selector",
         "criteria"
       ],
       "properties": {
         "name": {
           "$ref": "#/$defs/name"
         },
-        "indicator": {
-          "$ref": "#/$defs/indicator"
-        },
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions. Same shape as a criterion, opposite meaning: a violated guard says the run did not happen as intended, so the outcome is inconclusive rather than fail. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and the difference is what a violation means — a criterion says the system did not hold, a guard says the run did not happen as intended, so a green criterion beside a violated guard is not evidence of anything. Optional, and a requirement without one asserts nothing about the conditions it assumes.",
           "items": {
             "allOf": [
               {
                 "$ref": "#/$defs/predicate"
               }
             ],
-            "properties": {
-              "indicator": {
-                "$ref": "#/$defs/indicator"
-              }
-            },
+            "properties": {},
             "unevaluatedProperties": false
           }
         },
@@ -192,6 +257,13 @@
             ],
             "unevaluatedProperties": false
           }
+        },
+        "displayName": {
+          "$ref": "#/$defs/displayName"
+        },
+        "selector": {
+          "$ref": "#/$defs/selector",
+          "description": "Which requests this requirement is about — written once, for every criterion and guard under it. `{}` is every request."
         }
       },
       "allOf": [
@@ -225,6 +297,42 @@
             }
           },
           "description": "docs/GLOSSARY.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
+        }
+      ],
+      "examples": [
+        {
+          "name": "checkout",
+          "displayName": "Checkout is fast and reliable",
+          "selector": {
+            "http.route": "/api/v1/checkout"
+          },
+          "guards": [
+            {
+              "name": "reached-target-rate",
+              "aggregation": "rate",
+              "op": "gte",
+              "threshold": 200,
+              "unit": "{request}/s"
+            }
+          ],
+          "criteria": [
+            {
+              "metric": "http.client.request.duration",
+              "aggregation": "p99",
+              "op": "lte",
+              "threshold": 500,
+              "unit": "ms"
+            },
+            {
+              "bad": {
+                "error.type": "*"
+              },
+              "aggregation": "rate",
+              "op": "lte",
+              "threshold": 5,
+              "unit": "%"
+            }
+          ]
         }
       ]
     },
@@ -267,7 +375,6 @@
     },
     "aggregation": {
       "type": "string",
-      "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
       "anyOf": [
         {
           "enum": [
@@ -283,11 +390,22 @@
         {
           "pattern": "^p\\d{1,2}(\\.\\d+)?$"
         }
-      ]
+      ],
+      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape it is applied to, as it does in k6: over a `distribution` it is per second, over a `ratio` it is the fraction. k6 resolves the same overload the same way, by the metric's type."
     },
     "selector": {
       "type": "object",
       "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
+      "examples": [
+        {},
+        {
+          "loadtest.request.name": "GET /"
+        },
+        {
+          "loadtest.group.name": "MyGroup",
+          "loadtest.request.name": "MyRequest"
+        }
+      ],
       "additionalProperties": {
         "type": [
           "string",
@@ -302,6 +420,12 @@
         "type": "string"
       },
       "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
     }
   }
 }

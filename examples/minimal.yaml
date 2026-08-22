@@ -8,14 +8,12 @@ metadata:
 
 spec:
   requirements:
-    - name: latency
-      indicator:
-        distribution:
-          metric: http.client.request.duration
-          selector:
-            http.route: /api/v1/orders
+    - name: orders
+      selector:
+        http.route: /api/v1/orders
       criteria:
-        - aggregation: p95
+        - metric: http.client.request.duration
+          aggregation: p95
           op: lte
           threshold: 500
           unit: ms

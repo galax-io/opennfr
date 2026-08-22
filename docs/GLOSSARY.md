@@ -12,9 +12,12 @@ changes.
 
 The reasoning behind each choice is in [ADR-0001](adr/0001-terminology.md).
 
-> Where an entry sounds prescriptive ("mandatory", "forbidden"), read it as the shape the
-> rule would take if this design is kept — none of it is enforced by anything, because
-> there is no schema and no implementation.
+> Two kinds of entry live here and they are not the same thing. A few name something the
+> schema **already carries** — `RequirementSet`, `displayName`, `selector`, `aggregation` —
+> and those are enforced: `scripts/verify.sh` rejects a document that breaks them. The rest
+> argue for constructs the format does **not** have, and where one sounds prescriptive
+> ("mandatory", "forbidden") it is the shape the rule would take if the design is kept.
+> An entry that has shipped says so in its own first line; the schema decides, not this page.
 
 ---
 
@@ -87,20 +90,23 @@ checkable statement rather than metadata; `workload` — [reserved](#workload).
 
 ### Indicator
 
-The definition of the measured quantity: metric name + selector + shape (`distribution`
-or `ratio`). The counterpart of an SLI in OpenSLO. Declared inline (`indicator`) or reused
-by reference (`indicatorRef`).
+*(the word survives; the construct does not carry a selector any more)*
 
-Two shapes:
+**In the schema, as of this change, there is no `indicator` object.** What it held is split
+between the requirement, which carries the `selector` once, and the criterion, which carries
+what it is about: `metric` to measure a quantity, `bad`/`good` to take a fraction, neither to
+count. The counterpart of an SLI in OpenSLO.
 
-| Shape | When | Allowed aggregations |
-|---|---|---|
-| `distribution` | measuring the distribution of one metric's values | `p*`, `avg`, `min`, `max`, `count`, `rate`, `sum`, `stddev` |
-| `ratio` | measuring a fraction: `bad`/`total` or `good`/`total` | `rate` (the fraction), `count` |
+The two shapes it used to have — `distribution` and `ratio`, from OpenSLO's
+`thresholdMetric`/`ratioMetric` — are recorded in [ADR-0001 § D8](adr/0001-terminology.md) and
+amended by [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md). Their substance is unchanged: a metric is measured, a fraction is
+counted, and an error rate is still `bad: {error.type: "*"}` with no invented errors metric.
+What changed is where the selection lives, because holding it inside the shape forced a
+requirement about one endpoint's speed **and** reliability to be two requirements with the same
+selector written twice.
 
-Rejected: `Metric` — the word is needed for the metric *name*. `SLI` — an acronym, and it
-drags error-budget semantics along. `thresholdMetric` (OpenSLO) — collides with the
-threshold value.
+Rejected: keeping the selection per criterion — it reads fine for one criterion and duplicates
+for every requirement that has more than one thing to say.
 
 ### metric
 
@@ -111,6 +117,28 @@ A load generator is an HTTP client, so the canonical latency metric is
 `http.client.request.duration` — not the server-side one and not a tool-specific one
 (`http_req_duration` in k6 and friends). Reducing tool-specific names to canonical ones is
 the adapter's job, not the format's.
+
+### displayName
+
+**In the schema.** Optional on the document, on a requirement and on a predicate. Free text in
+any script, **at most 200 characters**, with none of the identifier's constraints — `name` is
+restricted to lowercase letters, digits and hyphens because something has to point at it, and a
+person writing a requirement wants a sentence.
+
+The bound is the same argument that rejects `description` below: 200 characters is a phrase and
+not a paragraph. A display name that needs more than that is prose, and prose about a
+requirement belongs in `annotations`, where nothing pretends it is a name.
+
+Inert by construction: it changes nothing selected, measured or compared, and two documents
+differing only in their display names mean the same thing.
+
+It does not restate a value the structured fields already carry. `99th percentile under 500 ms`
+beside `threshold: 500` is a second source for one number, and the two diverge the first time
+the threshold moves. Write `99th percentile` — the quantity, not the answer.
+
+Rejected: `label` — in JMeter a *label* is the sampler name, so the word already means an
+address here. `title` — collides with the document's own title and with JSON Schema's `title`.
+`description` — invites paragraphs where a phrase is wanted.
 
 ### selector
 
@@ -141,9 +169,14 @@ plus percentiles matching `^p\d{1,2}(\.\d+)?$` — `p50`, `p95`, `p99.9`.
 This is still structure, not an expression: the pattern is validated by JSON Schema and
 needs no parser.
 
-`rate` over a `distribution` equals `count / window duration`, i.e. exactly
-`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric — OTel has
-none either, because it is always derived.
+`rate` is **per second and nothing else** — `count / window duration`, exactly
+`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric; OTel has none
+either, because it is always derived.
+
+Over a `ratio` the same word is the fraction instead, and the shape is what tells them apart.
+k6 carries the identical overload and resolves it the identical way — `rate` on a Counter is
+per second, `rate` on a Rate is a proportion — so the wart is borrowed rather than invented,
+and inventing a second word to avoid it would cost more than it saves.
 
 `avg` rather than `mean`: that is the spelling in all four reference formats.
 
