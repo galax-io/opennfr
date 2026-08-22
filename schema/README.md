@@ -90,6 +90,68 @@ invented, and a second word to avoid it would cost more than it saves.
 
 ---
 
+## Both together, on one run
+
+The confusing part is that a criterion looks identical in both cases — `aggregation`, `op`,
+`threshold`, `unit` — while what the aggregation *reduces* is completely different. Here is one
+endpoint with both kinds of requirement.
+
+```yaml
+spec:
+  requirements:
+
+    - name: checkout-duration
+      indicator:
+        distribution:                                        # what to measure: duration
+          metric: http.client.request.duration
+          selector: {loadtest.request.name: POST /checkout}  # of which requests
+      criteria:
+        - {aggregation: p99, op: lte, threshold: 500,  unit: ms}
+        - {aggregation: max, op: lte, threshold: 1000, unit: ms}
+
+    - name: checkout-errors
+      indicator:
+        ratio:                                               # measure nothing, count requests
+          total: {loadtest.request.name: POST /checkout}     # the denominator
+          bad:   {error.type: "*"}                           # the numerator
+      criteria:
+        - {aggregation: rate,  op: lte, threshold: 5,  unit: "%"}
+        - {aggregation: count, op: lte, threshold: 20, unit: "{request}"}
+```
+
+Say the run made **1000 requests** to `POST /checkout`, **30** of them carrying `error.type`,
+with a 99th-percentile duration of 480 ms and a slowest of 1200 ms:
+
+| Requirement | What the aggregation reduces | Actual | Must be | |
+|---|---|---|---|---|
+| `checkout-duration` | `p99` of the **durations** | 480 ms | ≤ 500 ms | pass |
+| `checkout-duration` | `max` of the **durations** | 1200 ms | ≤ 1000 ms | **fail** |
+| `checkout-errors` | `rate` = **bad ÷ total** | 3% | ≤ 5% | pass |
+| `checkout-errors` | `count` = **how many bad** | 30 | ≤ 20 | **fail** |
+
+The same four keys in every row. In the top two they reduce the *values* the metric carries; in
+the bottom two they reduce *counts of requests*, and no metric is involved at all.
+
+### Why that is two requirements and not one
+
+A requirement is about **one measured thing**. Latency and failure are two, so they are two
+requirements — the same split OpenSLO makes, where one SLI feeds one objective.
+
+The cost is visible above: `{loadtest.request.name: POST /checkout}` is written twice. That is
+real, and it is the price of a requirement meaning exactly one thing. A shared-defaults
+construct would remove the repetition and is deliberately not in the format — see FORMAT.md's
+list of what is left out and why.
+
+### The aggregations that mean anything, per shape
+
+| | `distribution` | `ratio` |
+|---|---|---|
+| `p50`…`p99.9`, `avg`, `min`, `max`, `stddev`, `sum` | values of the metric | **rejected** — a percentile of a fraction is not a number anyone wants |
+| `count` | how many observations | how many `bad` (or `good`) |
+| `rate` | per second | the fraction itself |
+
+---
+
 ## `selector` — which requests
 
 A map of attribute to value. Every key must match.
