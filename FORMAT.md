@@ -2,7 +2,8 @@
 
 A container. It fixes the **shape** a requirement is written in, and nothing else.
 
-The definition is [`schema/opennfr.io/v1/requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json).
+The definition is [`schema/opennfr.io/v1/requirementset.schema.json`](schema/opennfr.io/v1/requirementset.schema.json),
+and [`schema/README.md`](schema/README.md) walks through choosing within it.
 One file. This page explains it; the schema decides — and the schema carries `examples` on
 every definition, so an editor with schema support shows the shape where the words stop.
 
@@ -48,7 +49,7 @@ it is a note rather than a rule.
 `"*"` means the attribute is present with any value.
 
 **Derived quantities.** Throughput is `aggregation: rate`. An error rate is a `ratio` whose
-`bad` selector carries `error.type: "*"`. Neither is a metric, and neither gets a name.
+`bad` narrows `total` by `error.type: "*"`. Neither is a metric, and neither gets a name.
 
 So: to measure something new, you write a different `metric` string. You do not touch this
 file or the schema.
@@ -59,15 +60,23 @@ file or the schema.
 |---|---|
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
 | An optional human name | `displayName`, on the document, each requirement and each predicate. Free text, any script, at most 200 characters — a phrase, not a paragraph. Inert: it changes nothing measured, compared or selected, and it never restates a value the structured fields already carry |
-| Two indicator shapes | `distribution` for a distribution of values, `ratio` for a fraction. Exactly one, expressed by nesting rather than a discriminator, so a decoder needs no second pass |
+| Two indicator shapes | `distribution` names a metric, because its values are what you compare. `ratio` names **none** — it counts requests, and a fraction that named a metric would be saying `duration` in a requirement about errors. Exactly one, by nesting rather than a discriminator, so a decoder needs no second pass |
 | One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
-| Guards | A violated guard means the run did not happen as intended, so the outcome is `inconclusive` — not `fail`, and never a pass |
-| Three outcomes | `pass`, `fail`, `inconclusive`. Three verdict statuses: `pass`, `fail`, `noData` |
+| Guards | A violated guard means the run did not happen as intended — a different thing from the system not holding, and a green criterion beside one is not evidence of anything |
 | Strictness | Unknown fields are rejected everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
 | Closed units | `unit` is an enumeration from [`docs/units.md`](docs/units.md), so `mss` is caught here rather than three orders of magnitude later |
 | Aggregations that fit the shape | A `ratio` is a fraction, so only `rate` and `count` mean anything over it. A percentile of a fraction is rejected |
 
-That is the whole container. One file, under 6 KB.
+That is the whole container. One file — about 12 KB, of which roughly half is description
+and examples.
+
+Feature 002 set the bar at under 6 KB, and that was the right bar for a schema whose
+`description` fields were one line each. It is no longer the right bar: a schema that
+explains itself where an editor can show it is worth more than a schema that fits a number,
+and the constructs have not grown — the same ten definitions, the same envelope. **The limit
+that replaces it is on the format, not the file: ten definitions, two indicator shapes, one
+predicate shape.** If that count grows, argue about it; the byte count is a proxy that has
+stopped tracking what it stood for.
 
 ## Deliberately not in it — yet
 
@@ -113,8 +122,8 @@ Rules that hold at every step:
 - A term reaches [`docs/GLOSSARY.md`](docs/GLOSSARY.md) with a **rejected alternative** before
   it appears in an example or the schema. The rejection outlives the term it protects.
 - A metric or attribute name is **borrowed**, never invented, wherever semconv has one.
-- Nothing reports success by omission. Missing data is `noData`, a violated guard is
-  `inconclusive`, and neither is a pass.
+- Nothing reports success by omission. A violated guard is not a pass, and neither is a check
+  that found no data — the format states the condition; what a run does with it is the tool's.
 
 ## Where the rest lives
 

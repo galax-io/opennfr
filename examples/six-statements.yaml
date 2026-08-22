@@ -52,18 +52,14 @@ spec:
         - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 1000, unit: ms}
         - {displayName: Slowest,         aggregation: max, op: lte, threshold: 2000, unit: ms}
 
-    # 5-6. the failed share. Not a metric of its own: a fraction of two selections over a
-    #      metric that already exists, which is why no `error_rate` name is coined.
+    # 5-6. the failed share. Not a metric of its own and not a metric at all: `total` is the
+    #      population, `bad` narrows it, and the fraction is one count over the other.
     - name: all-requests-error-share
       displayName: Share of failed requests
       indicator:
-        ratio:
-          total:
-            metric: http.client.request.duration
-            selector: {}
+        ratio:                       # a fraction of requests — it names no metric,
+          total: {}                  # because nothing here is measured, only counted
           bad:
-            metric: http.client.request.duration
-            selector:
-              error.type: "*"
+            error.type: "*"
       criteria:
         - {displayName: Failed share, aggregation: rate, op: lte, threshold: 5, unit: "%"}

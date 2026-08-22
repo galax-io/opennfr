@@ -212,7 +212,15 @@ def sub(node):
     out["$defs"] = schema["$defs"]
     return out
 
-for where, node in [("(root)", schema)] + sorted(schema["$defs"].items()):
+# FORMAT.md points a reader at the schema's examples, so a definition that carries none
+# is a promise broken in the one place nobody looks. Counted per definition: a total
+# hides the empty one behind the full ones.
+WANT = ["series", "indicator", "selector", "predicate", "requirement"]
+for name in WANT:
+    if not schema["$defs"].get(name, {}).get("examples"):
+        print(f"  FAIL  {path}: $defs/{name} carries no examples")
+        rc = 1
+for where, node in sorted(schema["$defs"].items()):
     for i, ex in enumerate(node.get("examples", [])):
         checked += 1
         for e in V(sub(node)).iter_errors(ex):

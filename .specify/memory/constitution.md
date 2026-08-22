@@ -326,10 +326,20 @@ adds only the constraints that outrank convenience:
 This constitution supersedes other practices in this repository. Where it and any other
 document conflict, this document wins and the other document is wrong and MUST be fixed.
 
-**Amendment procedure**: amendments are made by a PR that changes this file and any
-templates the change affects, and nothing else. The PR MUST state which principle is
-added, altered, or removed, and why the current wording fails. Amendments follow the
-same issue/milestone/linkage rules as every other change.
+**Amendment procedure**: an amendment PR MUST state which principle is added, altered or
+removed, and why the current wording fails. It follows the same issue/milestone/linkage
+rules as every other change.
+
+An amendment MAY travel with the work that motivated it. The earlier rule — this file and
+its templates "and nothing else" — was written to stop an amendment being smuggled through
+inside unrelated work, and it did that; but it also forbade the only PR that can show a
+principle is wrong, which is the one that hits the wall. A rule whose sanctioned route is
+more expensive than the workaround is not a route.
+
+What replaces it is a disclosure rule rather than a size rule: where an amendment ships
+with other changes, the PR MUST say so in its first paragraph, and MUST show what breaks
+without it. An amendment a reviewer has to find by reading a diff is smuggled however small
+the diff is.
 
 **Versioning policy**: semantic versioning of this document.
 

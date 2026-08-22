@@ -3,48 +3,6 @@
   "$id": "https://opennfr.io/schema/v1/requirementset.schema.json",
   "title": "RequirementSet",
   "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry rather than defined here, so measuring something new never means changing the format.",
-  "examples": [
-    {
-      "apiVersion": "opennfr.io/v1",
-      "kind": "RequirementSet",
-      "metadata": {
-        "name": "checkout-perf",
-        "displayName": "Checkout performance"
-      },
-      "spec": {
-        "requirements": [
-          {
-            "name": "get-root-duration",
-            "displayName": "Duration of GET /",
-            "indicator": {
-              "distribution": {
-                "metric": "http.client.request.duration",
-                "selector": {
-                  "loadtest.request.name": "GET /"
-                }
-              }
-            },
-            "criteria": [
-              {
-                "displayName": "99th percentile",
-                "aggregation": "p99",
-                "op": "lte",
-                "threshold": 500,
-                "unit": "ms"
-              },
-              {
-                "displayName": "Slowest",
-                "aggregation": "max",
-                "op": "lte",
-                "threshold": 1000,
-                "unit": "ms"
-              }
-            ]
-          }
-        ]
-      }
-    }
-  ],
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -117,26 +75,13 @@
         {
           "metric": "http.client.request.duration",
           "selector": {}
-        },
-        {
-          "metric": "http.client.request.duration",
-          "selector": {
-            "loadtest.request.name": "GET /"
-          }
-        },
-        {
-          "metric": "http.client.request.duration",
-          "selector": {
-            "loadtest.group.name": "MyGroup",
-            "loadtest.request.name": "MyRequest"
-          }
         }
       ]
     },
     "indicator": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Exactly one shape. Nested keys rather than a discriminator, so a decoder needs no second pass.",
+      "description": "What is measured, in one of two shapes, and exactly one of them. `distribution` for a quantity with values (how long did it take); `ratio` for a fraction of requests (how many went wrong). Nested keys rather than a discriminator, so a decoder needs no second pass.",
       "examples": [
         {
           "distribution": {
@@ -146,36 +91,17 @@
         },
         {
           "ratio": {
-            "total": {
-              "metric": "http.client.request.duration",
-              "selector": {}
-            },
+            "total": {},
             "bad": {
-              "metric": "http.client.request.duration",
-              "selector": {
-                "error.type": "*"
-              }
-            }
-          }
-        },
-        {
-          "ratio": {
-            "total": {
-              "metric": "http.client.request.duration",
-              "selector": {}
-            },
-            "good": {
-              "metric": "http.client.request.duration",
-              "selector": {
-                "error.type": "*"
-              }
+              "error.type": "*"
             }
           }
         }
       ],
       "properties": {
         "distribution": {
-          "$ref": "#/$defs/series"
+          "$ref": "#/$defs/series",
+          "description": "A distribution of measured values — latencies, sizes. Names the metric, because the values are what the criterion reduces."
         },
         "ratio": {
           "type": "object",
@@ -183,15 +109,19 @@
           "required": [
             "total"
           ],
+          "description": "A fraction of requests. It names no metric on purpose: nothing here is measured, only counted, and naming a metric whose values are never read is how a document ends up saying 'duration' in a requirement about errors. `total` selects the population; `bad` or `good` narrows it, and the fraction is the narrowed count over the population count.",
           "properties": {
             "total": {
-              "$ref": "#/$defs/series"
+              "$ref": "#/$defs/selector",
+              "description": "The population. `{}` is every request."
             },
             "bad": {
-              "$ref": "#/$defs/series"
+              "$ref": "#/$defs/selector",
+              "description": "Narrows `total` to the requests that went wrong. Applied on top of `total`, not instead of it, so it carries only what makes a request bad."
             },
             "good": {
-              "$ref": "#/$defs/series"
+              "$ref": "#/$defs/selector",
+              "description": "The same, for the requests that went right. Exactly one of `bad` or `good`."
             }
           },
           "oneOf": [
@@ -204,6 +134,22 @@
               "required": [
                 "good"
               ]
+            }
+          ],
+          "examples": [
+            {
+              "total": {},
+              "bad": {
+                "error.type": "*"
+              }
+            },
+            {
+              "total": {
+                "loadtest.request.name": "POST /checkout"
+              },
+              "bad": {
+                "error.type": "*"
+              }
             }
           ]
         }
@@ -258,24 +204,11 @@
           "unit": "ms"
         },
         {
-          "displayName": "99th percentile",
-          "aggregation": "p99",
-          "op": "lte",
-          "threshold": 1500,
-          "unit": "ms"
-        },
-        {
           "name": "reached-target-rate",
           "aggregation": "rate",
           "op": "gte",
           "threshold": 200,
           "unit": "{request}/s"
-        },
-        {
-          "aggregation": "rate",
-          "op": "lte",
-          "threshold": 5,
-          "unit": "%"
         }
       ]
     },
@@ -397,12 +330,7 @@
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
-      "maxLength": 253,
-      "examples": [
-        "checkout-latency",
-        "get-root-duration",
-        "reached-target-rate"
-      ]
+      "maxLength": 253
     },
     "unit": {
       "enum": [
@@ -424,14 +352,7 @@
         "{iteration}/s",
         "{vu}"
       ],
-      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers.",
-      "examples": [
-        "ms",
-        "s",
-        "%",
-        "{request}/s",
-        "{request}"
-      ]
+      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
     },
     "op": {
       "enum": [
@@ -441,28 +362,11 @@
         "gte",
         "eq",
         "neq"
-      ],
-      "examples": [
-        "lte",
-        "gte",
-        "lt",
-        "gt",
-        "eq"
       ]
     },
     "aggregation": {
       "type": "string",
       "description": "A closed enum plus a percentile pattern. The pattern is the one place this format admits a grammar rather than a list, and it is validated here rather than by a parser.",
-      "examples": [
-        "p50",
-        "p95",
-        "p99",
-        "p99.9",
-        "max",
-        "avg",
-        "rate",
-        "count"
-      ],
       "anyOf": [
         {
           "enum": [
@@ -491,9 +395,6 @@
         {
           "loadtest.group.name": "MyGroup",
           "loadtest.request.name": "MyRequest"
-        },
-        {
-          "error.type": "*"
         }
       ],
       "additionalProperties": {
@@ -509,23 +410,13 @@
       "additionalProperties": {
         "type": "string"
       },
-      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved.",
-      "examples": [
-        {
-          "opennfr.io/source": "SLA-2026-Q3, section 4.2"
-        }
-      ]
+      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
     },
     "displayName": {
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves.",
-      "examples": [
-        "Checkout performance",
-        "Duration of GET /",
-        "99th percentile"
-      ]
+      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
     }
   }
 }
