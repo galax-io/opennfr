@@ -2,9 +2,16 @@
 
 **Feature**: [003-assertion-first-format](spec.md) | **Date**: 2026-08-20 | **Research**: [research.md](research.md)
 
-Three document kinds and one corpus. Every field below is validatable by JSON Schema draft 2020-12
-with no bespoke parser, no open grammar and no string that must be parsed to be understood —
-Principle V. Where that was hard to hold, it is called out.
+Three document kinds and one corpus, of which **one kind exists**.
+
+> **Nothing described below is built.** What exists in this repository is the RequirementSet
+> schema, with `displayName` and embedded `examples`. There is no target description, no
+> rendering, no corpus and no runner — this file is the argument for what they would be and
+> what each would cost. Read it as a proposal.
+
+Every field below is meant to be validatable by JSON Schema draft 2020-12 with no bespoke parser,
+no open grammar and no string that must be parsed to be understood — Principle V. Where that was
+hard to hold, it is called out.
 
 `additionalProperties: false` everywhere, at every level. An unknown field is an error (FR-006).
 

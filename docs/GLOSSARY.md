@@ -12,9 +12,12 @@ changes.
 
 The reasoning behind each choice is in [ADR-0001](adr/0001-terminology.md).
 
-> Where an entry sounds prescriptive ("mandatory", "forbidden"), read it as the shape the
-> rule would take if this design is kept — none of it is enforced by anything, because
-> there is no schema and no implementation.
+> Two kinds of entry live here and they are not the same thing. A few name something the
+> schema **already carries** — `RequirementSet`, `displayName`, `selector`, `aggregation` —
+> and those are enforced: `scripts/verify.sh` rejects a document that breaks them. The rest
+> argue for constructs the format does **not** have, and where one sounds prescriptive
+> ("mandatory", "forbidden") it is the shape the rule would take if the design is kept.
+> An entry that has shipped says so in its own first line; the schema decides, not this page.
 
 ---
 
@@ -114,10 +117,14 @@ the adapter's job, not the format's.
 
 ### displayName
 
-An optional human-readable name, on the document, on a requirement and on a predicate. Free
-text in any script, with none of the identifier's constraints — `name` is restricted to
-lowercase letters, digits and hyphens because something has to point at it, and a person
-writing a requirement wants a sentence.
+**In the schema.** Optional on the document, on a requirement and on a predicate. Free text in
+any script, **at most 200 characters**, with none of the identifier's constraints — `name` is
+restricted to lowercase letters, digits and hyphens because something has to point at it, and a
+person writing a requirement wants a sentence.
+
+The bound is the same argument that rejects `description` below: 200 characters is a phrase and
+not a paragraph. A display name that needs more than that is prose, and prose about a
+requirement belongs in `annotations`, where nothing pretends it is a name.
 
 Inert by construction: it changes nothing selected, measured or compared, and two documents
 differing only in their display names mean the same thing.

@@ -73,8 +73,8 @@ reverted; `main` carries none of it. The written text for each amendment survive
 [research.md § R10](research.md), which is where a reader should start when this is picked up
 again.
 
-**What did land is one slice of Phase 2**: `displayName` and `examples` on the RequirementSet
-schema. Nothing else in this list is done.
+**What did land is one slice of Phase 2** — T016 only: `displayName` and `examples` on the
+RequirementSet schema, with the gate checking both. Nothing else in this list is done.
 
 ---
 
@@ -120,7 +120,7 @@ depends on all three.
 
 ### Schema
 
-- [ ] T016 Add optional `displayName` to `metadata`, each requirement and each predicate in `schema/opennfr.io/v1/requirementset.schema.json` — string, `minLength: 1`, additive so every existing document stays valid (FR-007)
+- [X] T016 Add optional `displayName` to `metadata`, each requirement and each predicate in `schema/opennfr.io/v1/requirementset.schema.json` — string, `minLength: 1`, additive so every existing document stays valid (FR-007)
 - [ ] T017 Create `schema/opennfr.io/v1/targetdescription.schema.json` per [data-model.md § 2](data-model.md): `evidence` with `minItems: 1` cited by every claim, `native.fields`, `report.derivedFrom`, `units` as integer numerator/denominator pairs, `names.unlisted` **required**, and `assertable` with gaps partitioning each axis
 - [ ] T018 Create `schema/opennfr.io/v1/rendering.schema.json` per [data-model.md § 3](data-model.md): one ordered `predicates` list, `predicate.role`, `oneOf` between `rendered` and `unrenderable`, `minItems: 1` on both `assertions` and `reasons`, and `native.text` as a string with **no `pattern`**
 - [ ] T019 Extend the schema section of `scripts/verify.sh` to validate `mappings/*.yaml` and `conformance/**/*.yaml` against their kinds, and to fail on a `kind` with no schema rather than passing over it

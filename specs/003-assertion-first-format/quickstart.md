@@ -2,8 +2,17 @@
 
 **Feature**: [003-assertion-first-format](spec.md) | **Date**: 2026-08-20
 
-How to check that the feature does what it claims. Every scenario below is runnable and each one maps
-to a success criterion, so a green run is evidence rather than a feeling.
+How the feature would be checked, if it were built.
+
+> **Nothing described below is built.** What exists in this repository is the RequirementSet
+> schema, with `displayName` and embedded `examples`. There is no target description, no
+> rendering, no corpus and no runner — this file is the argument for what they would be and
+> what each would cost. Read it as a proposal.
+
+Only the Prerequisites section below runs today: `bash scripts/verify.sh` validates `examples/`
+against the schema and checks the schema's own embedded examples. Every scenario after it names
+files that do not exist, and is kept because the *check* it describes is the deliverable, not the
+command.
 
 ## Prerequisites
 

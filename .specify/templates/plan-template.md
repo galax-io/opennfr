@@ -76,8 +76,10 @@ below — never left blank. See `.specify/memory/constitution.md` (v2.0.0).
 - [ ] **Compatibility** — does this touch a borrowed OTel name, a published example's
       field name, or what a target description may declare? For every construct added: can
       **at least one surveyed target assert it exactly**, and is it being added for a reason
-      beyond reaching that one target's feature? Does any artifact still cite a conformance
-      level, which nothing may until the ADR retiring the ladder lands?
+      beyond reaching that one target's feature? Does anything **this feature adds** cite a
+      conformance level? (The ladder is retired; several documents still carry old citations
+      and are corrected by the amendments the constitution names as owed — those are not this
+      feature's to answer for.)
 
 ## Project Structure
 

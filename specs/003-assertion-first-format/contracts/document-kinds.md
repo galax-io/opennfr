@@ -2,9 +2,16 @@
 
 **Feature**: [003-assertion-first-format](../spec.md) | **Date**: 2026-08-20
 
-What this repository publishes, and what a consumer anywhere must do with it. This is the
-compatibility surface: the constitution puts "any field name that appears in a published example" on
-it, so everything named here needs an ADR to change.
+What this repository would publish, and what a consumer would have to do with it.
+
+> **Nothing described below is built.** What exists in this repository is the RequirementSet
+> schema, with `displayName` and embedded `examples`. There is no target description, no
+> rendering, no corpus and no runner — this file is the argument for what they would be and
+> what each would cost. Read it as a proposal.
+
+Of the three kinds below, **only `RequirementSet` exists**. Its field names are already a
+compatibility-sensitive surface — the constitution puts "any field name that appears in a published
+example" on it — and the other two bind nobody, because there is nothing to bind to.
 
 The consumer is a renderer living in the tool's own repository. This repository ships no renderer
 (spec Assumptions), so this contract is written to be implementable without reference to any code

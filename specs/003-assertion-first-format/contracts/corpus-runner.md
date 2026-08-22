@@ -4,10 +4,10 @@
 
 How the conformance corpus executes, what it reports, and — the part that matters — how it fails.
 
-> **Partly built.** The document checks and the render-case rule live in
-> `scripts/opennfr_check.py` and run from the gate today. The check codes in § E2 beyond
-> those, and the mutation suite in § E4, are specified and not written — `scripts/test-gate.py`
-> does not exist. Read the unbuilt parts as what is owed, not as what runs.
+> **None of this is built.** There is no corpus, no `scripts/opennfr_check.py` and no
+> `scripts/test-gate.py`; `scripts/verify.sh` carries its own checks inline and validates
+> `examples/` against the schema, which is all that runs today. Every exit code, check code
+> and mutation case below is a specification of what is owed.
 `bash scripts/verify.sh` is the gate (AGENTS.md and the constitution's Development Workflow), so the
 corpus is reachable from it and its exit code propagates.
 
@@ -26,8 +26,8 @@ and passed" and "could not run" must survive into the exit code, or a broken env
 clean build — which is Principle III applied to the project's own tooling.
 
 **There is no `skip` branch.** Not for a missing interpreter, not for a missing library, not for an
-empty directory. The gate now gets this right everywhere — four sections were repaired to match the
-one that always had it (spec Appendix B) — and the corpus is written the same way from the start.
+empty directory. The gate gets this right today (spec Appendix B records the four sections that once
+did not), and a corpus should be written the same way from the start.
 
 ---
 
@@ -62,8 +62,8 @@ reporting it makes them visible, which is what SC-012 now asks for.
 
 FR-036. Where the gate and the corpus check the same rule, they call the same code.
 
-The gate today carries its checks as copy-pasted heredocs inside `scripts/verify.sh`. The corpus must
-not re-implement them: a corpus asserting against its own copy proves nothing about the gate that
+The gate carries its checks as heredocs inside `scripts/verify.sh`. A corpus, when one exists,
+must not re-implement them: a corpus asserting against its own copy proves nothing about the gate that
 actually runs, and two copies drift — the failure this repository exists to prevent, reproduced
 inside its own test suite.
 
@@ -87,10 +87,9 @@ Cases fall into two groups, and the distinction is worth keeping in the output:
 - **Known-red** — the check is broken; the case is the specification of the fix, and must be visibly
   distinguished from a pin so nobody "fixes" it by deleting it.
 
-Four of the pins guard checks that were repaired while this feature was being specified (spec
-Appendix B). They are the most valuable cases in the suite: each covers a section that reported `ok`
-on every commit, on both platforms, for the life of the project — one of them without ever having
-executed.
+Four of the pins would guard checks repaired while this feature was being specified (spec
+Appendix B) — each covering a section that reported `ok` on every commit, on both platforms, for the
+life of the project, one of them without ever having executed.
 
 **One honest limitation, and it is why the pin matters.** CI runs on Linux. The Cyrillic case would
 have passed there and always would have; the defect only ever bit on a developer's macOS, and only

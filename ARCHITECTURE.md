@@ -45,9 +45,15 @@ requirement ── criterion ──> verdict ──> gate ──> outcome
 2. *(binding)* No role may read the requirement document to discover its data source. The
    source is a parameter of evaluation, never a property of the requirement —
    [ADR-0002 § D18](docs/adr/0002-compatibility.md).
-3. *(binding)* No construct may be checkable only while a run is in progress. Anything
+3. *(~~binding~~ — **superseded 2026-08-21**, and left in place until this document is
+   amended)* No construct may be checkable only while a run is in progress. Anything
    expressible must also be evaluable afterwards, or the format silently excludes every tool
-   that cannot assert inline. This is already a ratified constitutional constraint.
+   that cannot assert inline.
+
+   > The constitution **inverted** this in 2.0.0: a construct enters the format only if at
+   > least one surveyed target can assert it exactly. Governance says the constitution wins
+   > and this document is wrong, so the clause above binds nothing. Amending §§ 1–7 properly
+   > is owed and tracked; until it lands, do not apply this clause.
 
 ---
 

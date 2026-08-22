@@ -74,10 +74,7 @@
           "$ref": "#/$defs/annotations"
         },
         "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
+          "$ref": "#/$defs/displayName"
         }
       }
     },
@@ -250,10 +247,7 @@
           "$ref": "#/$defs/unit"
         },
         "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
+          "$ref": "#/$defs/displayName"
         }
       },
       "examples": [
@@ -303,7 +297,7 @@
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and rendered into the same kind of native assertion — no surveyed target has an outcome between pass and fail, so a violated precondition fails the run like anything else. What tells it apart is its entry in the rendering, which records that the entry is a guard. A guard may measure something the requirement does not, which is why it may carry its own indicator.",
+          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and the difference is what a violation means — a criterion says the system did not hold, a guard says the run did not happen as intended, so a green criterion beside a violated guard is not evidence of anything. Optional, and a requirement without one asserts nothing about the conditions it assumes.",
           "items": {
             "allOf": [
               {
@@ -331,10 +325,7 @@
           }
         },
         "displayName": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200,
-          "description": "Free human-readable text, any script, beside the machine identifier. Inert: it changes nothing selected, measured, compared or rendered, and stripping every display name must leave a rendering byte-identical. It MUST NOT restate a value the structured fields already carry — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number. It does NOT reach the target's own report; no surveyed target has a field for an author-chosen string."
+          "$ref": "#/$defs/displayName"
         }
       },
       "allOf": [
@@ -523,6 +514,17 @@
         {
           "opennfr.io/source": "SLA-2026-Q3, section 4.2"
         }
+      ]
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves.",
+      "examples": [
+        "Checkout performance",
+        "Duration of GET /",
+        "99th percentile"
       ]
     }
   }

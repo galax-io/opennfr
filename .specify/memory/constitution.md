@@ -48,13 +48,15 @@ Templates and docs reviewed:
   ✅ .specify/templates/tasks-template.md  — no change needed
   ✅ .specify/templates/checklist-template.md — no change needed
 
-Owed by this amendment, in their own pull requests:
-  - ARCHITECTURE.md §§ 1–7. Its clause 3 is the fourth copy of the inverted constraint, and
-    its § 2 role table is where a rendering gets a definition to point at.
-  - An ADR superseding ADR-0002 § D13. The Compatibility Constraints text forbids only NEW
-    citations; the four documents that carry existing ones — ARCHITECTURE.md, docs/GLOSSARY.md,
-    LAYOUT.md, docs/adr/0002-compatibility.md — are corrected by the PRs above, and specs/ is
-    history and stays as written.
+Owed by this amendment, in their own pull requests, and tracked so the obligation does not
+live only in this comment block:
+  - ARCHITECTURE.md §§ 1–7 — issue #35. Its clause 3 is the fourth copy of the inverted
+    constraint and now carries a superseded marker; the marker is a stopgap, not the fix.
+    Its § 2 role table is where a rendering would get a definition to point at.
+  - An ADR superseding ADR-0002 § D13 — issue #36. The Compatibility Constraints text forbids
+    only NEW citations; the four documents that carry existing ones — ARCHITECTURE.md,
+    docs/GLOSSARY.md, LAYOUT.md, docs/adr/0002-compatibility.md — are corrected by that ADR,
+    and specs/ is history and stays as written.
 
 Deferred: whether the compatibility-surface list should also cover names the format defines
 under `loadtest.*` — carried forward unresolved from 1.1.0.

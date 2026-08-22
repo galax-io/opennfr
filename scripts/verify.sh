@@ -177,6 +177,80 @@ SCHEMA
 fi
 
 # ---------------------------------------------------------------------------
+section "The schema holds up its own examples, and still rejects"
+# Two things nothing else covers.
+#
+# The `examples` the schema carries are what an editor offers, so an example the schema
+# rejects teaches a shape that does not exist. Tighten a pattern and they go stale in
+# silence — every other check here reads examples/, not the schema's own contents.
+#
+# And every published example is one the schema is meant to ACCEPT, so nothing notices if
+# a closure comes loose. `displayName` was added to three objects that close over their
+# properties; the probes below are the cases that must still fail.
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the schema self-check cannot run"
+else
+  python3 - <<'SELFCHECK' || fail=1
+import json, sys
+try:
+    from jsonschema import Draft202012Validator as V
+except ImportError as e:
+    print(f"  FAIL  {e.name} not installed (pip install jsonschema)"); sys.exit(1)
+
+path = "schema/opennfr.io/v1/requirementset.schema.json"
+try:
+    schema = json.load(open(path, encoding="utf-8"))
+    V.check_schema(schema)
+except Exception as e:
+    print(f"  FAIL  {path}: not a usable schema ({e})"); sys.exit(1)
+
+rc, checked = 0, 0
+
+def sub(node):
+    """One definition, validatable on its own: its siblings minus the examples."""
+    out = {k: v for k, v in node.items() if k != "examples"}
+    out["$defs"] = schema["$defs"]
+    return out
+
+for where, node in [("(root)", schema)] + sorted(schema["$defs"].items()):
+    for i, ex in enumerate(node.get("examples", [])):
+        checked += 1
+        for e in V(sub(node)).iter_errors(ex):
+            print(f"  FAIL  {path}: {where} example {i}: {e.message}")
+            rc = 1
+if checked == 0:
+    print(f"  FAIL  {path} carries no examples — the check scanned nothing")
+    sys.exit(1)
+
+# The closures. Each MUST be rejected; one that validates means a guard came loose.
+def doc():
+    return {"apiVersion": "opennfr.io/v1", "kind": "RequirementSet", "metadata": {"name": "probe"},
+            "spec": {"requirements": [{"name": "r",
+                     "indicator": {"distribution": {"metric": "m", "selector": {}}},
+                     "criteria": [{"aggregation": "max", "op": "lte", "threshold": 1, "unit": "ms"}]}]}}
+
+probes = {}
+d = doc(); d["metadata"]["nope"] = "x";                       probes["unknown field on metadata"] = d
+d = doc(); d["spec"]["requirements"][0]["nope"] = "x";        probes["unknown field on a requirement"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["nope"] = "x"; probes["unknown field on a criterion"] = d
+d = doc(); d["spec"]["displayName"] = "x";                    probes["displayName on spec"] = d
+d = doc(); d["spec"]["requirements"][0]["indicator"]["distribution"]["displayName"] = "x"
+probes["displayName on a series"] = d
+d = doc(); d["metadata"]["displayName"] = "x" * 201;          probes["displayName over 200 characters"] = d
+d = doc(); d["metadata"]["displayName"] = "";                 probes["empty displayName"] = d
+
+for name, bad_doc in probes.items():
+    if not list(V(schema).iter_errors(bad_doc)):
+        print(f"  FAIL  the schema accepts what it must reject: {name}")
+        rc = 1
+
+if rc == 0:
+    print(f"  ok    {checked} embedded examples valid, {len(probes)} closures still reject")
+sys.exit(rc)
+SELFCHECK
+fi
+
+# ---------------------------------------------------------------------------
 section "Internal markdown links resolve"
 missing=0
 found=0
