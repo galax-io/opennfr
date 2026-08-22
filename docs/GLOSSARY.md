@@ -90,22 +90,23 @@ checkable statement rather than metadata; `workload` — [reserved](#workload).
 
 ### Indicator
 
-**In the schema.** What is measured. The counterpart of an SLI in OpenSLO, and modelled on its
-`thresholdMetric`/`ratioMetric` — see [ADR-0001 § D8](adr/0001-terminology.md) for why the names
-differ. Two shapes, exactly one of them:
+*(the word survives; the construct does not carry a selector any more)*
 
-| Shape | What it is | Names a metric | Reduced by |
-|---|---|---|---|
-| `distribution` | a distribution of measured values | **yes** — its values are what you compare | `p*`, `avg`, `min`, `max`, `stddev`, `sum`, `count`, `rate` |
-| `ratio` | a fraction of requests: `bad`/`total` or `good`/`total` | **no** — nothing is measured, only counted | `rate` (the fraction), `count` |
+**In the schema, as of this change, there is no `indicator` object.** What it held is split
+between the requirement, which carries the `selector` once, and the criterion, which carries
+what it is about: `metric` to measure a quantity, `bad`/`good` to take a fraction, neither to
+count. The counterpart of an SLI in OpenSLO.
 
-`ratio`'s sides are selectors, not metrics. `total` is the denominator, `bad` or `good` the
-numerator, and an error rate is `bad: {error.type: "*"}` — which is what ADR-0001 § D8 wrote,
-without inventing an errors metric that OpenTelemetry does not have either.
+The two shapes it used to have — `distribution` and `ratio`, from OpenSLO's
+`thresholdMetric`/`ratioMetric` — are recorded in [ADR-0001 § D8](adr/0001-terminology.md) and
+amended by [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md). Their substance is unchanged: a metric is measured, a fraction is
+counted, and an error rate is still `bad: {error.type: "*"}` with no invented errors metric.
+What changed is where the selection lives, because holding it inside the shape forced a
+requirement about one endpoint's speed **and** reliability to be two requirements with the same
+selector written twice.
 
-Rejected: `Metric` — the word is needed for the metric *name*. `SLI` — an acronym, and it
-drags error-budget semantics along. `thresholdMetric` (OpenSLO) — collides with the
-threshold value.
+Rejected: keeping the selection per criterion — it reads fine for one criterion and duplicates
+for every requirement that has more than one thing to say.
 
 ### metric
 

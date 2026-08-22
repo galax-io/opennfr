@@ -3,6 +3,9 @@
 # The old format spelled these as six fixed keys over a hardcoded table and could say nothing
 # else. Here they are ordinary requirements, and a seventh statement needs no change to
 # anything.
+#
+# `selector` is written once per requirement. Every criterion under it is about those
+# requests: `metric` measures something they carry, `bad` counts a fraction of them.
 
 apiVersion: opennfr.io/v1
 kind: RequirementSet
@@ -13,54 +16,37 @@ metadata:
 spec:
   requirements:
 
-    # 1-2. percentiles and the maximum, for one named request
-    - name: get-root-duration
-      displayName: Duration of GET /
-      indicator:
-        distribution:                            # measuring values, so the metric is named
-          metric: http.client.request.duration
-          selector:
-            loadtest.request.name: GET /
+    # One endpoint, four percentiles, the maximum, and the failed share — one requirement,
+    # one selector. The old format needed a separate key per statistic and had no way to
+    # say anything about errors for a single endpoint at all.
+    - name: checkout
+      displayName: Checkout is fast and reliable
+      selector:
+        http.route: /api/v1/checkout          # the OTel name; preferred over a request name
       criteria:
-        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 500, unit: ms}
-        - {displayName: 95th percentile, aggregation: p95, op: lte, threshold: 400, unit: ms}
-        - {displayName: 75th percentile, aggregation: p75, op: lte, threshold: 300, unit: ms}
-        - {displayName: Median,          aggregation: p50, op: lte, threshold: 200, unit: ms}
-        - {displayName: Slowest,         aggregation: max, op: lte, threshold: 1000, unit: ms}
+        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
+        - {displayName: 95th percentile, metric: http.client.request.duration, aggregation: p95, op: lte, threshold: 400, unit: ms}
+        - {displayName: 75th percentile, metric: http.client.request.duration, aggregation: p75, op: lte, threshold: 300, unit: ms}
+        - {displayName: Median,          metric: http.client.request.duration, aggregation: p50, op: lte, threshold: 200, unit: ms}
+        - {displayName: Slowest,         metric: http.client.request.duration, aggregation: max, op: lte, threshold: 1000, unit: ms}
+        - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate,  op: lte, threshold: 5,  unit: "%"}
+        - {displayName: Failed count,    bad: {error.type: "*"}, aggregation: count, op: lte, threshold: 20, unit: "{request}"}
 
-    # 3. the old composite key `MyGroup / MyRequest`, as two attributes on one selection
-    - name: checkout-submit-duration
-      displayName: Duration of the checkout submit, inside its group
-      indicator:
-        distribution:
-          metric: http.client.request.duration
-          selector:
-            loadtest.group.name: MyGroup
-            loadtest.request.name: MyRequest
+    # A request the tool knows only by name — no route available. The fallback, and the
+    # cost of it: a document written this way does not travel between tools unchanged.
+    - name: legacy-search
+      displayName: The search call, addressed by the name the tool records
+      selector:
+        loadtest.group.name: MyGroup
+        loadtest.request.name: MyRequest
       criteria:
-        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 900, unit: ms}
+        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 900, unit: ms}
 
-    # 4. the old `all` key: an empty selector is every request, said explicitly
-    - name: all-requests-duration
-      displayName: Duration across every request
-      indicator:
-        distribution:
-          metric: http.client.request.duration
-          selector: {}
+    # The old `all` key: an empty selector is every request, said explicitly.
+    - name: everything
+      displayName: The run as a whole
+      selector: {}
       criteria:
-        - {displayName: 99th percentile, aggregation: p99, op: lte, threshold: 1000, unit: ms}
-        - {displayName: Slowest,         aggregation: max, op: lte, threshold: 2000, unit: ms}
-
-    # 5-6. the failed share, as a fraction of requests. Neither side names a metric:
-    #      nothing is measured here, the requests are counted. `total` is the denominator,
-    #      `bad` the numerator — ADR-0001 D8, and OpenSLO's ratioMetric before it.
-    - name: all-requests-errors
-      displayName: Failures across every request
-      indicator:
-        ratio:
-          total: {}                  # every request
-          bad:
-            error.type: "*"          # those carrying an error
-      criteria:
-        - {displayName: Failed share, aggregation: rate,  op: lte, threshold: 5,   unit: "%"}
-        - {displayName: Failed count, aggregation: count, op: lte, threshold: 100, unit: "{request}"}
+        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 1000, unit: ms}
+        - {displayName: Slowest,         metric: http.client.request.duration, aggregation: max, op: lte, threshold: 2000, unit: ms}
+        - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate, op: lte, threshold: 5, unit: "%"}

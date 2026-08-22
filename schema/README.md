@@ -21,134 +21,77 @@ spec:
 
 ---
 
-## The one real choice: which indicator shape
+## The shape
 
-Two shapes, exactly one per requirement. They come from OpenSLO's `thresholdMetric` and
-`ratioMetric`; the names differ because `thresholdMetric` would collide with the threshold
-value, and that rename is recorded in [ADR-0001 § D8](../docs/adr/0001-terminology.md).
+A requirement says **which requests** once, and then everything that must be true of them.
 
-| | `distribution` | `ratio` |
+```yaml
+- name: checkout
+  displayName: Checkout is fast and reliable
+  selector:                                    # which requests — written once
+    http.route: /api/v1/checkout
+  guards: [...]                                # optional: was the run valid at all
+  criteria:                                    # what must hold
+    - {metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
+    - {bad: {error.type: "*"},               aggregation: rate, op: lte, threshold: 5,   unit: "%"}
+```
+
+One selector, two statements about the same endpoint: it is fast, and it does not fail. That is
+one requirement because it is one human sentence.
+
+## What a criterion can be about
+
+Every criterion is `aggregation` + `op` + `threshold` + `unit`. What it reduces depends on which
+optional key it carries — and it carries at most one.
+
+| Carries | It is about | Aggregations that mean anything |
 |---|---|---|
-| Answers | *how long / how big?* | *how many of them?* |
-| Names a metric | **yes** — its values are what you compare | **no** — nothing is measured, only counted |
-| Typical use | latency, payload size | error rate |
-| Reduced by | `p95`, `p99`, `max`, `min`, `avg`, `stddev`, `sum`, `count`, `rate` | `rate` (the fraction), `count` |
+| `metric` | a quantity the selected requests carry | `p50`…`p99.9`, `avg`, `min`, `max`, `stddev`, `sum`, `count`, `rate` |
+| `bad` or `good` | a fraction of the selected requests | `rate` (the share), `count` (how many) |
+| neither | the selected requests themselves | `count` (how many), `rate` (per second) |
 
-### `distribution` — a quantity with values
+**`metric`** names what to measure — an OpenTelemetry name, borrowed. The criterion reduces its
+values.
 
-```yaml
-indicator:
-  distribution:
-    metric: http.client.request.duration   # an OpenTelemetry name, not ours
-    selector:
-      loadtest.request.name: GET /
-criteria:
-  - {aggregation: p99, op: lte, threshold: 500, unit: ms}
-```
+**`bad`** narrows the requirement's selection to the ones that went wrong; the denominator is
+the requirement's selection, so it is never written twice. An error rate is
+`bad: {error.type: "*"}` — no invented errors metric, which OpenTelemetry does not have either.
+`good` is the same for the other side, and at most one of them appears.
 
-*The 99th percentile of how long `GET /` took is at most 500 ms.*
+**Neither** counts the requests: `count` is how many, `rate` is how many per second.
 
-### `ratio` — a fraction of requests
-
-Both sides are **selectors, not metrics**. Nothing here is measured; requests are counted.
-`total` is the denominator, `bad` or `good` the numerator.
-
-```yaml
-indicator:
-  ratio:
-    total: {}                    # every request
-    bad:
-      error.type: "*"            # those carrying an error
-criteria:
-  - {aggregation: rate,  op: lte, threshold: 5,   unit: "%"}          # the share
-  - {aggregation: count, op: lte, threshold: 100, unit: "{request}"}  # the number
-```
-
-*At most 5% of requests failed, and at most 100 of them.*
-
-For errors you want one of exactly those two — a percentage or a count. Both read off the same
-indicator; the aggregation picks which.
-
-`bad` narrows `total`, so asking about one endpoint is a change to `total` alone:
-
-```yaml
-ratio:
-  total: {loadtest.request.name: POST /checkout}
-  bad:   {error.type: "*"}
-```
-
-### `rate` means two things, and that is borrowed
-
-Over a `distribution` it is **per second**; over a `ratio` it is **the fraction**. The shape
-tells them apart. k6 carries the same overload and resolves it the same way — `rate` on a
-Counter is per second, on a Rate metric it is a proportion — so this is inherited rather than
-invented, and a second word to avoid it would cost more than it saves.
-
-> **A known limitation.** A selector can say an attribute is present (`error.type: "*"`) but not
-> that it is absent, so `bad` has something to select and `good` does not. Write the failed
-> fraction and compare with `lte`. Recorded rather than hidden.
-
----
+The schema enforces the combinations. A percentile without a metric is rejected — there are no
+values to take a percentile of. A percentile with `bad` is rejected — a percentile of a fraction
+is not a number anyone wants. `metric` with `bad` is rejected: one measures, the other counts.
 
 ## Both together, on one run
 
-The confusing part is that a criterion looks identical in both cases — `aggregation`, `op`,
-`threshold`, `unit` — while what the aggregation *reduces* is completely different. Here is one
-endpoint with both kinds of requirement.
+Say the run made **1000 requests** to `/api/v1/checkout`, **30** carrying `error.type`, with a
+99th-percentile duration of 480 ms and a slowest of 1200 ms:
 
 ```yaml
-spec:
-  requirements:
-
-    - name: checkout-duration
-      indicator:
-        distribution:                                        # what to measure: duration
-          metric: http.client.request.duration
-          selector: {loadtest.request.name: POST /checkout}  # of which requests
-      criteria:
-        - {aggregation: p99, op: lte, threshold: 500,  unit: ms}
-        - {aggregation: max, op: lte, threshold: 1000, unit: ms}
-
-    - name: checkout-errors
-      indicator:
-        ratio:                                               # measure nothing, count requests
-          total: {loadtest.request.name: POST /checkout}     # the denominator
-          bad:   {error.type: "*"}                           # the numerator
-      criteria:
-        - {aggregation: rate,  op: lte, threshold: 5,  unit: "%"}
-        - {aggregation: count, op: lte, threshold: 20, unit: "{request}"}
+- name: checkout
+  selector: {http.route: /api/v1/checkout}
+  criteria:
+    - {metric: http.client.request.duration, aggregation: p99,   op: lte, threshold: 500,  unit: ms}
+    - {metric: http.client.request.duration, aggregation: max,   op: lte, threshold: 1000, unit: ms}
+    - {bad: {error.type: "*"},               aggregation: rate,  op: lte, threshold: 5,    unit: "%"}
+    - {bad: {error.type: "*"},               aggregation: count, op: lte, threshold: 20,   unit: "{request}"}
 ```
 
-Say the run made **1000 requests** to `POST /checkout`, **30** of them carrying `error.type`,
-with a 99th-percentile duration of 480 ms and a slowest of 1200 ms:
-
-| Requirement | What the aggregation reduces | Actual | Must be | |
+| Criterion | What the aggregation reduces | Actual | Must be | |
 |---|---|---|---|---|
-| `checkout-duration` | `p99` of the **durations** | 480 ms | ≤ 500 ms | pass |
-| `checkout-duration` | `max` of the **durations** | 1200 ms | ≤ 1000 ms | **fail** |
-| `checkout-errors` | `rate` = **bad ÷ total** | 3% | ≤ 5% | pass |
-| `checkout-errors` | `count` = **how many bad** | 30 | ≤ 20 | **fail** |
+| `p99` of the metric | the **durations** of the 1000 requests | 480 ms | ≤ 500 ms | pass |
+| `max` of the metric | the same durations | 1200 ms | ≤ 1000 ms | **fail** |
+| `rate` with `bad` | 30 **÷** 1000 | 3% | ≤ 5% | pass |
+| `count` with `bad` | how many matched `bad` | 30 | ≤ 20 | **fail** |
 
-The same four keys in every row. In the top two they reduce the *values* the metric carries; in
-the bottom two they reduce *counts of requests*, and no metric is involved at all.
+The same four keys in every row. In the top two they reduce the values a metric carries; in the
+bottom two they reduce counts of requests, and no metric is involved.
 
-### Why that is two requirements and not one
-
-A requirement is about **one measured thing**. Latency and failure are two, so they are two
-requirements — the same split OpenSLO makes, where one SLI feeds one objective.
-
-The cost is visible above: `{loadtest.request.name: POST /checkout}` is written twice. That is
-real, and it is the price of a requirement meaning exactly one thing. A shared-defaults
-construct would remove the repetition and is deliberately not in the format — see FORMAT.md's
-list of what is left out and why.
-
-### The aggregations that mean anything, per shape
-
-| | `distribution` | `ratio` |
-|---|---|---|
-| `p50`…`p99.9`, `avg`, `min`, `max`, `stddev`, `sum` | values of the metric | **rejected** — a percentile of a fraction is not a number anyone wants |
-| `count` | how many observations | how many `bad` (or `good`) |
-| `rate` | per second | the fraction itself |
+> **A known limitation.** A selector says an attribute is *present* (`error.type: "*"`), not
+> that it is absent, so `bad` has something to select and `good` does not. Write the failed
+> fraction and compare with `lte`. Recorded rather than hidden.
 
 ---
 

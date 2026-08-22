@@ -17,16 +17,19 @@ metadata:
 spec:
   requirements:
     - name: checkout-latency
-      indicator:
-        distribution:
-          metric: http.client.request.duration
-          selector:
-            http.route: /api/v1/checkout
+      selector:
+        http.route: /api/v1/checkout
       criteria:
-        - aggregation: p95
+        - metric: http.client.request.duration
+          aggregation: p95
           op: lte
           threshold: 500
           unit: ms
+        - bad: {error.type: "*"}
+          aggregation: rate
+          op: lte
+          threshold: 5
+          unit: "%"
 ```
 
 [`examples/minimal.yaml`](examples/minimal.yaml) is that document. It is not a sketch:
@@ -48,9 +51,9 @@ it is a note rather than a rule.
 **Attribute names.** `selector` is attribute → value. Same reasoning. `{}` means every series;
 `"*"` means the attribute is present with any value.
 
-**Derived quantities.** Throughput is `aggregation: rate` over a `distribution`. An error rate
-is `rate` over a `ratio` whose `bad` is `{error.type: "*"}`, or `count` for the number rather
-than the fraction. Neither is a metric, and neither gets a name.
+**Derived quantities.** Throughput is `aggregation: rate` with no metric. An error rate is
+`rate` with `bad: {error.type: "*"}`, or `count` for the number rather than the fraction.
+Neither is a metric, and neither gets a name.
 
 So: to measure something new, you write a different `metric` string. You do not touch this
 file or the schema.
@@ -61,12 +64,13 @@ file or the schema.
 |---|---|
 | The envelope | `apiVersion`, `kind`, `metadata.name` |
 | An optional human name | `displayName`, on the document, each requirement and each predicate. Free text, any script, at most 200 characters — a phrase, not a paragraph. Inert: it changes nothing measured, compared or selected, and it never restates a value the structured fields already carry |
-| Two indicator shapes | `distribution` names a metric, because its values are what you compare. `ratio` names **none** — both its sides are selectors, because nothing is measured there, only counted. From OpenSLO's `thresholdMetric`/`ratioMetric`; the rename is [ADR-0001 § D8](docs/adr/0001-terminology.md) |
+| One selection per requirement | `selector` says which requests, once, and every criterion and guard under it is about those. Writing it per criterion is what made a fast-and-reliable endpoint into two requirements with the same selector twice |
+| A criterion carries what it is about | `metric` to measure a quantity those requests carry; `bad`/`good` to take a fraction of them; neither to count them. At most one, and the schema enforces which aggregations follow |
 | One predicate shape | `aggregation` + `op` + `threshold` + `unit`. Criteria and guards are the same shape; only the meaning of a violation differs |
 | Guards | A violated guard means the run did not happen as intended — a different thing from the system not holding, and a green criterion beside one is not evidence of anything |
 | Strictness | Unknown fields are rejected everywhere. A typo like `agregation:` is a parse error, not a silently skipped criterion |
 | Closed units | `unit` is an enumeration from [`docs/units.md`](docs/units.md), so `mss` is caught here rather than three orders of magnitude later |
-| Aggregations that fit the shape | A `ratio` is a fraction, so only `rate` and `count` mean anything over it. A percentile of a fraction is rejected |
+| Aggregations that fit what is measured | A percentile needs values, so it needs a `metric`. A fraction takes only `rate` or `count` — a percentile of a fraction is rejected |
 
 That is the whole container. One file — about 12 KB, of which roughly half is description
 and examples.
