@@ -1,6 +1,6 @@
 # The result document
 
-> The format itself is [README.md](../../README.md) and [the schema reference](../../schema/README.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 **Notes, not rules.** Nothing in this repository produces a result, and no schema describes
 one. The vocabulary below was designed when this project expected to compute the answer itself.
@@ -62,7 +62,7 @@ fundamentally different engineering decision from *"the system does not hold"*.
 **It is struck.** No surveyed target has a third outcome, so nothing could produce one, and
 constitution 2.0.0 is explicit: *"The format MUST NOT define a third report state for it."* The
 distinction it protected is not abandoned — it survives as a statement the document can make
-(a [guard](../GLOSSARY.md#guard)), as an assertion a target actually runs, and as a record of
+(a [guard](../reference/glossary.md#guard)), as an assertion a target actually runs, and as a record of
 which entries state a condition of the run rather than a property of the system. That is one
 place fewer than before, and every part of it is something a real target can do.
 
@@ -80,7 +80,7 @@ correlate with the traces of the same run without glue, and it stays the right a
 something does emit a report.
 
 Rejected: a `loadtest.run.id` of our own — `cicd.pipeline.run.id` and `test.suite.name` already
-exist, and [Principle II](../../.specify/memory/constitution.md) forbids inventing a name where
+exist, and [Principle II](../.specify/memory/constitution.md) forbids inventing a name where
 one is available.
 
 ---

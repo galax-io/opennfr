@@ -23,8 +23,11 @@ tool description. The format is usable — you can write a requirement, validate
 and keep it in version control — and it is not yet *runnable*. That gap is the next piece of
 work, and it is named as such rather than implied.
 
-Everything in [`docs/`](docs/) is notes and evidence, not rules. Where a note disagrees with
-the schema, the schema is right.
+Two directories, and the difference between them is the point.
+[`reference/`](reference/) is what is true of the format today — the vocabulary, the units, the
+names, the dated tool survey and the decision records behind them. `docs/` holds **ideas**:
+constructs the format does not have, each of which will be built, reworked or dropped. Nothing
+outside `docs/` links into it, so it can be deleted whole without touching anything real.
 
 ---
 
@@ -47,8 +50,8 @@ objectives: [{ sli: response_time_p95, pass: [{ criteria: ["<500"] }] }]
 
 Three grammars, three metric vocabularies, three notions of failure — and none of them
 survives a move to another tool. The survey behind that claim is
-[`docs/references.md`](docs/references.md); the check of what the tools actually emit is
-[`docs/compatibility.md`](docs/compatibility.md). The short version of the second one is
+[`reference/prior-art.md`](reference/prior-art.md); the check of what the tools actually emit is
+[`reference/compatibility.md`](reference/compatibility.md). The short version of the second one is
 negative and worth knowing before you start: OTLP output is nearly universal, and **no tool
 publishes OpenTelemetry semantic convention names**. k6 emits `k6_http_req_duration` in
 milliseconds where the convention wants `http.client.request.duration` in seconds. "The tool
@@ -117,7 +120,7 @@ is exactly where the surveyed formats struggle.
 **A requirement says which requests once.** Every criterion and every guard beneath it is
 about those requests.
 
-This sounds like a detail and is not. Before [ADR-0003](docs/adr/0003-selection-belongs-to-the-requirement.md),
+This sounds like a detail and is not. Before [ADR-0003](reference/adr/0003-selection-belongs-to-the-requirement.md),
 selection lived on each criterion, and stating that one endpoint was both *fast* and
 *reliable* meant two requirements repeating the same selector — two objects for one sentence,
 and two places to edit when the route changes. Now:
@@ -240,8 +243,8 @@ selector: {error.type: "*"}                    # the attribute is present, with 
 ```
 
 Attribute names are **not enumerated by the schema**, and never will be. They are borrowed
-from OpenTelemetry where an equivalent exists, and the list of what exists is in
-[`docs/semconv/loadtest.md`](docs/semconv/loadtest.md).
+from OpenTelemetry where an equivalent exists; which names to use is
+[`reference/names.md`](reference/names.md).
 
 **On addressing a request.** `http.route` is the portable way: it is the same string the
 service's own production metrics carry, so a requirement written against it can be compared
@@ -303,7 +306,7 @@ field of its own.
 **`unit`** — **required, always**, and from a closed list: `ns`, `us`, `ms`, `s`, `min`, `h`,
 `%`, `1`, `By`, `KiBy`, `MiBy`, `GiBy`, `{request}`, `{request}/s`, `{iteration}`,
 `{iteration}/s`, `{vu}`. The reasoning and the conversions are in
-[`docs/units.md`](docs/units.md).
+[`reference/units.md`](reference/units.md).
 
 Two arguments hold that list closed. A bare `500` is three orders of magnitude away from
 unambiguous — every tool reports milliseconds, every semantic convention wants seconds. And a
@@ -392,9 +395,9 @@ rejects and the message it rejects it with — are in [`schema/README.md`](schem
 ## What the format deliberately does not define
 
 **Metric names.** `metric` is a string. Enumerating names would make every new metric a change
-to the format. Where OpenTelemetry has a name, use it; where it does not, the `loadtest.*`
-proposal in [`docs/semconv/loadtest.md`](docs/semconv/loadtest.md) is the current thinking,
-and it is a note rather than a rule.
+to the format. Where OpenTelemetry has a name, use it — [`reference/names.md`](reference/names.md)
+lists which. Where it has none, the `loadtest.*` namespace is a proposal submitted nowhere, and
+`reference/names.md` says so in the one place the validated corpus already leans on it.
 
 **Attribute names.** Same reasoning, same answer.
 
@@ -423,8 +426,9 @@ The load profile — stages, arrival rate, duration — is not on that list, bec
 borrowing the construct would import the disagreement. The word `workload` is reserved and
 unused for exactly that reason.
 
-Each of these is argued in [`docs/ideas/`](docs/ideas/), and the route from an argument to a
-field in the schema is in [LAYOUT.md](LAYOUT.md#how-an-idea-becomes-part-of-the-format).
+Each of these is argued under `docs/`, which this page deliberately does not link into, and the
+route from an argument to a field in the schema is in
+[LAYOUT.md](LAYOUT.md#how-an-idea-becomes-part-of-the-format).
 
 ## What is unresolved
 
@@ -453,10 +457,13 @@ Not a roadmap — open problems, some of which may sink the approach:
 | [`examples/`](examples/) | validated documents; the gate fails if one stops validating |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | how a requirement would become an outcome, and what each part may not know |
 | [LAYOUT.md](LAYOUT.md) | where every kind of file lives, who may change it, and what changing it obliges |
-| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | the vocabulary the format carries, each term with a rejected alternative |
-| [`docs/adr/`](docs/adr/) | why the format is the way it is |
-| [`docs/ideas/`](docs/ideas/) | constructs the format does not have, with the argument for each |
-| [`docs/`](docs/) | notes and dated evidence — **ideas, not rules** |
+| [`reference/glossary.md`](reference/glossary.md) | the vocabulary the format carries, each term with a rejected alternative |
+| [`reference/units.md`](reference/units.md) | the closed unit list, and how the units convert |
+| [`reference/names.md`](reference/names.md) | which OpenTelemetry metric and attribute names to write |
+| [`reference/compatibility.md`](reference/compatibility.md) | what load testing tools actually emit — checked and dated |
+| [`reference/prior-art.md`](reference/prior-art.md) | the survey of OpenSLO, Keptn, k6, Taurus, SLA4OAI and picatinny |
+| [`reference/adr/`](reference/adr/) | why the format is the way it is |
+| `docs/` | **ideas** — constructs the format does not have. Deliberately not linked from here |
 
 ## Where this sits relative to OpenSLO
 

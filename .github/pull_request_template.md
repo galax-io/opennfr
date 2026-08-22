@@ -19,6 +19,6 @@ Closes #
 - [ ] Milestone assigned (CI fails without one)
 - [ ] `Closes #<issue>` above points at an issue in the same milestone
 - [ ] `bash scripts/verify.sh` passes locally
-- [ ] If a term changed: [docs/GLOSSARY.md](../docs/GLOSSARY.md) updated, including the
+- [ ] If a term changed: [docs/GLOSSARY.md](../reference/glossary.md) updated, including the
       *Rejected* note explaining what the old term got wrong
 - [ ] If a decision changed: the relevant ADR updated rather than contradicted elsewhere

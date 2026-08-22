@@ -8,7 +8,7 @@ or in the gate that validates against it, and `scripts/verify.sh` rejects a docu
 breaks one. This page says what each word means and what it displaced; the schema decides what
 is legal.
 
-Words for constructs the format does **not** have live in [`ideas/`](ideas/), with the
+Words for constructs the format does **not** have live in `docs/`, with the
 argument for each intact. A term arrives here from there, never the other way round —
 [LAYOUT.md](../LAYOUT.md#how-an-idea-becomes-part-of-the-format) has the route.
 
@@ -70,7 +70,7 @@ where the target reports rather than pass quietly.
 
 Rejected: `precondition` — verbose. `context` / `given` — fail to convey that this is a
 checkable statement rather than metadata. `workload` — [reserved](#workload).
-`inconclusive` as its outcome — see [ideas/the-result-document.md](ideas/the-result-document.md).
+`inconclusive` as its outcome — see `docs/the-result-document.md`.
 
 ---
 
@@ -101,7 +101,7 @@ for every requirement with more than one thing to say.
 ### metric
 
 The name of what to measure of the selected requests. **Borrowed from OpenTelemetry semantic
-conventions** wherever one exists; where none does, the [`loadtest.*`](semconv/loadtest.md)
+conventions** wherever one exists; where none does, the `loadtest.*`
 proposal is the current thinking and is a note rather than a rule. No custom names, no aliases.
 
 A load generator is an HTTP client, so the canonical latency metric is
@@ -112,7 +112,7 @@ The schema does not enumerate metric names and never will: enumerating them woul
 new metric a change to the format.
 
 Rejected: an `indicator` object holding the metric and its own selection — see
-[ideas/not-in-the-format.md](ideas/not-in-the-format.md).
+`docs/not-in-the-format.md`.
 
 ### bad / good
 

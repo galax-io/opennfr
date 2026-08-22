@@ -8,11 +8,11 @@ Design notes toward an open, tool-agnostic format for load testing requirements.
 
 ## Role
 
-Principal Engineer: format and specification design, load testing, observability. This repo is a design notebook, not a product — prefer precision of vocabulary over features, and treat every added term as a cost. Argue in issues before writing files.
+Principal Engineer: format and specification design, load testing, observability. The format is minimally usable — a schema, a validated corpus and a gate — and nothing renders or evaluates yet. Prefer precision of vocabulary over features, and treat every added term as a cost. Argue in issues before writing files.
 
 ## Stack
 
-No code. Markdown notes plus YAML sketches that nothing validates, because there is no schema yet. A Go reference implementation is anticipated (docs/adr/0002-compatibility.md) but not started; constructs are already screened for whether they decode without a custom unmarshaler.
+No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), documents validated against it in `examples/`, and markdown. A Go reference implementation is anticipated (`reference/adr/0002-compatibility.md`) but not started; constructs are already screened for whether they decode without a custom unmarshaler.
 
 ## Commands
 
@@ -28,15 +28,15 @@ No code. Markdown notes plus YAML sketches that nothing validates, because there
 <!-- A LIGHT search index, not a full tree. List only the entry points an agent needs
      to FIND code fast — one terse line per area (`dir/ -> what lives there`). Omit
      anything discoverable by looking; an exhaustive tree is noise and rots fast. -->
-`docs/` -> the notes themselves; `docs/adr/` -> naming arguments in ADR form (status: proposed); `docs/examples/` -> unvalidated sketches of documents; `docs/semconv/` -> proposed `loadtest.*` attribute registry; `docs/references.md` -> survey of prior art, the most finished part; `specs/` -> spec-kit working dir.
+`README.md` -> the entry point, every field explained; `schema/` -> the schema and its reference; `examples/` -> the validated corpus; `reference/` -> what is true today (glossary, units, names, tool survey, prior art) with `reference/adr/` for the decision records; `docs/` -> IDEAS ONLY, constructs the format does not have — nothing outside it may link in; `specs/` -> spec-kit working dir, read as history.
 
 ## Architecture
 
-The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the terms, the ADRs justify them, and everything else must follow. The intended runtime layering (types -> evaluation -> data sources -> tool adapters) is described in docs/compatibility.md and exists only on paper. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in an example.
+The vocabulary is the source of truth: `reference/glossary.md` defines the terms the schema carries, the ADRs justify them, and everything else must follow. `docs/` is isolated by rule and by gate: it holds ideas, real documentation never links into it, and `git rm -r docs && bash scripts/verify.sh` stays green. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in an example.
 
 ## Test Model
 
-`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve and the docs stayed English. `examples/` is the validated corpus; the sketches under `docs/examples/` are deliberately outside the gate, because they illustrate ideas the format does not have — see LAYOUT.md.
+`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve, that no documentation links into `docs/`, and that the docs stayed English. `examples/` is the validated corpus; the sketches under `docs/examples/` are deliberately outside the gate, because they illustrate ideas the format does not have — see LAYOUT.md.
 
 ---
 
@@ -46,7 +46,7 @@ The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the terms, the
 
 ## Boundaries
 
-**Always:** format before commit, branch from `main`, keep commits semantic and green, preserve backward compat for published public APIs and any downstream consumers. `none yet — no code. docs/GLOSSARY.md is the vocabulary truth` = dependency truth, `.github/workflows/` = CI/release truth.
+**Always:** format before commit, branch from `main`, keep commits semantic and green, preserve backward compat for published public APIs and any downstream consumers. `none yet — no code. reference/glossary.md is the vocabulary truth` = dependency truth, `.github/workflows/` = CI/release truth.
 
 **Ask first:** new deps or upgrades, changing public API signatures / observable behavior / serialized formats, editing another repo, release/publish workflow changes.
 

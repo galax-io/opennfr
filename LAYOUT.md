@@ -12,9 +12,10 @@ never becomes one.
 
 | Class | Home | Who may change it | Changing it obliges | Binds later work |
 |---|---|---|---|---|
-| **The format** | `schema/opennfr.io/v1/`, with [README.md](README.md) as its entry point and [schema/README.md](schema/README.md) as its reference | Anyone, by pull request | A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
-| **Ideas and notes** | `docs/` — with [`docs/ideas/`](docs/ideas/) for constructs the format does not have, and [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for the vocabulary it does | Anyone, by pull request | Say what is checked and what is opinion. A note may contradict the format — that is what notes are for | No |
-| Decision records | `docs/adr/NNNN-slug.md` | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
+| **The format** | `schema/opennfr.io/v1/`, with [README.md](README.md) as its entry point and [schema/README.md](schema/README.md) as its reference | Anyone, by pull request | A term reaches [reference/glossary.md](reference/glossary.md) with a rejected alternative first; a naming disagreement is argued in an issue **before** files change; a compatibility-sensitive change requires an ADR | **Yes** |
+| **Reference** | [`reference/`](reference/) — the vocabulary, the units, the names, the dated tool survey and the prior-art survey | Anyone, by pull request | Every claim is enforced by the gate, borrowed verbatim from outside this repository, or dated. A page that is a design rather than a rule says so in its own text | **Yes** |
+| Decision records | [`reference/adr/NNNN-slug.md`](reference/adr/) | Anyone, by pull request | A PR that contradicts an ADR amends that ADR instead; status stays `proposed` until something validates it | No, but they are why the format is what it is |
+| **Ideas** | `docs/` — constructs the format does not have, each to be built, reworked or dropped | Anyone, by pull request | Say what is checked and what is opinion. An idea may contradict the format — that is what ideas are for. **Nothing outside `docs/` may link into it** | No |
 | Tool mappings | `mappings/` once it exists | Anyone, by pull request | The claimed conformance level is evidenced and dated; every gap the target cannot honour is declared | No — the conformance ladder is |
 | Conformance corpus | `conformance/` once it exists | Anyone, by pull request | Every case states the outcome a conforming consumer must reach | **Yes** |
 | Validated examples | `examples/` | Anyone, by pull request | They must validate against the schema. `verify.sh` fails if they do not — that is the point of them | **Yes** |
@@ -29,6 +30,20 @@ Classes differ by what a change **obliges**, not by who may propose it. No role 
 introduced here, because [Principle I](.specify/memory/constitution.md) prices every added
 governance word and a role taxonomy would buy nothing mechanical.
 
+### `docs/` is isolated
+
+Nothing outside `docs/` links into it. Outside references name a path in prose, inside a code
+span, never as markdown link syntax. Links out of `docs/` into the format are fine and expected
+— an argument about a construct has to be able to name what it would change.
+
+The rule buys one property: every idea can be dropped without breaking a real document. An idea
+that cannot be cheaply abandoned is one that gets kept for the wrong reasons — and the previous
+arrangement, where the vocabulary the format carries sat in the same directory and the same
+voice as the vocabulary it had retired, is what this replaces.
+
+`docs/experimental/` keeps its own, stricter version: markdown only, and a status, promotion
+conditions, retirement conditions and a date in every file.
+
 ### How an idea becomes part of the format
 
 ```
@@ -37,7 +52,7 @@ note in docs/  ->  argued in an issue  ->  ADR  ->  glossary entry  ->  schema  
 
 Rules that hold at every step:
 
-- A term reaches [docs/GLOSSARY.md](docs/GLOSSARY.md) with a **rejected alternative** before it
+- A term reaches [reference/glossary.md](reference/glossary.md) with a **rejected alternative** before it
   appears in an example or in the schema. The rejection outlives the term it protects.
 - A metric or attribute name is **borrowed**, never invented, wherever a semantic convention
   has one.
@@ -65,23 +80,31 @@ contributor cannot normally set a milestone on a fork's pull request. A maintain
 issue and sets the milestone on the contributor's behalf, as part of first review. Without that
 sentence the uniform column is theatre.
 
-### Why `docs/semconv/` is a note and not the format
+### Why `docs/semconv/` is an idea and not reference
 
 `docs/semconv/loadtest.md` proposes names under `loadtest.*` for what OpenTelemetry does not
-cover. It states in its own text that it has been submitted nowhere and that nothing emits
-those names today — which makes it an idea, and `docs/` is where ideas live.
+cover. It states in its own text that it has been submitted nowhere and that nothing emits those
+names today — which makes it an idea, and `docs/` is where ideas live.
 
-Nothing in the format uses these names yet. `window` — the construct that would have rested on
-`loadtest.phase` — is listed in [the README](README.md#what-is-not-in-it-yet) under *What is
-not in it yet*, and the schema rejects it. A name graduates from note to format by entering the schema, not by moving
-directory.
+The half of that page that was **not** a proposal — which existing OpenTelemetry names a document
+should use — is reference, and is now [`reference/names.md`](reference/names.md). A name
+graduates by entering the schema or by being borrowed from a published convention, never by
+moving directory.
+
+One debt is recorded rather than hidden: `loadtest.request.name` and `loadtest.group.name` are
+used by the validated corpus while belonging to a namespace no standard carries.
+[`reference/names.md`](reference/names.md) names it in its own text.
+
+`window` — the construct that would have rested on `loadtest.phase` — is listed in
+[the README](README.md#what-is-not-in-it-yet) under *What is not in it yet*, and the schema
+rejects it.
 
 ## 2. Governance vocabulary
 
 These words describe the repository, not the format. They are defined here rather than in the
 glossary, which is the format's three-layer vocabulary and does not gain a fourth layer. A word
 that collides with one already in the glossary is settled **there** instead, where the collision
-is visible — that is why `target` and `monitoring backend` are in [docs/GLOSSARY.md](docs/GLOSSARY.md)
+is visible — that is why `target` and `monitoring backend` are in [reference/glossary.md](reference/glossary.md)
 and not below.
 
 | Word | Meaning | Rejected |
@@ -108,9 +131,9 @@ cheaper to know now than to discover mid-rename.
 |---|---|---|---|
 | `docs/examples/mapping-k6.yaml` | Tool mappings | Linked from five other documents; a move turns `scripts/verify.sh` red across the tree | **`verify.sh`'s sketch-label check is hardcoded to `docs/examples/*.yaml`.** A mapping relocated to `mappings/` silently stops being checked until the script is extended. Extend it in the same PR |
 | `docs/examples/mapping-jmeter.yaml` | Tool mappings | Same | Same |
-| `docs/compatibility.md` | Three classes at once | Splitting it is a separate concern from publishing this layout | It spans conformance levels (normative), the dated tool survey (evidence) and the Go notes (proposal). A split must keep the survey's date attached to the survey |
-| `docs/references.md` | Evidence, which has no class | Inventing a class for one file costs a governance word | Either widen the normative core's definition or accept it as an unclassified note, stated as such |
-| `docs/units.md` | Normative core | Already correctly filed; listed because its status line predates the layout | **Done** — the page now separates the enumeration the schema enforces from the conversions nothing implements |
+| ~~`docs/compatibility.md`~~ | — | — | **Done.** Split: the dated survey is [`reference/compatibility.md`](reference/compatibility.md), the Go notes and the retired ladder are ideas. The survey kept its date |
+| ~~`docs/references.md`~~ | — | — | **Done.** It is evidence, the `Reference` class now exists for it, and it is [`reference/prior-art.md`](reference/prior-art.md) |
+| ~~`docs/units.md`~~ | — | — | **Done.** [`reference/units.md`](reference/units.md), separating the enumeration the schema enforces from the conversions nothing implements |
 | `mappings/` | Tool mappings | The directory does not exist yet | Created by the first target follow-up specification, not by this document |
 
 ## 4. The compatibility-sensitive surface

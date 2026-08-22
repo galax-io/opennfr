@@ -1,17 +1,21 @@
 # Sketch: a `loadtest.*` registry
 
 > **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [README.md](../../README.md) and [the schema reference](../../schema/README.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
+> **An idea, not a rule.** This is a proposal written in semantic-convention style and nothing
+> more. It is not an OpenTelemetry standard, it has been submitted nowhere, and **nothing emits
+> these names today**. The `loadtest.` namespace merely appeared to be unclaimed upstream at the
+> time of writing. Last true as written: 2026-08-18.
 
-What an OpenTelemetry semantic conventions extension for load testing might contain.
+What an OpenTelemetry semantic conventions extension for load testing might contain — the part
+this format would have to coin, because semconv covers everything else already.
 
-**This is a proposal written in semconv style, nothing more.** It is not an OTel standard,
-has not been submitted anywhere, and nothing emits these names today. The `loadtest.`
-namespace merely appeared to be unclaimed upstream at the time of writing.
+The names OpenTelemetry does cover, and which a document should actually use, are reference
+rather than proposal and live outside this directory, in `reference/names.md`. What remains
+here is only what has no upstream equivalent.
 
-The parts worth reading regardless: which existing OTel names cover load testing already
-(more than expected), and the mapping table at the end, which reflects what tools actually
-emit.
+Two names below — `loadtest.request.name` and `loadtest.group.name` — are already used by the
+validated corpus at `examples/six-statements.yaml`, which makes them the one place the format
+leans on something no standard carries. That debt is recorded in `reference/names.md`.
 
 ## Principles
 
@@ -21,46 +25,6 @@ emit.
    metrics by aggregation. They exist neither in OTel nor here.
 3. **semconv style.** Dotted namespaces, UCUM units, annotated units in braces, metrics as
    nouns, attributes ordered general to specific.
-
----
-
-## Taken from OTel verbatim
-
-### Metrics
-
-| Name | Type | Unit | Role in OpenNFR |
-|---|---|---|---|
-| `http.client.request.duration` | Histogram | `s` | the primary latency metric. A load generator is an HTTP client, so the client-side metric is semantically correct |
-| `http.client.request.body.size` | Histogram | `By` | volume sent |
-| `http.client.response.body.size` | Histogram | `By` | volume received |
-| `http.server.request.duration` | Histogram | `s` | when a requirement is stated over the system's own data rather than the generator's |
-
-### Selection attributes (`selector`)
-
-| Attribute | Example | Note |
-|---|---|---|
-| `http.request.method` | `POST` | |
-| `http.route` | `/api/v1/checkout` | the preferred way to address an endpoint |
-| `url.template` | `/api/v1/orders/{id}` | client-side, when `http.route` is unavailable |
-| `server.address`, `server.port` | `api.example.com` | |
-| `http.response.status_code` | `500` | |
-| `error.type` | `timeout`, `500`, `"*"` | `"*"` means the attribute is present with any value; this is how "an error" is expressed |
-| `network.protocol.version` | `1.1`, `2` | |
-
-### Run identity attributes (`EvaluationReport.spec.run.attributes`)
-
-We define no fields of our own for this.
-
-| Attribute | Source in semconv |
-|---|---|
-| `service.name`, `service.version` | resource |
-| `deployment.environment.name` | resource |
-| `test.suite.name`, `test.case.name` | registry/test |
-| `test.suite.run.status`, `test.case.result.status` | registry/test |
-| `cicd.pipeline.name`, `cicd.pipeline.run.id` | registry/cicd |
-| `vcs.ref.head.name`, `vcs.ref.head.revision` | registry/vcs |
-
-This is what lets a report correlate directly with the run's traces and metrics.
 
 ---
 
@@ -108,18 +72,12 @@ Support is partial and tool-dependent: k6 provides all five; JMeter's JTL yields
 
 ### Addressing: `http.route` versus `loadtest.request.name`
 
-| | `http.route` | `loadtest.request.name` |
-|---|---|---|
-| Status | **preferred** | pragmatic fallback |
-| Portable across tools | yes | no — the name is arbitrary |
-| Correlates with the service's production metrics | yes | no |
-| Actually emitted by tools | almost none | all of them |
+`loadtest.request.name` is the direct replacement for picatinny's `MyGroup / MyRequest` keys and
+k6's `{name:...}` tag — the human-readable name of a request, for the case where no route exists
+in principle.
 
-The rule: write requirements against `http.route` wherever the adapter can reconstruct it.
-`loadtest.request.name` is for cases where no route exists in principle (JMeter), with the
-understanding that such requirements do not travel between tools.
-
-A direct replacement for picatinny's `MyGroup / MyRequest` keys and k6's `{name:...}`.
+The rule for choosing between the two is settled and is reference rather than proposal:
+`reference/names.md` carries it, and it is not repeated here.
 
 ---
 
@@ -128,7 +86,7 @@ A direct replacement for picatinny's `MyGroup / MyRequest` keys and k6's `{name:
 | Not defined | Why |
 |---|---|
 | `loadtest.throughput` / `rps` | derived: `aggregation: rate` over a histogram's `count`, exactly like `rate(..._count[…])` in Prometheus |
-| `loadtest.error_rate` | derived: an `indicator.ratio` with `bad.selector.error.type: "*"` |
+| `loadtest.error_rate` | derived: a `bad: {error.type: "*"}` fraction over requests that already exist |
 | `loadtest.response_time` | a duplicate of `http.client.request.duration` |
 | `loadtest.apdex` | a composite metric, expressible as a set of criteria |
 | `loadtest.run.id` | `cicd.pipeline.run.id` and `test.suite.name` already exist |
@@ -143,7 +101,7 @@ Reduction to canonical names is the adapter's job, and it is declared through a
 **No tool publishes semconv names by itself.** The OTLP output in k6, Locust, Artillery and
 Gatling Enterprise is a transport, not a vocabulary: k6 emits `k6_http_req_duration` with a
 configurable prefix. An adapter is therefore always required. Details and the full matrix
-are in [compatibility.md](../compatibility.md).
+are in `reference/compatibility.md`.
 
 For orientation:
 

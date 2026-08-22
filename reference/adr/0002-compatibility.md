@@ -209,5 +209,5 @@ diverge, unambiguity of the format wins.
 
 - [Tool compatibility matrix](../compatibility.md)
 - [Units](../units.md)
-- [The `loadtest.*` registry](../semconv/loadtest.md)
-- [MetricMapping example for k6](../examples/mapping-k6.yaml)
+- The `loadtest.*` registry — a proposal, and a note rather than reference: `docs/semconv/loadtest.md`
+- The `MetricMapping` sketch for k6, which validates against nothing: `docs/examples/mapping-k6.yaml`

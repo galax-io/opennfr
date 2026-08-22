@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Read the notes first
-    url: https://github.com/galax-io/opennfr/blob/main/docs/GLOSSARY.md
+    url: https://github.com/galax-io/opennfr/blob/main/reference/glossary.md
     about: The glossary lists candidate terms with the alternatives already considered and dropped — check whether your objection is recorded there.
   - name: Why not just use OpenSLO / Keptn / k6 thresholds?
-    url: https://github.com/galax-io/opennfr/blob/main/docs/references.md
+    url: https://github.com/galax-io/opennfr/blob/main/reference/prior-art.md
     about: The survey of prior art, and the most finished part of the repository.

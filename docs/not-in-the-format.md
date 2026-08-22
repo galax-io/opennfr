@@ -1,9 +1,9 @@
 # Fields that were argued for and left out
 
-> The format itself is [README.md](../../README.md) and [the schema reference](../../schema/README.md); how it works is [ARCHITECTURE.md](../../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 **Notes, not rules.** Every field below was designed, argued about, and is absent from
-[the schema](../../schema/opennfr.io/v1/requirementset.schema.json). Writing one into a
+[the schema](../schema/opennfr.io/v1/requirementset.schema.json). Writing one into a
 document is a validation error today.
 
 They are kept because the argument is worth more than the field, and because the next person
@@ -18,7 +18,7 @@ places.
 
 `indicator` was an object on the requirement, holding what to measure and which requests to
 measure it over. It had two shapes, borrowed from OpenSLO's `thresholdMetric` and `ratioMetric`
-— [ADR-0001 § D8](../adr/0001-terminology.md):
+— [ADR-0001 § D8](../reference/adr/0001-terminology.md):
 
 ```yaml
 indicator:
@@ -33,7 +33,7 @@ indicator:
     bad:   {metric: ..., selector: {error.type: "*"}}
 ```
 
-[ADR-0003](../adr/0003-selection-belongs-to-the-requirement.md) took it apart. The substance is
+[ADR-0003](../reference/adr/0003-selection-belongs-to-the-requirement.md) took it apart. The substance is
 unchanged — a metric is measured, a fraction is counted, an error rate is still
 `bad: {error.type: "*"}` with no invented errors metric — but the selection moved up to the
 requirement and what is measured moved down to the predicate.
@@ -64,7 +64,7 @@ window:
 ```
 
 `phase` rests on a `loadtest.phase` attribute. **Nothing emits it.** It is proposed in
-[semconv/loadtest.md](../semconv/loadtest.md), which states in its own text that it has been
+[semconv/loadtest.md](semconv/loadtest.md), which states in its own text that it has been
 submitted nowhere. A construct whose only meaning comes from an attribute no target produces is
 a field that always matches everything, which is a silent green with a schema around it.
 
@@ -140,7 +140,7 @@ Taurus's `stop as failed`.
 
 Both describe what a target can do, not what a requirement says. A requirement that carries
 them is a requirement that names a target by implication, which
-[Principle VI](../../.specify/memory/constitution.md) forbids: *"A requirement document MUST
+[Principle VI](../.specify/memory/constitution.md) forbids: *"A requirement document MUST
 NOT name a target: not in a field, a value, a metric name, or an example."*
 
 Where a target can abort, that is a fact about the target and belongs in the target's own
@@ -164,7 +164,7 @@ prevent. `indicatorRef` costs a second way to say one thing, and pointed at a `R
 in the drafts that used it while the glossary described `Indicator` as a kind of its own.
 
 The duplication `defaults` was meant to remove is largely gone anyway: since
-[ADR-0003](../adr/0003-selection-belongs-to-the-requirement.md) the selector is written once per
+[ADR-0003](../reference/adr/0003-selection-belongs-to-the-requirement.md) the selector is written once per
 requirement rather than once per criterion.
 
 ---
@@ -180,5 +180,5 @@ The tools do not agree on what an open or a closed workload model does under deg
 borrowing the construct would import that disagreement into a format whose only asset is that
 one document means one thing. It is also the part the tools already do well.
 
-The word `workload` is [reserved and unused](../GLOSSARY.md#workload) for exactly this, so that
+The word `workload` is [reserved and unused](../reference/glossary.md#workload) for exactly this, so that
 it is not consumed by the wrong meaning first.

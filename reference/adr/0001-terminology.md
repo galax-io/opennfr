@@ -20,7 +20,7 @@ We need a format for describing non-functional requirements for load testing tha
 3. parses strictly in any backend in any language;
 4. is compatible with OpenTelemetry.
 
-A survey of existing solutions is in [references.md](../references.md). In short: no
+A survey of existing solutions is in [references.md](../prior-art.md). In short: no
 format targets this problem. OpenSLO solves the neighbouring one (production SLOs with
 error budgets), Keptn provides CI gates with its own metric vocabulary, and
 k6/Taurus/picatinny are tool-internal DSLs. The niche is empty.
@@ -64,7 +64,7 @@ generator *is* an HTTP client, so the client-side metric is semantically correct
 than a compromise. Selection uses OTel attributes (`http.route`, `http.request.method`,
 `error.type`).
 
-Whatever OTel lacks and load testing needs gets its own [`loadtest.*`](../semconv/loadtest.md)
+Whatever OTel lacks and load testing needs gets its own `loadtest.*`
 namespace in semconv style.
 
 The price: adapters must map tool-specific names (`http_req_duration` in k6, etc.) onto
@@ -171,7 +171,7 @@ OpenSLO's `Service` is unnecessary: grouping is expressed with labels carrying O
 
 ## References
 
-- [Glossary](../GLOSSARY.md)
-- [The `loadtest.*` registry](../semconv/loadtest.md)
-- [Reference survey](../references.md)
-- [Examples](../examples/)
+- [Glossary](../glossary.md)
+- The `loadtest.*` registry — a proposal, and a note rather than reference: `docs/semconv/loadtest.md`
+- [Reference survey](../prior-art.md)
+- The unvalidated sketches under `docs/examples/`

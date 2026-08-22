@@ -168,7 +168,7 @@ The `opennfr.io/` prefix is reserved.
 ## `unit`
 
 A closed enumeration of 17, a subset of UCUM. Conversions and the argument for closing the
-list are in [`docs/units.md`](../docs/units.md).
+list are in [`docs/units.md`](../reference/units.md).
 
 | Group | Values | Canonical |
 |---|---|---|

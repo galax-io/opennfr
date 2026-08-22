@@ -41,10 +41,10 @@ requirement ── criterion ──> verdict ──> gate ──> outcome
 1. *(binding)* The path ends at **outcome**, not at verdict. A `Verdict` is the result of
    checking one criterion or guard; an `Outcome` is the aggregated result of the whole run.
    A trace that stops at verdict stops one component short of `gate`. See
-   [docs/GLOSSARY.md](docs/GLOSSARY.md).
+   [reference/glossary.md](reference/glossary.md).
 2. *(binding)* No role may read the requirement document to discover its data source. The
    source is a parameter of evaluation, never a property of the requirement —
-   [ADR-0002 § D18](docs/adr/0002-compatibility.md).
+   [ADR-0002 § D18](reference/adr/0002-compatibility.md).
 3. *(~~binding~~ — **superseded 2026-08-21**, and left in place until this document is
    amended)* No construct may be checkable only while a run is in progress. Anything
    expressible must also be evaluable afterwards, or the format silently excludes every tool
@@ -115,10 +115,10 @@ identically — by adding data, never by adding code:
 | Monitoring backend | Holds telemetry, answers a query, can host a standing monitor | Not applicable — see § 6 | **proposed** |
 
 The full definition, including why `monitoring backend` is defined inside the `Target` entry
-rather than on its own, is in [docs/GLOSSARY.md](docs/GLOSSARY.md). A target faces **outward**; a
+rather than on its own, is in [reference/glossary.md](reference/glossary.md). A target faces **outward**; a
 *data source* faces inward and supplies normalised series to R4. One product may play both
 roles in one run, in which case it is named by the role it is playing. This document cites
-[ADR-0002 § D18](docs/adr/0002-compatibility.md) for `data source` rather than redefining it.
+[ADR-0002 § D18](reference/adr/0002-compatibility.md) for `data source` rather than redefining it.
 
 ---
 
@@ -127,9 +127,9 @@ roles in one run, in which case it is named by the role it is playing. This docu
 *(proposed — none of the machinery exists; the tool facts are dated)*
 
 One document, unchanged in every character:
-[docs/examples/checkout-perf.yaml](docs/examples/checkout-perf.yaml). It carries five requirements, two
+`docs/examples/checkout-perf.yaml`. It carries five requirements, two
 guards, and a `gate`. Every tool statement below comes from this repository's own survey in
-[docs/compatibility.md](docs/compatibility.md), *"Verified against documentation as of August 2026"*, or
+[reference/compatibility.md](reference/compatibility.md), *"Verified against documentation as of August 2026"*, or
 from the mapping sketches in `examples/`. Nothing here is asserted from outside those files.
 
 ### 4.1 k6 — the best case
@@ -169,7 +169,7 @@ Edition — the open-source build goes through `simulation.log`.
 |---|---|
 | Latency, throughput | Response time is recorded; canonical naming needs the missing mapping |
 | `onViolation: abort` | **Impossible** — the survey records Abort: `no` for Gatling |
-| guard on `loadtest.dropped_iterations` | **No equivalent** — the mapping table in [docs/semconv/loadtest.md](docs/semconv/loadtest.md) records an em-dash |
+| guard on `loadtest.dropped_iterations` | **No equivalent** — the mapping table in `docs/semconv/loadtest.md` records an em-dash |
 | Error signal | `KO` carries it |
 | `http.route` | Reconstructed by an adapter, per the survey — which does not exist yet |
 
@@ -218,7 +218,7 @@ which this feature does not do)*
 
 17. *(binding)* Support for any target is added as **data** — a `kind: MetricMapping` document
     — and requires changing no normative-core artifact and no reference implementation. This is
-    [ADR-0002 § D12](docs/adr/0002-compatibility.md), generalised to both target classes by
+    [ADR-0002 § D12](reference/adr/0002-compatibility.md), generalised to both target classes by
     [the constitution's Compatibility Constraints](.specify/memory/constitution.md).
 18. *(binding)* A mapping declares what its target **cannot** do. An undeclared gap is a defect
     of the mapping, not of the format.
