@@ -1,133 +1,186 @@
 # Glossary
 
-> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
-Candidate vocabulary. The aim is one concept, one word — but these are proposals, not
-settled terms, and several are still contested.
+**The vocabulary the format carries.** Every term below appears in
+[`schema/opennfr.io/v1/requirementset.schema.json`](../schema/opennfr.io/v1/requirementset.schema.json)
+or in the gate that validates against it, and `scripts/verify.sh` rejects a document that
+breaks one. This page says what each word means and what it displaced; the schema decides what
+is legal.
 
-The most durable part of each entry is the *Rejected* note: an alternative that was
-considered and dropped, with the reason. Those survive even when the preferred term
-changes.
+Words for constructs the format does **not** have live in [`ideas/`](ideas/), with the
+argument for each intact. A term arrives here from there, never the other way round —
+[LAYOUT.md](../LAYOUT.md#how-an-idea-becomes-part-of-the-format) has the route.
 
-The reasoning behind each choice is in [ADR-0001](adr/0001-terminology.md).
-
-> Two kinds of entry live here and they are not the same thing. A few name something the
-> schema **already carries** — `RequirementSet`, `displayName`, `selector`, `aggregation` —
-> and those are enforced: `scripts/verify.sh` rejects a document that breaks them. The rest
-> argue for constructs the format does **not** have, and where one sounds prescriptive
-> ("mandatory", "forbidden") it is the shape the rule would take if the design is kept.
-> An entry that has shipped says so in its own first line; the schema decides, not this page.
+The most durable part of each entry is the *Rejected* line: an alternative that was considered
+and dropped, with the reason. Those survive even when the preferred term changes. The reasoning
+behind each choice is in [ADR-0001](adr/0001-terminology.md).
 
 ---
 
-## Layers
-
-The organising idea: three layers, each with its own vocabulary, with words never reused
-across them. This is where the surveyed formats visibly break down, so it seems worth being
-strict about — though the boundaries below are drawn by argument, not by experience.
-
-```
-       source of truth                runtime                      result
-    ┌────────────────────┐      ┌──────────────┐      ┌────────────────────────┐
-    │ Requirement        │──────│  Assertion   │      │ Verdict → Outcome      │
-    │   └─ Criterion     │ render               evaluate                        │
-    │   └─ Guard         │──────│    Target    │──────│ EvaluationReport       │
-    └────────────────────┘      └──────────────┘      └────────────────────────┘
-```
-
-The runtime box faces a [Target](#target) — a load generator (k6, Gatling, JMeter) or a
-monitoring backend (Prometheus, Datadog). Both classes are supported the same way: by adding
-data, never code.
-
----
-
-## Layer 1. Requirements (what a human writes)
+## The document
 
 ### RequirementSet
 
-The root document, `kind: RequirementSet`. Holds a set of requirements, shared `defaults`
-and the `gate` policy.
+The root document, `kind: RequirementSet`. An envelope — `apiVersion`, `kind`, `metadata` —
+over `spec.requirements`, which is a non-empty list and the only thing `spec` holds.
 
 Rejected: `Suite` — carries a testing connotation, whereas requirements outlive tests.
 `Policy` — pulls towards OPA/Rego. `Profile` — will be needed later for environments.
 
 ### Requirement
 
-A single human statement about the system ("checkout responds quickly under target load").
-A container: it declares *what* is measured (`indicator`), *when* that is meaningful
-(`guards`), and *which predicates* must hold (`criteria`).
+One human statement about one set of requests: *"checkout responds quickly and rarely fails"*.
+It carries `selector` — which requests, once — and then everything that must be true of them:
+`criteria`, and optionally `guards`.
 
-A requirement is never evaluated on its own — its criteria are.
+A requirement is never checked on its own. Its predicates are.
 
-Rejected: `Objective` — taken by OpenSLO for a target with an error budget, which we do
-not have. `NFR` — an acronym is unreadable as a field name.
+Rejected: `Objective` — taken by OpenSLO for a target with an error budget, which this format
+does not have. `NFR` — an acronym is unreadable as a field name.
 
 ### Criterion
 
-One machine-checkable predicate over an indicator: aggregation + operator + threshold +
-unit. The smallest unit of validation and the smallest unit of reporting.
+One machine-checkable statement about the selected requests: `aggregation` + `op` +
+`threshold` + `unit`, plus at most one of `metric`, `bad` or `good` saying what those four
+reduce. The smallest unit of validation and the smallest unit of reporting.
 
-A violated criterion means the system does not meet the requirement → `fail`.
+A violated criterion means the system did not meet the requirement.
 
-Rejected: `Assertion` — that is the runtime layer (see below). `Threshold` — that is just
-the number inside a criterion, not the predicate. `Check` — too generic, and reserved for
-the act of checking.
+Rejected: `Assertion` — an assertion is a target's own artifact, generated from a criterion,
+and the moment the word enters the document the format is nailed to one tool's semantics.
+`Threshold` — that is the number inside a criterion, not the statement. `Check` — too generic,
+and wanted for the act of checking.
 
 ### Guard
 
-Syntactically the same as a criterion; semantically a precondition — a statement that the
-run happened in the intended regime at all.
+Structurally identical to a criterion; different in what a violation means. A criterion states
+a property of the **system**; a guard states a condition of the **run** that the criterion
+assumes.
 
-A violated guard means **no conclusion about the system was reached** → `inconclusive`,
-neither `fail` nor `pass`.
+The canonical case: *"p95 under 500 ms"* means nothing if the generator never reached 200 rps.
+A run at 5 rps shows an excellent p95 and measures nothing, and that is the most common way a
+load testing report lies.
 
-The canonical case: "p95 < 500 ms" is only meaningful if the generator actually reached
-200 rps. A run at 5 rps yields a green p95 and a false verdict — a guard catches that.
+The format states the condition and marks which entries are conditions of the run. It defines
+no third report state for a violated guard: constitution 2.0.0 struck one, because no surveyed
+target can produce a third outcome and a construct nothing can honour is a silent green of its
+own. What survives is the statement, the distinction, and the obligation that such a run fail
+where the target reports rather than pass quietly.
 
-Rejected: `precondition` — verbose; `context` / `given` — fail to convey that this is a
-checkable statement rather than metadata; `workload` — [reserved](#workload).
+Rejected: `precondition` — verbose. `context` / `given` — fail to convey that this is a
+checkable statement rather than metadata. `workload` — [reserved](#workload).
+`inconclusive` as its outcome — see [ideas/the-result-document.md](ideas/the-result-document.md).
 
-### Indicator
+---
 
-*(the word survives; the construct does not carry a selector any more)*
+## What a predicate is about
 
-**In the schema, as of this change, there is no `indicator` object.** What it held is split
-between the requirement, which carries the `selector` once, and the criterion, which carries
-what it is about: `metric` to measure a quantity, `bad`/`good` to take a fraction, neither to
-count. The counterpart of an SLI in OpenSLO.
+### selector
 
-The two shapes it used to have — `distribution` and `ratio`, from OpenSLO's
-`thresholdMetric`/`ratioMetric` — are recorded in [ADR-0001 § D8](adr/0001-terminology.md) and
-amended by [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md). Their substance is unchanged: a metric is measured, a fraction is
-counted, and an error rate is still `bad: {error.type: "*"}` with no invented errors metric.
-What changed is where the selection lives, because holding it inside the shape forced a
-requirement about one endpoint's speed **and** reliability to be two requirements with the same
-selector written twice.
+Selects requests by attribute: a map of attribute name to expected value, every entry of which
+must match. Written **once per requirement**, and every criterion and guard beneath it is about
+that selection — [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md).
 
-Rejected: keeping the selection per criterion — it reads fine for one criterion and duplicates
-for every requirement that has more than one thing to say.
+- `{}` — every request, said explicitly. This replaces picatinny's `all` key.
+- `error.type: "*"` — the attribute is present, with any value. Not a glob.
+
+**Addressing a request.** `http.route` is preferred: portable across tools, and the same string
+the service's production metrics carry. Almost no load generator emits it, so
+`loadtest.request.name` — k6's `name` tag, Gatling's request name, JMeter's sampler label — is
+the accepted fallback. It is the worse option and not an equal one: such names are arbitrary
+and live inside a single tool.
+
+A selector matches presence, never absence, which is why `bad` can be written and its mirror
+image cannot.
+
+Rejected: `filter` (Keptn) — too generic. `tags` — k6 terminology. `scope` — already means
+"visibility". Holding the selection per criterion — reads fine for one criterion and duplicates
+for every requirement with more than one thing to say.
 
 ### metric
 
-The metric name. **Strictly from OpenTelemetry semantic conventions**, or from our own
-[`loadtest.*`](semconv/loadtest.md) registry. No custom names, no aliases.
+The name of what to measure of the selected requests. **Borrowed from OpenTelemetry semantic
+conventions** wherever one exists; where none does, the [`loadtest.*`](semconv/loadtest.md)
+proposal is the current thinking and is a note rather than a rule. No custom names, no aliases.
 
 A load generator is an HTTP client, so the canonical latency metric is
-`http.client.request.duration` — not the server-side one and not a tool-specific one
-(`http_req_duration` in k6 and friends). Reducing tool-specific names to canonical ones is
-the adapter's job, not the format's.
+`http.client.request.duration` — not the server-side one and not a tool-specific one such as
+k6's `http_req_duration`. Reducing a tool's names to canonical ones is not the format's job.
+
+The schema does not enumerate metric names and never will: enumerating them would make every
+new metric a change to the format.
+
+Rejected: an `indicator` object holding the metric and its own selection — see
+[ideas/not-in-the-format.md](ideas/not-in-the-format.md).
+
+### bad / good
+
+Makes a predicate a fraction of the selected requests rather than a measurement of something
+they carry. Both are selectors and both **narrow** the requirement's selection: the numerator
+is the selected requests that also match, the denominator is the requirement's own selection,
+so the denominator is never written twice. At most one of the two appears.
+
+An error rate is `bad: {error.type: "*"}` — there is no invented errors metric, which is also
+what OpenTelemetry does. From OpenSLO's `ratioMetric`, by way of
+[ADR-0001 § D8](adr/0001-terminology.md).
+
+Rejected: an `error_rate` metric — a derived quantity is not a metric, and a second vocabulary
+is a second source of truth. `total` as an explicit denominator — it is the requirement's
+selection by construction, and writing it twice invites the two to disagree.
+
+---
+
+## The predicate itself
+
+### aggregation
+
+The statistic that reduces many numbers to one:
+
+```
+avg | min | max | count | rate | sum | stddev
+```
+
+plus any percentile matching `^p\d{1,2}(\.\d+)?$` — `p50`, `p95`, `p99.9`. Still structure and
+not an expression: a JSON Schema pattern validates it and no parser is needed.
+
+`rate` reads from the shape it is applied to. Over requests it is per second —
+`count / window duration`, exactly `rate(..._count[…])` in Prometheus. Over a fraction it is
+the share. k6 carries the identical overload and resolves it the identical way, by the metric's
+type, so the wart is borrowed rather than invented; a second word to avoid it would cost more
+than it saves.
+
+Rejected: `mean` — `avg` is the spelling in all four reference formats. A separate `throughput`
+statistic — it is `rate`, and OpenTelemetry has no throughput metric either, for the same
+reason.
+
+### op
+
+The comparison: `lt | lte | gt | gte | eq | neq`. As in OpenSLO.
+
+Rejected: symbols (`<`, `<=`) — they validate poorly, need string parsing, and half of them
+need escaping somewhere on the way.
+
+### threshold and unit
+
+`threshold` is a number — always, with no decimal strings and no embedded unit. `unit` is
+**mandatory**, and drawn from a closed subset of UCUM given by enumeration. The list and the
+conversions are in [units.md](units.md).
+
+A mandatory unit settles the perennial *"is 0.1 a fraction or a percentage?"*. OpenSLO answers
+it with two fields (`target` / `targetPercent`); this format answers it with one.
+
+A closed list validates as a schema `enum` and is implemented as a conversion table.
+
+Rejected: full UCUM — a grammar parser for seventeen units is the string-DSL mistake in a
+different hat, and there is no serviceable library. `threshold: "500ms"` — that is string
+parsing, forbidden by [ADR-0001 § D4](adr/0001-terminology.md).
 
 ### displayName
 
-**In the schema.** Optional on the document, on a requirement and on a predicate. Free text in
-any script, **at most 200 characters**, with none of the identifier's constraints — `name` is
-restricted to lowercase letters, digits and hyphens because something has to point at it, and a
-person writing a requirement wants a sentence.
-
-The bound is the same argument that rejects `description` below: 200 characters is a phrase and
-not a paragraph. A display name that needs more than that is prose, and prose about a
-requirement belongs in `annotations`, where nothing pretends it is a name.
+Optional on the document, on a requirement and on a predicate. Free text in any script, **1 to
+200 characters**, with none of the identifier's constraints — `name` is restricted because
+something has to point at it, and a person writing a requirement wants a sentence.
 
 Inert by construction: it changes nothing selected, measured or compared, and two documents
 differing only in their display names mean the same thing.
@@ -136,273 +189,58 @@ It does not restate a value the structured fields already carry. `99th percentil
 beside `threshold: 500` is a second source for one number, and the two diverge the first time
 the threshold moves. Write `99th percentile` — the quantity, not the answer.
 
+The 200-character bound is the same argument that rejects `description`: that is a phrase and
+not a paragraph, and prose about a requirement belongs in `annotations`, where nothing pretends
+it is a name.
+
 Rejected: `label` — in JMeter a *label* is the sampler name, so the word already means an
 address here. `title` — collides with the document's own title and with JSON Schema's `title`.
 `description` — invites paragraphs where a phrase is wanted.
 
-### selector
+### name
 
-Selects time series by OTel attributes. A map of attribute → value.
+The machine identifier: lowercase letters, digits and hyphens, at most 253 characters. Used for
+the document, for a requirement, and — when needed — for a predicate.
 
-- `selector: {}` (empty) — all requests. This replaces picatinny's `all` key, explicitly.
-- `error.type: "*"` — the attribute is present with any value.
-
-**Addressing a request.** `http.route` is preferred: it is portable across tools and
-correlates with the production metrics of the same service. Almost no load generator
-emits it, however, so `loadtest.request.name` is an accepted fallback — the human-readable
-request name (k6's `name` tag, Gatling's request name, JMeter's sampler label). It is the
-worse option, not an equal one: such names are arbitrary and live inside a single tool.
-
-Rejected: `filter` (Keptn) — too generic; `tags` — k6 terminology; `scope` — already means
-"visibility".
-
-### aggregation
-
-The statistic that reduces a series to a single number. A string enum:
-
-```
-avg | min | max | count | rate | sum | stddev
-```
-
-plus percentiles matching `^p\d{1,2}(\.\d+)?$` — `p50`, `p95`, `p99.9`.
-
-This is still structure, not an expression: the pattern is validated by JSON Schema and
-needs no parser.
-
-`rate` is **per second and nothing else** — `count / window duration`, exactly
-`rate(..._count[…])` in Prometheus. There is no separate "throughput" metric; OTel has none
-either, because it is always derived.
-
-Over a `ratio` the same word is the fraction instead, and the shape is what tells them apart.
-k6 carries the identical overload and resolves it the identical way — `rate` on a Counter is
-per second, `rate` on a Rate is a proportion — so the wart is borrowed rather than invented,
-and inventing a second word to avoid it would cost more than it saves.
-
-`avg` rather than `mean`: that is the spelling in all four reference formats.
-
-### op
-
-The comparison operator: `lt | lte | gt | gte | eq | neq`. As in OpenSLO.
-
-Symbols (`<`, `<=`) are rejected: they validate poorly and require string parsing.
-
-### threshold and unit
-
-`threshold` is a number (always `float64`; there are no decimal strings). `unit` is
-**mandatory**.
-
-The set of units is closed: a subset of UCUM given by enumeration — `ms`, `s`, `%`, `1`,
-`By`, `{request}/s` and a few more. The full list and conversion rules are in
-[units.md](units.md). A closed list validates as a schema `enum` and is implemented as a
-conversion table rather than a UCUM grammar parser.
-
-A mandatory unit settles the perennial "is 0.1 a fraction or a percentage?". OpenSLO
-answers it with two separate fields (`target` / `targetPercent`); we answer it with one.
-
-### baseline and tolerance
-
-Comparison against a previous run instead of an absolute threshold. Mutually exclusive
-with `threshold`.
-
-```yaml
-- aggregation: p95
-  op: lte
-  baseline: { source: previousPassed }
-  tolerance: { value: 10, unit: "%" }
-```
-
-Reads as "p95 is no more than 10 % worse than the baseline". The direction of the
-tolerance follows from `op` (`lte` — upwards, `gte` — downwards), so strings like
-`"<=+10%"` (Keptn) are unnecessary.
-
-`tolerance.unit` may be `%` (relative) or the metric's own unit (absolute, e.g. `50 ms`).
-
-### window
-
-Where in time the measurement is taken.
-
-```yaml
-window:
-  phase: steady     # rampUp | steady | rampDown | full
-  rolling: 1m       # optional — a rolling window instead of one aggregate per phase
-```
-
-`phase` rests on the `loadtest.phase` attribute and solves the everyday nuisance: not
-counting ramp-up and ramp-down.
-
-Rejected: `timeWindow` (OpenSLO) — redundant; `interval`, `period` — vague.
-
-### severity
-
-How serious a criterion violation is: `blocker | warning | info`. Feeds the outcome
-through `gate`.
-
-Three levels, not four: in practice nobody distinguishes a `critical` sitting between
-`blocker` and `warning`.
-
-### enforcement
-
-Where a criterion is checked:
-
-| Value | Meaning |
-|---|---|
-| `post` | computed by the backend after the run from collected metrics (**default**) |
-| `inline` | rendered into the tool's assertion and checked during the run |
-| `both` | both of the above |
-
-`post` is the default because it is achievable for every tool. `inline` is an adapter
-capability: k6 and Taurus have it, Gatling and JMeter only partly.
-
-### onViolation
-
-For `enforcement: inline` only: `continue` (default) | `abort` — stop the run. Maps to
-k6's `abortOnFail` and Taurus's `stop as failed`.
-
-### gate
-
-The policy that turns many verdicts into a single run outcome.
-
-```yaml
-gate:
-  onBlocker: fail
-  onWarning: warn
-  onInfo: ignore
-  onNoData: fail              # silence is not success
-  onGuardViolation: inconclusive
-```
-
----
-
-## Layer 2. Runtime
-
-### Assertion
-
-The projection of a criterion into a specific tool: a threshold in k6, an assertion in
-Gatling, a post-processor in JMeter.
-
-**The argument for keeping the word `assertion` out of the document itself:** an assertion
-is a generated artifact, not a source of truth. The moment it enters the format, the format
-is nailed to one tool's semantics. This is the single strongest constraint the notes have
-produced so far, and the one most likely to hold.
-
-### Target
-
-The external product an adapter faces. Two classes, supported identically — by adding data,
-never by adding code:
-
-- a **load generator** produces the traffic and reports what happened (k6, Gatling, JMeter);
-- a **monitoring backend** holds telemetry, answers a query, and can host a standing monitor
-  (Prometheus, Datadog).
-
-A target never reads a requirement document. It is reached through a
-[MetricMapping](#metricmapping), and only the load-generator class is ever handed native
-assertions — at [conformance level](#conformance-level) `assert` and above.
-
-A target faces **outward**: it receives a rendered artifact or an assembled query. That is the
-opposite direction from a *data source*, which faces inward and supplies normalised series to
-evaluation, and which [ADR-0002 § D18](adr/0002-compatibility.md) keeps a parameter of
-evaluation rather than a property of a requirement. One product may play both roles in one
-run — Prometheus is the obvious case — in which case it is named by the role it is playing.
-
-`monitoring backend` is defined here rather than in an entry of its own because `backend`
-already carries a different sense in this glossary: in [enforcement](#enforcement) and in
-[EvaluationReport](#evaluationreport) it is the thing that evaluates after the run. The two
-must never be read as one.
-
-Rejected: `consumer` — [AGENTS.md](../AGENTS.md) uses it for everything downstream of the
-format, CI backends and human readers included, which is far wider than this. `tool` —
-excludes the monitoring class, and the entire point of the word is that both classes are
-supported the same way. `backend` on its own — collides, as above.
-
-### Adapter
-
-The component that binds the format to a specific tool. It does four things: renames
-metrics to canonical names, converts units, renames the tool's tags into OTel attributes,
-and — at level `assert` and above — renders criteria into native assertions.
-
-An adapter is **always** required, including for tools with built-in OTLP output: OTLP is
-a transport, not a vocabulary, and no load generator publishes semconv names. See
-[compatibility.md](compatibility.md).
-
-### MetricMapping
-
-`kind: MetricMapping` — the declarative table mapping a tool's names onto canonical ones.
-Data, not code: supporting a new tool means adding a YAML file.
-
-Contains `metrics` (with unit conversion), `attributes`, `errorSignal` and — for the
-`assert`/`abort` levels — an `assertions` section. Examples:
-[k6](examples/mapping-k6.yaml), [JMeter](examples/mapping-jmeter.yaml).
-
-### Conformance level
-
-How deeply a tool is integrated. Cumulative levels:
-
-| Level | What the adapter does | What it unlocks |
-|---|---|---|
-| `report` | maps metrics and attributes to canonical names | `enforcement: post` — **the entire format** |
-| `assert` | also renders native assertions | `enforcement: inline`, `both` |
-| `abort` | also stops the run | `onViolation: abort` |
-
-`report` is not a degraded mode but a complete one: `assert` and `abort` merely shorten
-the feedback loop. Hence the rule: no construct is added to the format if it is
-expressible at `assert` and above only.
-
----
-
-## Layer 3. Result
-
-### Verdict
-
-The result of checking **one** criterion or guard.
-
-`status`: `pass | warn | fail | noData | skipped`
-
-`noData` is mandatory and is not a success: missing data is an outcome in its own right,
-not a silent green.
+Rejected: free-form strings — something downstream has to be able to point at one, in a report
+line, a CI annotation or a URL fragment. Indices (`criterion: 0`) — they break whenever the
+file is edited.
 
 ### criterionId
 
-A stable identifier for a criterion within a requirement, used for references from the
-report. Equals the criterion's `name` if set, otherwise its `aggregation` value (in which
-case two criteria with the same aggregation and no `name` are forbidden).
+The identity of a predicate within one requirement: its `name` if set, otherwise its
+`aggregation`. Two predicates in the same list may not share one.
 
-Indices (`criterion: 0`) are rejected: they break whenever the file is edited.
+JSON Schema cannot express that fallback, so `scripts/verify.sh` checks it. `criteria` and
+`guards` are checked separately — a guard and a criterion may both be `rate`.
 
-### Outcome
+Rejected: requiring `name` on every predicate — a name is noise where `p99` and `max` already
+distinguish two statements.
 
-The aggregated result of the whole run: `pass | warn | fail | inconclusive`.
+### annotations
 
-`inconclusive` is a first-class outcome, not a special case of `fail`. It means "the test
-did not happen", which is a fundamentally different engineering decision from "the system
-does not hold".
+`metadata.annotations`: a map of string to string, and the format's **only** extension point.
+The `opennfr.io/` prefix is reserved.
 
-### EvaluationReport
-
-The format's second normative schema, `kind: EvaluationReport`. Without it the promise
-"parses into any backend" is unmet — a backend needs a standard output, not only an input.
-
-Run identity is described by **existing** OTel attributes — `test.suite.name`,
-`cicd.pipeline.run.id`, `service.name`, `service.version`,
-`deployment.environment.name` — which is what lets a report correlate with the traces of
-that run without glue.
+Rejected: arbitrary extra fields anywhere — an unknown field is a typo far more often than an
+extension, and treating it as an extension is how a misspelled `agregation:` turns a run green.
 
 ---
 
 ## Parsing rules
 
-Proposed constraints on the input, should this get as far as a schema. The reasoning is in
-[ADR-0002 § D16–D17](adr/0002-compatibility.md); the sketch is a subset of YAML rather than
-YAML in general.
+Enforced by the schema and by `scripts/verify.sh`. The reasoning is in
+[ADR-0002 § D16–D17](adr/0002-compatibility.md); what the format accepts is a subset of YAML
+rather than YAML in general.
 
-- **Every object maps one-to-one onto JSON.** Anchors, aliases and merge keys
-  (`&`, `*`, `<<`) are forbidden: they do not survive the trip to JSON, are supported
-  inconsistently across parsers, and destroy line numbers in error messages. Reuse goes
-  through `defaults` and `indicatorRef`.
-- **An unknown field is an error.** A typo such as `agregation:` would, under lenient
-  parsing, silently disable a criterion and turn the run green. That is the same silent
-  lie as treating `noData` as success, and it is forbidden for the same reason.
-- **The only extension point is `metadata.annotations`.** The `opennfr.io/` prefix is
-  reserved for the format itself.
+- **Every object maps one-to-one onto JSON.** Anchors, aliases and merge keys (`&`, `*`, `<<`)
+  are forbidden: they do not survive the trip to JSON, are supported inconsistently across
+  parsers, and destroy line numbers in error messages.
+- **An unknown field is an error**, at every level except inside a `selector`, whose keys are
+  attribute names and cannot be enumerated. A typo such as `agregation:` would otherwise
+  silently disable a criterion and turn the run green — the same silent lie as reporting
+  success on missing data, and forbidden for the same reason.
+- **The only extension point is `metadata.annotations`.**
 - **Multi-document (`---`) is allowed** as a container for several objects in one file.
 
 ---
@@ -413,10 +251,21 @@ YAML in general.
 
 **Reserved; currently unused.**
 
-If an executable load profile description (stages, arrival rate, duration) is added later,
-that is what it must be called. This is why a requirement's applicability conditions are
-named `guards` rather than `workload`/`context` — so the name is not consumed by the wrong
-meaning.
+If an executable load profile — stages, arrival rate, duration — is ever added, that is what it
+must be called. This is why a requirement's applicability conditions are named `guards` rather
+than `workload` or `context`: so the name is not consumed by the wrong meaning.
 
-A throughput requirement ("sustains ≥ 200 rps") is an ordinary `Requirement` with
-`aggregation: rate` and needs no special mechanism. Not to be confused with a load profile.
+A throughput requirement (*"sustains at least 200 rps"*) is an ordinary requirement with
+`aggregation: rate`, and needs no special mechanism. Not to be confused with a load profile.
+
+---
+
+## Owed corrections
+
+Recorded here rather than silently fixed, because both are the business of a pull request that
+already exists.
+
+| | |
+|---|---|
+| **Conformance level** — the retired `report` / `assert` / `abort` ladder | Constitution 2.0.0 retires it and forbids **new** citations. The existing ones, this glossary's included, are corrected by [issue #36](https://github.com/galax-io/opennfr/issues/36) and are deliberately not edited out one at a time |
+| The path from requirement to outcome in [ARCHITECTURE.md](../ARCHITECTURE.md) | Contradicts constitution 2.0.0 in §§ 1–7; [issue #35](https://github.com/galax-io/opennfr/issues/35) |

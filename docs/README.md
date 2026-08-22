@@ -1,99 +1,95 @@
-# Notes
+# Notes, evidence and ideas
 
-> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
-Working notes towards a format for load testing requirements. See the
-[project README](../README.md) for what this repository is and is not.
+Nothing in this directory is a rule. Where a page here disagrees with
+[`schema/opennfr.io/v1/requirementset.schema.json`](../schema/opennfr.io/v1/requirementset.schema.json),
+the schema is right.
 
-> These are notes, not normative text. Nothing here is settled, and field names drift
-> between documents as the thinking changes. Where a document sounds decisive, read it as
-> "this is the current leaning and here is why", not as a rule.
+Three different kinds of thing live here, and they deserve different amounts of trust. The
+column that matters is the last one.
 
-## Where to start
+## Reference — the vocabulary the format carries
 
-**[GLOSSARY.md](GLOSSARY.md)** — candidate terms with the alternatives that were
-considered and dropped. The rest of the notes assume its vocabulary, so it is the cheapest
-way in.
+| | | Trust |
+|---|---|---|
+| [GLOSSARY.md](GLOSSARY.md) | every term the schema carries, each with a rejected alternative | Enforced. `scripts/verify.sh` rejects a document that breaks one |
+| [units.md](units.md) | the closed unit list and how the units convert | The list is the schema's `unit` enum. The conversions are a design, and nothing implements them |
 
-This directory holds **notes and ideas only**. The project itself lives at the repository
-root: [FORMAT.md](../FORMAT.md), [ARCHITECTURE.md](../ARCHITECTURE.md), [LAYOUT.md](../LAYOUT.md).
+## Evidence — checked facts, with dates
 
-**A note here is deleted once it stops being a note.** When an idea is accepted into the
-format, parked, or rejected, its note goes in the same pull request — see
-[LAYOUT.md](../LAYOUT.md). What survives is the ADR, the glossary's *Rejected* line, or the
-schema; never a second copy of a decision.
+These are the most trustworthy pages in the repository, and they stay useful whatever happens
+to the format.
 
-## What is actually verified
+| | | Trust |
+|---|---|---|
+| [references.md](references.md) | the survey: OpenSLO, Keptn quality gates, k6 thresholds, Taurus PassFail, SLA4OAI, gatling-picatinny and adjacent SLO tooling — what each got right and where each hurts | Checked against each project's own documentation |
+| [compatibility.md](compatibility.md) | what load testing tools actually emit, as of August 2026 | Checked against each tool's documentation, and dated. The useful finding is negative: OTLP output is common, semantic convention names are not |
 
-Two documents contain checked facts rather than opinion, and they are the parts worth
-trusting:
+## Ideas — constructs the format does not have
 
 | | |
 |---|---|
-| [references.md](references.md) | the survey of OpenSLO, Keptn, k6, Taurus, picatinny, SLA4OAI and adjacent SLO tooling — what each does and where it hurts |
-| [compatibility.md](compatibility.md) | what load testing tools actually emit as of August 2026, checked against their documentation. The useful finding is negative: OTLP output is common, semconv names are not |
+| [ideas/](ideas/) | the argument for each, and what would have to become true first |
+| [semconv/loadtest.md](semconv/loadtest.md) | what a `loadtest.*` extension to OpenTelemetry might contain. Submitted nowhere; nothing emits these names |
+| [examples/](examples/) | sketches, deliberately outside the gate — they illustrate constructs the format does not have. The validated corpus is [`examples/`](../examples/) at the repository root |
+| [experimental/](experimental/) | the parked monitoring direction, with its own promotion and retirement conditions |
 
-## Thinking, in ADR form
+**A note is deleted once it stops being a note.** When an idea is accepted into the format,
+parked, or rejected, its note goes in the same pull request that accepts, parks or rejects it —
+see [LAYOUT.md](../LAYOUT.md#how-an-idea-becomes-part-of-the-format). What survives is the ADR,
+the glossary entry's *Rejected* line, or the schema; never a second copy of a decision.
 
-The ADR format is used for its structure — context, options, cost — not because anything is
-decided. Both are **status: proposed**.
+## Why any of it is the way it is
+
+The ADR format is used for its structure — context, options, cost. All three are
+**status: proposed**.
 
 ### [ADR-0001](adr/0001-terminology.md) — naming
 
-| № | Leaning |
+| № | Decision |
 |---|---|
 | D1 | Call it OpenNFR; `apiVersion: opennfr.io/v1` |
-| D2 | Three layers: Requirement → Criterion → Assertion / Verdict, with no `assertion` in the document itself |
-| D3 | Take metric names from OTel semconv rather than inventing them |
+| D2 | Three layers: Requirement → Criterion → Assertion, with no `assertion` in the document itself |
+| D3 | Take metric names from OpenTelemetry rather than inventing them |
 | D4 | Structured criteria, no string DSL |
 | D5 | Make `unit` mandatory |
-| D6 | Preconditions (`guards`) yielding a third outcome, `inconclusive` |
+| D6 | Preconditions — `guards` |
 | D7 | Leave the word `workload` unused for now |
-| D8 | An indicator is either a `distribution` or a `ratio` |
-| D9 | Define the result document too, not only the input |
+| D8 | An indicator is either a `distribution` or a `ratio` — *amended by ADR-0003* |
+| D9 | Define the result document too, not only the input — *out of scope since constitution 2.0.0* |
 | D10 | Keep the number of document kinds small |
 
 ### [ADR-0002](adr/0002-compatibility.md) — implementation and tools
 
-| № | Leaning |
+| № | Decision |
 |---|---|
-| D11 | An adapter is a semantic mapper, not a transport — and it seems to be needed always |
-| D12 | Express tool mapping as data rather than code |
-| D13 | Conformance levels instead of a support checkbox |
+| D11 | An adapter is a semantic mapper, not a transport — and it is needed always |
+| D12 | Express tool support as data rather than code |
+| D13 | Conformance levels instead of a support checkbox — *retired by constitution 2.0.0; an ADR is owed* |
 | D14 | Accept a fallback for addressing requests, since `http.route` is rarely emitted |
 | D15 | A closed list of units rather than full UCUM |
 | D16 | A subset of YAML that maps onto JSON |
-| D17 | Strict parsing — an unknown field should be an error |
+| D17 | Strict parsing — an unknown field is an error |
 | D18 | Keep the data source out of the requirement document |
 | D19 | Prefer constructs that decode without custom code |
 
-## Sketches
+### [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md) — where the selection lives
 
-| | |
-|---|---|
-| [semconv/loadtest.md](semconv/loadtest.md) | what could be taken from OTel verbatim and what a `loadtest.*` namespace might add |
-| [units.md](units.md) | which units to allow and how to canonicalise them |
-| [examples/checkout-perf.yaml](examples/checkout-perf.yaml) | what a requirement document might look like |
-| [examples/checkout-perf.report.yaml](examples/checkout-perf.report.yaml) | what a result document might look like |
-| [examples/mapping-k6.yaml](examples/mapping-k6.yaml) | tool mapping, best case — k6 has OTLP output and native thresholds |
-| [examples/mapping-jmeter.yaml](examples/mapping-jmeter.yaml) | tool mapping, worst case — JTL files and no routes |
-
-None of these sketches is validated: they use constructs the format does not have, which is why they live here. The validated corpus is `examples/` at the repository root, checked against the schema on every commit.
+A requirement carries its selection once, and every criterion and guard beneath it is about
+those requests. Amends D8: the `indicator` object is gone, its substance split between the
+requirement and the predicate.
 
 ## Unresolved
 
-Collected in the ADRs, and some of these may yet sink the approach:
+Open problems, some of which may sink the approach:
 
-- Declaring "an error occurred" across tools that all signal it differently
+- **Declaring "an error occurred" across tools** that all signal it differently
   ([ADR-0002](adr/0002-compatibility.md#open-questions)).
-- Histogram resolution, since percentiles come from buckets.
-- Baseline modes, time windows, streaming evaluation — sketched, not thought through
-  ([ADR-0001](adr/0001-terminology.md#open-questions)).
-- Whether load profiles belong in this format at all.
-
-## Next
-
-A JSON Schema for the requirement and result documents. Less because a schema is needed and
-more because writing one is the fastest way to find out which parts of the vocabulary are
-hand-waving.
+- **A selector matches presence, never absence**, so `bad` can be written and `good` cannot.
+- **Histogram resolution.** Percentiles come from buckets, so two targets asserting one
+  criterion need not produce the same number.
+- **Nothing renders.** Until a document becomes some target's own assertions, tool-agnosticism
+  is untested rather than true.
+- **Whether load profiles belong in this format at all** — currently
+  [not a "yet"](ideas/not-in-the-format.md#the-load-profile).

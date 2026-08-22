@@ -1,16 +1,24 @@
 # Compatibility
 
-> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 Two different things live in this document, and they deserve different amounts of trust:
 
 - **The state of the tools** — checked against their documentation in August 2026. Facts.
-  Useful regardless of whether any of the format ideas survive.
-- **Conformance levels and the Go notes** — proposals. See
-  [ADR-0002](adr/0002-compatibility.md).
+  Useful regardless of whether any of the format ideas survive. This is the part to read.
+- **Conformance levels and the Go notes** — proposals, and both have been overtaken. See
+  below and [ADR-0002](adr/0002-compatibility.md).
 
-## Conformance levels (proposed)
+## Conformance levels (retired)
+
+> **Retired by constitution 2.0.0, and left standing here rather than edited out.** The ladder
+> was rungs on a path ending in post-run evaluation, which is out of scope; with evaluation
+> gone the bottom rung guarantees nothing anything can consume. Retiring it properly needs an
+> ADR superseding [ADR-0002 § D13](adr/0002-compatibility.md), which is
+> [issue #36](https://github.com/galax-io/opennfr/issues/36); until that lands, no **new**
+> artifact may cite a level. The reasoning is kept in
+> [ideas/tool-support.md](ideas/tool-support.md#conformance-level). Last true as written:
+> 2026-08-18.
 
 Cumulative. A tool conforms to a level *through an adapter* — no tool publishes canonical
 metric names on its own.
@@ -63,6 +71,14 @@ not a fork of the Go code. Without that, "works with any tool" stays a slogan: t
 list is capped by maintainer bandwidth.
 
 ## Requirements for the Go implementation
+
+> **Overtaken in part.** No implementation exists, in Go or otherwise. The `Indicator` type
+> below was removed from the format by
+> [ADR-0003](adr/0003-selection-belongs-to-the-requirement.md), and `EvaluationReport` is
+> [out of scope](ideas/the-result-document.md). What survives unchanged is the *technique* —
+> pointers for mutually exclusive variants, `KnownFields(true)`, `float64` throughout, a
+> conversion table rather than a UCUM parser — which is why the section is kept rather than
+> deleted. Last true as written: 2026-08-18.
 
 Constructs were selected so that decoding needs no custom code
 ([ADR-0002 § D19](adr/0002-compatibility.md)).

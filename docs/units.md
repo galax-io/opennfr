@@ -1,13 +1,16 @@
 # Units
 
-> **These are notes, not rules.** Ideas about the format, kept for the arguments in them.
-> The format itself is [FORMAT.md](../FORMAT.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
+> The format itself is [README.md](../README.md) and [the schema reference](../schema/README.md); how it works is [ARCHITECTURE.md](../ARCHITECTURE.md).
 
-A sketch of which units to allow and how to convert them. Not implemented, not validated
-anywhere.
+**Half of this page is enforced and half is a design.** The list of allowed units below **is**
+the `unit` enumeration in
+[`schema/opennfr.io/v1/requirementset.schema.json`](../schema/opennfr.io/v1/requirementset.schema.json):
+a document using a unit that is not on it fails `scripts/verify.sh`. The canonicalisation and
+the conversion rules are a design, and nothing implements them, because nothing yet compares a
+threshold to a measurement.
 
-The leaning is that a `unit` field should be mandatory wherever there is a number
-([ADR-0001 § D5](adr/0001-terminology.md)).
+`unit` is mandatory wherever there is a number ([ADR-0001 § D5](adr/0001-terminology.md)), and
+the schema requires it on every predicate.
 
 The set of units is **closed**: a subset of UCUM, not UCUM in full
 ([ADR-0002 § D15](adr/0002-compatibility.md)). A closed list validates as a JSON Schema
@@ -70,9 +73,14 @@ unfamiliar, but it needs no separate dictionary of abbreviations.
 
 1. **The unit is mandatory.** Numbers without a `unit` are invalid, counts included.
 2. **The unit must be compatible with the aggregation.** `p95` over
-   `http.client.request.duration` requires a time unit; `rate` over the same indicator
-   requires `{request}/s`; `rate` over a `ratio` requires `%` or `1`. This is checkable by
-   the schema and the validator.
+   `http.client.request.duration` requires a time unit; `rate` over requests requires
+   `{request}/s`; `rate` over a fraction requires `%` or `1`.
+
+   **Nothing checks this today** — an error share written in `ms` validates, which is
+   [issue #39](https://github.com/galax-io/opennfr/issues/39). Part of it is reachable by the
+   schema, which knows whether a predicate carries `metric`, `bad`/`good`, or neither; the
+   `metric` row is not, because the schema deliberately does not know that
+   `http.client.request.duration` is a time.
 3. **Comparison happens after canonicalisation.** The observed value and the threshold are
    converted to the canonical unit of their group, then `op` is applied.
 4. **The report preserves the original unit.** An `EvaluationReport` shows values in the
