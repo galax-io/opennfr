@@ -130,9 +130,15 @@ Nothing is listed as "deleted" without a destination for what it carried.
 
 ## Totals
 
+Measured 2026-08-23, at the commit the work starts from. **Documentation** means markdown outside
+`.git/`, `.claude/`, `.specify/`, `.github/` and `specs/`, excluding `CLAUDE.md` — one include
+line. An earlier draft of this table said 29 files; that count had swept in the constitution, the
+pull-request template and `CLAUDE.md`, and is corrected here rather than carried.
+
 | | Before | After |
 |---|---|---|
-| Prose describing no field of the format | 66,580 B | one `CONTRIBUTING.md` (~2,000 B) |
-| Markdown files (excluding `specs/`, tooling) | 29 | 5 |
+| Prose describing no field of the format | 66,383 B | one `CONTRIBUTING.md` (~2,000 B) |
+| Documentation markdown files | 20 | 5 |
+| Documentation bytes | 168,591 B | — |
 | Documents describing a field | 2 | 1 |
 | Corpus predicates Gatling cannot run | 8 of 12 | 0 |

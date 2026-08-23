@@ -1,95 +1,48 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 2.0.0 → 2.1.0
+Version change: 2.1.0 → 3.0.0
 
-Bump rationale: MINOR — a binding constraint is ADDED to Principle VIII and nothing existing
-is removed or redefined to permit what it forbade. No principle is renumbered.
+Bump rationale: MAJOR on two counts, each independently sufficient under this document's own
+policy — "a principle or a binding constraint is removed, or redefined in a way that permits
+what it previously forbade".
 
-Travelling with other work, disclosed as the amendment procedure requires: this amendment ships
-in the pull request that moves the reference documentation out of `docs/`. What breaks without
-it is stated rather than implied — Principle I would still require a term to appear in
-`docs/GLOSSARY.md`, a file that no longer exists, and the supreme document would be the only one
-in the repository pointing at nothing.
+  1. Principle VII is REMOVED. It bound every change to name an architectural role and to amend
+     ARCHITECTURE.md first; that document is deleted by the work this amendment travels with.
+     Number VII stays withdrawn and is not reused.
+  2. "MUST NOT change without an ADR" is redefined. The decision records are deleted with
+     reference/, so the requirement becomes an argued issue plus a glossary entry recording what
+     was rejected. Both instruments already existed under Principle I; nothing new is introduced.
 
-What changed:
-  - Principle VIII gains three clauses: `docs/` holds ideas and nothing else, nothing outside it
-    may link in, and both are enforced by `scripts/verify.sh` rather than asserted. `specs/` is
-    exempt as history. The experimental area's stricter rules are unchanged and now sit on top
-    of a general one instead of standing alone.
-  - Paths follow the move. `docs/GLOSSARY.md` → `reference/glossary.md`, `docs/adr/` →
-    `reference/adr/`, `docs/references.md` → `reference/prior-art.md`. `docs/semconv/loadtest.md`
-    and `docs/examples/mapping-k6.yaml` are unchanged: both are ideas, and both stay.
-  - Nothing else. Principles I–VII, the Compatibility Constraints and the Governance section
-    carry no change beyond those paths, and the obligations owed by 2.0.0 — issues #35 and #36 —
-    are untouched and still owed.
+Travelling with other work, disclosed as the amendment procedure requires: this ships in the
+pull request that reduces the repository to a schema, examples and one field description. What
+breaks without it is not hypothetical — Principle VII would bind against a file that no longer
+exists, and the compatibility clause would require a record in a directory that no longer exists.
+That is the third time in three changes a rule has been left pointing at something deleted, which
+is the pattern this amendment stops rather than repeats.
+
+Sections materially changed:
+  - Principle III — trimmed to what exists. Its clauses on rendering, on target descriptions and
+    on declaring where a target passes on absent data described machinery no artifact in this
+    repository contains. The guarantee is unchanged; three obligations survive, and they are the
+    three anything here can actually break.
+  - Principle VII — removed.
+  - Principle VIII — reduced to `docs/`. The experimental area and its two grandfathered
+    artifacts are deleted by the same work, so the clause naming them goes with them.
+  - Compatibility Constraints — the target-description surface is removed, because nothing in
+    the repository describes a target. Two surfaces remain, and they change on an argued issue.
+  - Every path follows the move: the glossary is GLOSSARY.md at the repository root, and the
+    reference/ directory ceases to exist.
+
+Owed by 2.0.0 and now settled by deletion rather than by argument: ARCHITECTURE.md (issue #35)
+and the conformance ladder (issue #36). Both documents are gone; both issues are closed with a
+reason rather than left pointing at nothing.
 
 Templates and docs reviewed:
-  ✅ .specify/templates/plan-template.md   — glossary path corrected; gates unchanged
+  ✅ .specify/templates/plan-template.md   — the VII gate deleted, III and Compatibility rewritten
   ✅ .specify/templates/spec-template.md   — no change needed
   ✅ .specify/templates/tasks-template.md  — no change needed
   ✅ .specify/templates/checklist-template.md — no change needed
-
---------------------------------------------------------------------------------
-Version change: 1.1.0 → 2.0.0
-
-Bump rationale: MAJOR on three counts, each independently sufficient under this document's
-own policy — "a principle or a binding constraint is removed, or redefined in a way that
-permits what it previously forbade".
-
-  1. Principle III no longer mandates the outcome `inconclusive`, which it previously
-     required and which no surveyed target can produce.
-  2. The first binding constraint is INVERTED. It forbade a construct expressible only by
-     asserting; the replacement requires that at least one target be able to assert it.
-  3. Principle VI permitted nothing it now permits: consuming a target's own statistic to
-     decide a run was forbidden and is the design.
-
-Principles renamed:
-  VI. "Evaluation Is Target-Blind" → "The Requirement Is Target-Blind"
-      The number is kept. Numbers are cited from templates, specifications and
-      ARCHITECTURE.md, and a reused or renumbered principle silently redirects every
-      citation without touching a citing file. The versioning policy now says so.
-
-Principles removed: none. I, II, IV, V, VII, VIII are untouched.
-
-Sections materially changed:
-  - Principle III — rewritten. The guarantee is unchanged; where it is enforced moved. It
-    now names the two places silence can actually enter under an assertion-first format: a
-    predicate dropped at render time, and a target passing an assertion that matched
-    nothing. Both were observed in a surveyed target's own source and tests, not inferred.
-  - Principle VI — rewritten. 1.1.0 placed the obligation on a component that was never
-    built and cited a proposal as its authority. The obligation is not deleted; it is made
-    dormant and binds the specification that revives that component.
-  - Compatibility Constraints — the surface list's third item changes from "the conformance
-    levels and what each one guarantees" to what a target's description may declare. The
-    ladder is RETIRED rather than edited, and until the ADR retiring it lands, no artifact
-    may cite a conformance level.
-  - Governance → versioning policy — a limb correction, PATCH in isolation, carried here so
-    2.0.0 can be stamped honestly. Adds the highest-limb rule and the principle-number rule.
-
-Grandfather clause from 1.1.0 (VIII, docs/semconv/loadtest.md and the errorSignal sketch)
-is untouched and still binds work admitted after 2026-08-18.
-
-Templates and docs reviewed:
-  ✅ .specify/templates/plan-template.md   — pointer corrected to (v2.0.0); the III, VI and
-                                             Compatibility gates rewritten to ask what the
-                                             amended principles actually require
-  ✅ .specify/templates/spec-template.md   — no change needed; no new mandatory section
-  ✅ .specify/templates/tasks-template.md  — no change needed
-  ✅ .specify/templates/checklist-template.md — no change needed
-
-Owed by this amendment, in their own pull requests, and tracked so the obligation does not
-live only in this comment block:
-  - ARCHITECTURE.md §§ 1–7 — issue #35. Its clause 3 is the fourth copy of the inverted
-    constraint and now carries a superseded marker; the marker is a stopgap, not the fix.
-    Its § 2 role table is where a rendering would get a definition to point at.
-  - An ADR superseding ADR-0002 § D13 — issue #36. The Compatibility Constraints text forbids
-    only NEW citations; the four documents that carry existing ones — ARCHITECTURE.md,
-    reference/glossary.md, LAYOUT.md, reference/adr/0002-compatibility.md — are corrected by that ADR,
-    and specs/ is history and stays as written.
-
-Deferred: whether the compatibility-surface list should also cover names the format defines
-under `loadtest.*` — carried forward unresolved from 1.1.0.
 -->
 
 # OpenNFR Constitution
@@ -101,7 +54,7 @@ under `loadtest.*` — carried forward unresolved from 1.1.0.
 The vocabulary is the product. This repository ships terms, not code, and a term is
 harder to withdraw than a feature.
 
-- A new term MUST appear in `reference/glossary.md` before it appears in an example, a
+- A new term MUST appear in `GLOSSARY.md` before it appears in an example, a
   schema, or an implementation.
 - Every glossary entry MUST record at least one rejected alternative and the reason it
   was rejected. The rejection outlives the term it protects.
@@ -130,59 +83,25 @@ traces of the same run without glue.
 
 ### III. No Silent Green (NON-NEGOTIABLE)
 
-Nothing may report success by omission. Every state that is not a verified pass MUST be
-representable and distinguishable — and where nothing on the path can represent one, the
-format MUST NOT pretend otherwise.
+Nothing may report success by omission.
 
 - An unknown field in an input document MUST be a parse error, not an ignored key.
-- Every predicate in a document — a criterion, or a statement of the conditions a
-  requirement assumes — MUST be accounted for when the document is rendered for a target:
-  either rendered into that target's own assertions, or reported by name, with a reason, as
-  one that target cannot express. The two lists MUST cover the document exactly, and the
-  report MUST arrive before the run starts. A predicate that produced neither is a check
-  that never ran and a run that looks clean.
-- A predicate a target can express only approximately MUST be reported as one that target
-  cannot express. An approximation is a silent green with a plausible number in it.
-- A run that did not meet the conditions a requirement assumes MUST be statable in the
-  document, and MUST render into the target's own assertions, so that such a run fails
-  where the target reports rather than passing quietly. The format MUST NOT define a third
-  report state for it. No surveyed target can produce one, and a construct nothing can
-  honour is a silent green of its own.
-- Why such a failure happened MUST be recoverable after the run. Where a target derives
-  every line it prints from the assertion itself and accepts no name of the author's
-  choosing, that attribution is carried by the rendering — which records, per entry, the
-  identity the target will derive its own report line from, and which entries state a
-  condition of the run rather than a property of the system. It is never carried by a field
-  the target does not have.
-- Where a target's own evaluation can pass on absent data — an assertion whose scope
-  expands to nothing, a selection that received no samples — that MUST be declared in that
-  target's description, dated and sourced. An undeclared one is a defect of the
-  description, not of the format.
-- Any check that can fail to find data MUST define what that means before it ships, and any
-  check that cannot run MUST fail rather than skip. A suite that skips reads exactly like a
-  suite that passes.
+- Any check that cannot run MUST fail rather than skip, and any check that scanned nothing MUST
+  say so. A suite that skips reads exactly like a suite that passes.
 - Any artifact nothing validates MUST say so in its own text.
 
-**Rationale**: this is the failure mode the entire format exists to address. A load test
-that under-delivered its load shows green thresholds and a false verdict, and no surveyed
-format catches it. A project built to fix that must not reproduce it.
+**Rationale**: this is the failure mode the entire format exists to address. A load test that
+under-delivered its load shows green thresholds and a false verdict, and no surveyed format
+catches it. A project built to fix that must not reproduce it.
 
-What changed in 2.0.0 is where the guarantee is enforced, not the guarantee. While post-run
-evaluation was the path, this principle could name outcomes — `inconclusive` for a run that
-did not happen as intended, an outcome of its own for missing data — because this project
-would have produced them. Nothing in scope produces an outcome now; the target does, and no
-surveyed target has a third one. An obligation written in a vocabulary nobody emits is not a
-guarantee but an unenforceable sentence, and while it stood it read as the guarantee — which
-left the two places silence can now actually enter unguarded: a predicate dropped at render
-time, and a target passing an assertion that matched nothing. Those are what the bullets
-above name, and they are named because both have been observed in a surveyed target's own
-source and its own tests, not inferred.
-
-The distinction the removed outcome protected — "the test did not happen" against "the
-system does not hold" — is not abandoned. It survives as a statement the document can make,
-an assertion the target actually runs, and an entry in the rendering that says which line of
-the target's report it will become. That is one place fewer than before, and every part of
-it is something a surveyed target can do.
+3.0.0 cut this principle to three obligations, and the cut is the principle applied to itself.
+The clauses removed governed rendering a document into a target's assertions, what a target's
+description must declare, and where a target can pass on absent data — none of which any artifact
+in this repository does or contains. An obligation on machinery nobody has built cannot be
+broken, and a rule that cannot be broken reads, to anyone opening the file, as though the
+guarantee were being enforced somewhere. What survives is the part this repository can actually
+violate: a gate that skips, a check that scanned nothing, an artifact claiming a validation that
+does not happen. All three have happened here.
 
 ### IV. Honest Status
 
@@ -207,7 +126,7 @@ contributions and, worse, invites someone to build against names that will chang
 
 **Rationale**: a grammar inside a specification has to be reimplemented, identically, in
 every backend that reads it — and it never is. This is precisely where the string-DSL
-formats surveyed in `reference/prior-art.md` fail.
+string-DSL formats this project surveyed fail.
 
 ### VI. The Requirement Is Target-Blind
 
@@ -249,113 +168,73 @@ necessarily produce the same number, and no rule here can make them. The most th
 honestly promise is that the *statement* is one statement, and that every place the targets
 disagree is written down where a reader will find it.
 
-### VII. Architecture Before Implementation
+### VII. *(withdrawn in 3.0.0)*
 
-- Every change that adds or alters a component MUST name the architectural role it fills, and
-  MUST stay inside it.
-- A specification that needs a role the architecture does not have MUST amend the architecture
-  first, in an earlier pull request. Diverging from it silently is FORBIDDEN.
-- Implementation MUST NOT arrive ahead of the specification that names its role.
-- Amending the architecture MUST NOT require a decision record. It is not a
-  compatibility-sensitive surface, and the sanctioned route has to stay cheaper than the
-  workaround, or people take the workaround.
+**Architecture Before Implementation** bound every change to name the architectural role it
+filled and to amend `ARCHITECTURE.md` before diverging from it. That document is deleted: it
+described four component roles of which none was built, and a path from requirement to outcome
+that 2.0.0 had already put out of scope. Its own § 1 carried a superseded marker instructing
+readers not to apply it.
 
-**Rationale**: `AGENTS.md` § Commits & PRs already orders the artifacts — "**Spec-first.**
-`specs/NNN-*/` artifacts → `docs(speckit): add NNN-<feature> spec/plan/tasks` commit BEFORE any
-`feat`/`fix`. Never folded into implementation." — and Principle I orders the vocabulary the
-same way. This generalises both from a commit rule into a design rule. Deciding the
-architecture and the implementation in one pass is how a design notebook becomes a codebase
-nobody can argue with: the architecture stops being reviewable the moment it arrives attached
-to working code.
+The number stays withdrawn and is not reused. Numbers are cited from the templates and from
+specifications, and a reused number silently redirects every citation without touching a citing
+file.
 
-### VIII. Experiments Are Parked, Not Merged
+### VIII. Ideas Are Parked, Not Merged
 
-Unsettled work is contained. A notice on something load-bearing is not containment — but a
-notice on something already contained is exactly what Principle III requires, so the two rules
-meet here rather than compete.
+Unsettled work is contained, and the containment is checkable rather than declared.
 
-- Work whose correctness is not yet established MUST live in the experimental area and MUST
-  NOT enter a compatibility-sensitive surface.
-- Every artifact in that area MUST state, in its own text, that it is experimental, what would
-  promote it, what would retire it, and the date the statement was last true.
-- The experimental area MUST be removable in one operation without changing anything outside
-  it, and nothing outside it may link into it.
-- **`docs/` holds ideas and nothing else.** Every artifact in it is a construct the format does
-  not have, to be built, reworked or dropped. Documentation of what the format *is* MUST NOT
-  live there, and **nothing outside `docs/` may link into it** — an outside reference names a
-  path in prose, inside a code span, never as markdown link syntax. Links out of `docs/` into
-  the format are permitted and expected.
-- That rule is not a convention. `scripts/verify.sh` MUST fail on any markdown link crossing
-  the boundary in the wrong direction, and `git rm -r docs && bash scripts/verify.sh` MUST stay
-  green. `specs/` is exempt: it is read as history, not as documentation.
-- The experimental area keeps its own stricter rules on top: markdown only, and a status,
-  promotion conditions, retirement conditions and a date in every file.
-- This principle binds work admitted **after 2026-08-18**. Two artifacts predate it and are
-  grandfathered: `docs/semconv/loadtest.md`, an unsubmitted upstream proposal that core
-  constructs already depend on, and the `errorSignal` sketch in
-  `docs/examples/mapping-k6.yaml`. Both carry the notice Principle III requires. Neither may
-  be cited as precedent for admitting new unsettled work.
+- `docs/` holds **ideas and nothing else**: constructs the format does not have, each to be
+  built, reworked or dropped. Documentation of what the format *is* MUST NOT live there.
+- **Nothing outside `docs/` may link into it.** An outside reference names a path in prose,
+  inside a code span, never as markdown link syntax. Links out of `docs/` into the format are
+  permitted and expected — an argument about a construct has to name what it would change.
+- Every idea MUST state what would have to become true before it could enter the format.
+- `scripts/verify.sh` MUST fail on any markdown link crossing the boundary the wrong way, and
+  `git rm -r docs && bash scripts/verify.sh` MUST stay green. `specs/` is exempt: it is read as
+  history, not as documentation.
 
-**Rationale**: the failure this prevents is "it mostly works, call it v1" — a four-query-language
-experiment with four different percentile implementations treated as settled because it is
-nearly right.
+**Rationale**: the failure this prevents is "it mostly works, call it v1". A notice on something
+load-bearing is not containment, which is why the boundary is a gate and not a convention.
 
-The extension to all of `docs/` in 2.1.0 answers a failure the repository had already produced
-rather than a hypothetical one. The vocabulary the schema carries and the vocabulary the format
-had retired sat in one directory, in one voice, under one banner, and a reader could not tell
-which was which without the git history — the same "two sources for one decision" the format
-exists to prevent, turned inward. Containment without a checkable boundary is a label, and this
-principle already says a label is not containment. The boundary is therefore a gate, and the
-property it buys is one you can run: an idea nobody can cheaply abandon is an idea that gets
-kept for the wrong reasons. The grandfather clause is written down rather than hidden because two committed
-artifacts already practise labelling without containment, and a principle that made them
-retroactively non-compliant on the day it shipped would be a rule the repository breaks on
-arrival.
+The property bought is one you can run: every idea can be dropped in a single operation without
+breaking a real document. An idea nobody can cheaply abandon is an idea that gets kept for the
+wrong reasons.
+
+3.0.0 dropped the separate experimental area and the two artifacts grandfathered in 1.1.0. Both
+are deleted by the work this amendment travels with, and `docs/` is now what that area was.
 
 ## Compatibility Constraints
 
-Compatibility-sensitive surfaces, which MUST NOT change without an ADR:
+Compatibility-sensitive surfaces, which MUST NOT change without an issue that argued the change,
+and a `GLOSSARY.md` entry recording the alternative that was rejected:
 
 - any OpenTelemetry name the format borrows;
-- any field name that appears in a published example;
-- what a target's description may declare — the shape of the statements it makes about how a
-  target names things, what it can and cannot assert, how its units convert, and where it can
-  report success on absent data.
+- any field name that appears in a published example.
+
+3.0.0 replaced "MUST NOT change without an ADR" with the sentence above. The decision records are
+deleted with `reference/`, and a requirement to record a decision in a directory that does not
+exist is not a requirement. Both instruments that replace it already existed under Principle I:
+a naming disagreement is argued in an issue before files change, and every glossary entry carries
+a rejected alternative. The third surface, what a target's description may declare, is removed —
+nothing in this repository describes a target.
 
 Binding constraints:
 
 - A construct MUST NOT enter the format unless at least one surveyed target can assert it
-  exactly. A construct is never admitted on the promise that something will be able to check
-  it later. This is a floor and not a licence: one target being able to assert a construct is
+  exactly. A construct is never admitted on the promise that something will be able to check it
+  later. This is a floor and not a licence: one target being able to assert a construct is
   necessary for admission and is not by itself sufficient, and a construct MUST NOT enter the
   format solely to reach one target's feature.
-- Requirement documents MUST remain portable. Neither the target that will assert a
-  requirement nor the source of any measurement is part of the requirement — see
-  Principle VI.
-- Support for any target MUST be expressible as data — a description of that target — and not
-  as code in a reference implementation. A target list that only maintainers can extend is not
-  tool-agnostic. Only a target that can host assertions has a path in this format today; the
-  monitoring-backend class named in 1.1.0 keeps no path in scope and is parked under
-  Principle VIII.
-
-**On the conformance levels.** `report`, `assert` and `abort` were cumulative rungs on a path
-that ended in post-run evaluation, and the bottom rung — mapping metrics and attributes to
-canonical names — guaranteed the whole format precisely because evaluation would do the rest.
-With evaluation out of scope the bottom rung guarantees nothing anything can consume, so the
-ladder is retired rather than edited. A tool that cannot host assertions is a tool this format
-does not serve, and the difference between the tools that remain is not one ordinal: each has
-capabilities the other lacks in both directions. What a target can assert, what it cannot, how
-it names things, how its units convert and where it can pass on absent data are declared per
-capability in that target's description, each claim dated and sourced. Aborting a run survives
-as one such declared capability rather than as a rung.
-
-Retiring the ladder changes a compatibility-sensitive surface and therefore requires an ADR of
-its own, which supersedes ADR-0002 § D13 with a dated note rather than rewriting it. From this
-amendment, **no new artifact may cite a conformance level**. Existing citations are not
-retroactively invalid and are not to be edited out one by one: `ARCHITECTURE.md`,
-`reference/glossary.md`, `LAYOUT.md` and `reference/adr/0002-compatibility.md` are corrected by the
-pull requests this amendment already owes, and the `specs/` directory is a record of what was
-decided when — it is read as history and left alone.
+- **The published corpus MAY be narrower than the format, and the format MUST NOT be narrowed to
+  match it.** Examples are restricted to what a real target can run, because an example nothing
+  can execute teaches a shape nobody can use. The schema keeps what no target reaches, and the
+  field description says which parts those are.
+- Requirement documents MUST remain portable. Neither the target that will assert a requirement
+  nor the source of any measurement is part of the requirement — see Principle VI.
+- Support for any target MUST be expressible as data — a description of that target — and not as
+  code in a reference implementation. A target list that only maintainers can extend is not
+  tool-agnostic.
 
 ## Development Workflow
 
@@ -366,7 +245,7 @@ adds only the constraints that outrank convenience:
   the gate MUST justify it in the PR, not in the script.
 - Every change MUST travel through an issue, a branch, and a PR carrying a milestone and
   a closing link, as enforced by `scripts/check-linkage.sh`.
-- A PR that changes a term MUST update `reference/glossary.md` in the same PR. Vocabulary
+- A PR that changes a term MUST update `GLOSSARY.md` in the same PR. Vocabulary
   drift between a change and its documentation is not acceptable, however brief.
 - A PR that contradicts an ADR MUST amend that ADR instead.
 
@@ -403,17 +282,17 @@ Where one amendment carries material at more than one limb, the highest limb gov
 document takes one version number.
 
 A principle keeps its **number** when its heading changes, and a withdrawn number stays
-withdrawn. Numbers are cited from the templates, from specifications and from
-`ARCHITECTURE.md`; a reused number silently redirects every citation without touching a single
+withdrawn — VII is withdrawn as of 3.0.0. Numbers are cited from the templates and from
+specifications; a reused number silently redirects every citation without touching a single
 citing file.
 
 **Compliance review**: `/speckit-plan` MUST evaluate its Constitution Check against the
-eight principles above before Phase 0 research and again after Phase 1 design. PR review
+seven principles above before Phase 0 research and again after Phase 1 design. PR review
 MUST verify compliance; a violation is either fixed or the constitution is amended, but
 never silently accepted. Complexity that appears to require a violation MUST be
 justified in writing in the plan's Complexity Tracking section.
 
-**Runtime guidance**: `AGENTS.md` for process, `reference/glossary.md` for vocabulary,
-`reference/adr/` for why any of it is the way it is.
+**Runtime guidance**: `AGENTS.md` for process, `GLOSSARY.md` for vocabulary, `README.md` for
+the format itself.
 
-**Version**: 2.1.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-22
+**Version**: 3.0.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-23

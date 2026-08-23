@@ -41,45 +41,36 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 Answer each gate explicitly. A "no" is either fixed or justified in Complexity Tracking
-below — never left blank. See `.specify/memory/constitution.md` (v2.0.0).
+below — never left blank. See `.specify/memory/constitution.md` (v3.0.0).
 
-- [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term?
-      If so, is `reference/glossary.md` updated in the same change, with a rejected
-      alternative and its reason? Does any ADR now contradict it?
-- [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken
-      from OpenTelemetry semconv where an equivalent exists? Is anything new confined to
-      `loadtest.*`? Are there aliases or derived quantities masquerading as metrics?
-- [ ] **III. No Silent Green** — for every predicate a document can carry: is it either
-      rendered into the target's assertions or reported by name as one that target cannot
-      express, with the two lists covering the document exactly and arriving before the run?
-      Is any approximation substituted for a construct a target cannot express? Where a
-      target can pass on absent data, is that declared in its description, dated and sourced?
-      Does any check this adds skip rather than fail when it cannot run?
-- [ ] **IV. Honest Status** — do the artifacts state what is verified and what is
-      speculation? Is every claim about an external tool dated and sourced?
-- [ ] **V. Structure Over Grammar** — is every new field validatable by schema without a
-      bespoke parser? Are value sets closed? Does anything need custom decoding, and is
-      that justified in an ADR?
-- [ ] **VI. The Requirement Is Target-Blind** — does any requirement document name a
-      target, in a field, a value, a metric name or an example? Does adding a target change
-      the format, the schema, or an existing document? Where two targets derive the same
-      criterion differently — the percentile, the vantage point, the unit, the precision — is
-      each difference recorded in that target's description, dated and sourced, rather than
-      closed by the format?
-- [ ] **VII. Architecture Before Implementation** — does every component this adds or alters
-      name the architectural role it fills? If it needs a role the architecture lacks, does
-      an earlier PR amend the architecture rather than diverging from it?
-- [ ] **VIII. Experiments Are Parked, Not Merged** — is any unsettled work entering a
-      compatibility-sensitive surface? Does every experimental artifact state its status,
-      promotion and retirement conditions, and the date? Is the experimental area still
-      removable in one operation, with nothing outside linking into it?
-- [ ] **Compatibility** — does this touch a borrowed OTel name, a published example's
-      field name, or what a target description may declare? For every construct added: can
-      **at least one surveyed target assert it exactly**, and is it being added for a reason
-      beyond reaching that one target's feature? Does anything **this feature adds** cite a
-      conformance level? (The ladder is retired; several documents still carry old citations
-      and are corrected by the amendments the constitution names as owed — those are not this
-      feature's to answer for.)
+- [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term? If so, is
+      `GLOSSARY.md` updated in the same change, with a rejected alternative and its reason? Was
+      the naming argued in an issue before files changed?
+- [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken from
+      OpenTelemetry semconv where an equivalent exists? Is anything new confined to `loadtest.*`,
+      and does the field description say so where the corpus depends on it? Are there aliases, or
+      derived quantities masquerading as metrics?
+- [ ] **III. No Silent Green** — does any check this adds skip rather than fail when it cannot
+      run? Does any check report success having scanned nothing? Does any artifact this adds
+      claim a validation that does not happen? If a check's input is being deleted, is the check
+      deleted with it rather than left to pass on an empty scan?
+- [ ] **IV. Honest Status** — do the artifacts state what is verified and what is speculation? Is
+      every claim about an external tool dated and sourced?
+- [ ] **V. Structure Over Grammar** — is every new field validatable by schema without a bespoke
+      parser? Are value sets closed?
+- [ ] **VI. The Requirement Is Target-Blind** — does any requirement document name a target, in a
+      field, a value, a metric name or an example? Does adding a target change the format, the
+      schema, or an existing document?
+- [ ] **VII** — *withdrawn in 3.0.0. No gate.*
+- [ ] **VIII. Ideas Are Parked, Not Merged** — does anything outside `docs/` link into it? Does
+      every idea state what would have to become true before it could enter the format? Does
+      `git rm -r docs && bash scripts/verify.sh` still pass?
+- [ ] **Compatibility** — does this touch a borrowed OTel name or a field name in a published
+      example? If so, was it argued in an issue, and does `GLOSSARY.md` record what was rejected?
+      For every construct added: can **at least one surveyed target assert it exactly**, and is it
+      being added for a reason beyond reaching that one target's feature? If the published corpus
+      narrows, does the format stay as wide, and does the field description say which parts no
+      target reaches?
 
 ## Project Structure
 

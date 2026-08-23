@@ -28,11 +28,11 @@ No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), do
 <!-- A LIGHT search index, not a full tree. List only the entry points an agent needs
      to FIND code fast — one terse line per area (`dir/ -> what lives there`). Omit
      anything discoverable by looking; an exhaustive tree is noise and rots fast. -->
-`README.md` -> the entry point, every field explained; `schema/` -> the schema and its reference; `examples/` -> the validated corpus; `reference/` -> what is true today (glossary, units, names, tool survey, prior art) with `reference/adr/` for the decision records; `docs/` -> IDEAS ONLY, constructs the format does not have — nothing outside it may link in; `specs/` -> spec-kit working dir, read as history.
+`README.md` -> the entry point, every field explained; `schema/` -> the schema and its reference; `examples/` -> the validated corpus; `reference/` -> what is true today (glossary, units, names, tool survey, prior art) with `reference/adr/` for the decision records; `docs/` -> ideas, constructs the format does not have; `specs/` -> spec-kit working dir, read as history.
 
 ## Architecture
 
-The vocabulary is the source of truth: `reference/glossary.md` defines the terms the schema carries, the ADRs justify them, and everything else must follow. `docs/` is isolated by rule and by gate: it holds ideas, real documentation never links into it, and `git rm -r docs && bash scripts/verify.sh` stays green. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in an example.
+The vocabulary is the source of truth: `reference/glossary.md` defines the terms the schema carries, the ADRs justify them, and everything else must follow. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in an example.
 
 ## Test Model
 
