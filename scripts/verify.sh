@@ -538,31 +538,66 @@ fi
 
 # ---------------------------------------------------------------------------
 section "Internal markdown links resolve"
-missing=0
-found=0
-while IFS= read -r line; do
-  found=$((found + 1))
-  src="${line%%:*}"
-  target="${line#*:}"
-  base="$(dirname "$src")"
-  path="${target%%#*}"
-  [ -z "$path" ] && continue                      # pure anchor, same file
-  case "$path" in *'<'*|*'>'*|*'{'*) continue ;; esac   # placeholder, e.g. specs/001-<feature>/
-  if [ ! -e "$base/$path" ]; then
-    bad "$src -> $target"
-    missing=1
-  fi
-done < <(
-  grep -rn --include='*.md' -oE '\]\([^)]+\)' . \
-    | grep -v '^\./\.' \
-    | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/' \
-    | grep -vE ':(https?|mailto):'
-)
+# A raw grep for `](...)` cannot tell a markdown link from a regular expression that happens to
+# close a bracket group with a parenthesis inside a code span — issue #43. What a link is now
+# lives in scripts/mdlinks.py, shared with the isolation section below so the two cannot drift
+# into disagreeing about the same text.
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the link-resolution gate cannot run"
+else
+  python3 - <<'LINKS' || fail=1
+import os, sys
+sys.path.insert(0, "scripts")
+import mdlinks
+
+# The extractor is held to its own fixtures before anything trusts it. #43 was a scanner that
+# had been wrong about what a link is for as long as it had existed, and nothing noticed.
+wrong = mdlinks.selftest()
+for m in wrong:
+    print(f"  FAIL  the link extractor is wrong: {m}")
+if wrong:
+    sys.exit(1)
+
+def md_files():
+    # Same population the previous grep pipeline scanned: every *.md file, except those under a
+    # top-level dot-directory (.git/, .github/, .specify/, .claude/) or a dot-prefixed root file.
+    for root, dirs, files in os.walk("."):
+        if root == ".":
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for f in sorted(files):
+            if f.endswith(".md") and not (root == "." and f.startswith(".")):
+                yield os.path.join(root, f)
+
+root = os.getcwd()
+missing = 0
+found = 0
+for src in sorted(md_files()):
+    try:
+        text = open(src, encoding="utf-8").read()
+    except (OSError, UnicodeDecodeError) as e:
+        # One unreadable file used to abort the section on a traceback: no ok, no FAIL, and
+        # every file after it unscanned. It fails as a file now, and the scan continues.
+        print(f"  FAIL  {src}: cannot be read as UTF-8 ({e})")
+        missing = 1
+        continue
+    base = os.path.dirname(src)
+    for target in mdlinks.targets(text):
+        found += 1
+        resolved = mdlinks.resolve(root, base, target)
+        if resolved is None:
+            continue                                   # anchor or placeholder, addresses no file
+        if not os.path.exists(resolved):
+            print(f"  FAIL  {src} -> {target}")
+            missing = 1
+
 # Zero links means the extraction above stopped working, not that the docs are clean.
-if [ "$found" -eq 0 ]; then
-  bad "no markdown links found — the link extraction is broken"
-elif [ "$missing" -eq 0 ]; then
-  ok "no dangling internal links ($found checked)"
+if found == 0:
+    print("  FAIL  no markdown links found — the link extraction is broken")
+    sys.exit(1)
+elif missing == 0:
+    print(f"  ok    no dangling internal links ({found} checked)")
+sys.exit(1 if missing else 0)
+LINKS
 fi
 
 # ---------------------------------------------------------------------------
@@ -617,7 +652,12 @@ if os.path.exists(ideas):
         rc = 1
 
 # --- nothing outside docs/ links into it --------------------------------------------
-LINK = re.compile(r"\]\(([^)]+)\)")
+# The same definition of a link the resolution section uses. Held apart, the two disagreed:
+# a code span naming a path under docs/ was text to one gate and a violation to the other,
+# which made the isolation rule impossible to document in the documents it governs.
+sys.path.insert(0, "scripts")
+import mdlinks
+
 root = os.getcwd()
 scanned = 0
 sources = [f for f in files
@@ -627,15 +667,18 @@ if not sources:
     sys.exit(1)
 for f in sources:
     base = os.path.dirname(f)
-    for target in LINK.findall(open(f, encoding="utf-8").read()):
-        if target.startswith(("http://", "https://", "mailto:", "#")):
-            continue
-        path = target.split("#")[0]
-        if not path or any(c in path for c in "<>{"):
+    try:
+        text = open(f, encoding="utf-8").read()
+    except (OSError, UnicodeDecodeError) as e:
+        print(f"  FAIL  {f}: cannot be read as UTF-8 ({e})")
+        rc = 1
+        continue
+    for target in mdlinks.targets(text):
+        # Pure path arithmetic: no chdir, so nothing can silently fail to resolve.
+        resolved = mdlinks.resolve(root, base, target)
+        if resolved is None:
             continue
         scanned += 1
-        # Pure path arithmetic: no chdir, so nothing can silently fail to resolve.
-        resolved = os.path.normpath(os.path.join(root, base, path))
         if resolved == os.path.join(root, "docs") or resolved.startswith(os.path.join(root, "docs") + os.sep):
             print(f"  FAIL  {f} links into docs/ -> {target}")
             rc = 1

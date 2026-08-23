@@ -196,7 +196,7 @@ keys are attribute names and cannot be enumerated in advance.
 
 | Field | | Constraint |
 |---|---|---|
-| `name` | **required** | `^[a-z0-9]` then letters, digits and hyphens, no trailing hyphen; max 253 characters |
+| `name` | **required** | matches `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`; max 253 characters |
 | `displayName` | optional | 1–200 characters, any script |
 | `annotations` | optional | map of string to string |
 
