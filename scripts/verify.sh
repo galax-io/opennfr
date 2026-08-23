@@ -212,27 +212,147 @@ except Exception as e:
 rc, checked = 0, 0
 
 def sub(node):
-    """One definition, validatable on its own: its siblings minus the examples."""
+    """One shape, validatable on its own: its siblings minus the examples.
+
+    `$id` is carried over. Without it a `$ref` written absolutely against the schema's own
+    `$id` stops resolving inside this file: offline that is a URLError, and if opennfr.io
+    ever serves that URL the gate would check the working tree against the PUBLISHED schema
+    instead of the change under review — a gate that quietly stops reading the diff.
+    """
     out = {k: v for k, v in node.items() if k != "examples"}
     out["$defs"] = schema["$defs"]
+    if "$id" in schema:
+        out["$id"] = schema["$id"]
     return out
 
-# The schema reference points a reader at the schema's examples, so a definition that carries none
-# is a promise broken in the one place nobody looks. Counted per definition: a total
-# hides the empty one behind the full ones.
-WANT = ["selector", "predicate", "requirement"]
-for name in WANT:
-    if not schema["$defs"].get(name, {}).get("examples"):
-        print(f"  FAIL  {path}: $defs/{name} carries no examples")
+def at(pointer):
+    """The subschema a local JSON pointer addresses, or None if it addresses nothing.
+
+    None rather than a raised KeyError: a `$ref` to a definition that is not there is a
+    thing to REPORT. `V.check_schema` does not resolve refs, so a dangling one reaches this
+    far, and letting it raise buried every diagnostic under a stack trace.
+    """
+    node = schema
+    for part in pointer.strip("/").split("/"):
+        key = part.replace("~1", "/").replace("~0", "~")
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node
+
+def refs(node, found):
+    """Every local pointer a `$ref` anywhere in the schema addresses."""
+    if isinstance(node, dict):
+        target = node.get("$ref")
+        if isinstance(target, str) and "#" in target and target.split("#", 1)[1].startswith("/"):
+            found.add(target.split("#", 1)[1])
+        for v in node.values():
+            refs(v, found)
+    elif isinstance(node, list):
+        for v in node:
+            refs(v, found)
+    return found
+
+# Every shape the schema defines must show what it looks like: the schema reference points a
+# reader at these, so one that carries no example is a promise broken where nobody looks.
+#
+# The set is derived, never listed — a list is a second statement of "everything the schema
+# defines" and drifts the moment one is added. But it is derived from where the shapes are
+# USED, not from the name of the container they sit in. Keyed on `$defs`, the requirement
+# travelled with the definition: renaming one, deleting it, or moving all nine to
+# `#/definitions/` left the loop iterating nothing and reporting ok — nine definitions, no
+# examples, green. Following `$ref` targets instead means a shape cannot escape by moving,
+# and it also reaches the objects defined inline, which `$defs` never did.
+def inline_shapes(node, pointer, out):
+    """Every subschema that declares an object shape, wherever it sits.
+
+    Not just the top level: an object written inline three levels down is as much a shape an
+    author has to fill in as one behind a `$ref`, and it used to escape the requirement
+    entirely. `examples` subtrees are instance data, never schemas, so they are not entered.
+    """
+    # Only where a shape is NAMED and filled in: under `properties`, a definition, or `items`.
+    # `allOf`/`if`/`then` and friends hold rules about a shape, not a shape — asking a
+    # conditional fragment for an example is asking prose of an assertion.
+    WHERE = ("properties", "$defs", "definitions", "items")
+    if isinstance(node, dict):
+        if pointer and "properties" in node:
+            out.append((pointer, node))
+        for k in WHERE:
+            v = node.get(k)
+            if isinstance(v, dict):
+                children = v.items() if k != "items" else [(None, v)]
+                for name, child in children:
+                    inline_shapes(child, f"{pointer}/{k}" + (f"/{name}" if name else ""), out)
+    return out
+
+slots, seen = [("(root)", schema)], {""}
+for pointer, node in ([(p, at(p)) for p in sorted(refs(schema, set()))]
+                      + inline_shapes(schema, "", [])):
+    if pointer not in seen:
+        seen.add(pointer)
+        slots.append((pointer, node))
+
+# A floor, for the reason the probe dict below carries one: a set that can empty satisfies
+# itself, and pruning most of it is the realistic accident, not deleting all of it.
+SHAPES = 11
+if len(slots) < SHAPES:
+    print(f"  FAIL  {path}: {len(slots)} shapes to document, expected at least {SHAPES} — "
+          f"a shape that is gone cannot be missing its examples")
+    sys.exit(1)
+
+for where, node in slots:
+    if node is None:
+        print(f"  FAIL  {path}: a `$ref` addresses {where}, which the schema does not define")
         rc = 1
-for where, node in sorted(schema["$defs"].items()):
-    for i, ex in enumerate(node.get("examples", [])):
+    elif not (isinstance(node, dict) and node.get("examples")):
+        print(f"  FAIL  {path}: {where} carries no examples")
+        rc = 1
+if rc:
+    # Stop before validating: an absent shape means an unresolvable `$ref` below, and a
+    # traceback would bury the diagnostics just printed under a stack.
+    sys.exit(1)
+
+PROBES = ["x", 1, True, None, [], {}, {"a": 1}]
+for where, node in slots:
+    validator = V(sub(node))
+    # A shape that accepts everything asserts nothing, so its examples prove nothing either —
+    # the presence check would pass on garbage and raise `checked` while doing it.
+    if all(not list(validator.iter_errors(p)) for p in PROBES):
+        print(f"  FAIL  {path}: {where} asserts nothing — its examples cannot be wrong")
+        rc = 1
+        continue
+    for i, ex in enumerate(node["examples"]):
         checked += 1
-        for e in V(sub(node)).iter_errors(ex):
-            print(f"  FAIL  {path}: {where} example {i}: {e.message}")
+        try:
+            errors = sorted(validator.iter_errors(ex), key=lambda e: list(e.path))
+        except Exception as e:                        # an unresolvable $ref, say
+            print(f"  FAIL  {path}: {where} example {i} cannot be validated: {e}")
             rc = 1
-if checked == 0:
-    print(f"  FAIL  {path} carries no examples — the check scanned nothing")
+            continue
+        for e in errors:
+            at_path = "/".join(map(str, e.path)) or "(whole)"
+            print(f"  FAIL  {path}: {where} example {i} at {at_path}: {e.message}")
+            rc = 1
+
+# The root's examples are whole documents, so they answer to what the corpus answers to.
+# The schema cannot express criterionId uniqueness — that is why examples/ is checked for it
+# by hand above — and the one document an editor offers first was the one nothing checked.
+for i, ex in enumerate(schema.get("examples", [])):
+    for r in (ex.get("spec", {}) or {}).get("requirements", []) or []:
+        for part in ("criteria", "guards"):
+            seen_ids = set()
+            for p in r.get(part, []) or []:
+                cid = p.get("name") or p.get("aggregation")
+                if cid in seen_ids:
+                    print(f"  FAIL  {path}: root example {i}: {r.get('name')}/{part}: "
+                          f"duplicate criterionId {cid!r}")
+                    rc = 1
+                seen_ids.add(cid)
+
+EXAMPLES = 20
+if checked < EXAMPLES:
+    print(f"  FAIL  {path}: {checked} examples, expected at least {EXAMPLES} — "
+          f"the check is reading less than it was written to read")
     sys.exit(1)
 
 # The closures. Each MUST be rejected; one that validates means a guard came loose.
@@ -263,8 +383,8 @@ d = doc(); d["metadata"]["nope"] = "x";                       probes["unknown fi
 d = doc(); d["spec"]["requirements"][0]["nope"] = "x";        probes["unknown field on a requirement"] = d
 d = doc(); d["spec"]["requirements"][0]["criteria"][0]["nope"] = "x"; probes["unknown field on a criterion"] = d
 d = doc(); d["spec"]["displayName"] = "x";                    probes["displayName on spec"] = d
-# `indicator`/`distribution` ("a series") no longer exist in the schema — dead since the
-# assertion-first design they belonged to was reverted. This probe now tests the same class of
+# `indicator`/`distribution` ("a series") no longer exist in the schema. They survived the
+# assertion-first revert and were removed by 7f33bdf (#33/#34). This probe now tests the same class of
 # closure (an object with additionalProperties: false, rejecting a displayName it never declared)
 # on the one place still uncovered: the document root itself.
 d = doc(); d["displayName"] = "x";                            probes["displayName at the document root"] = d
