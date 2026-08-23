@@ -1,4 +1,4 @@
-# Contract: what the gate checks after these five fixes
+# Contract: what the gate checks after these five fixes and one enhancement
 
 **Feature**: `005-fix-milestone-bugs`
 
@@ -11,7 +11,7 @@ rest are named here to record that this feature leaves them alone.
 | 1 | YAML parses | No | Unchanged |
 | 2 | Documents map one-to-one onto JSON | No | Unchanged |
 | 3 | Examples validate against the schema | Indirectly (schema edits from R2/R3) | Unchanged in shape; still validates every file in `examples/` against the schema, which after R2/R3 rejects the same documents it does today (data-model.md, "What every fix must leave unchanged") |
-| 4 | The schema holds up its own examples, and still rejects | **Yes — R1 (#37)** | The probes' shared base document is asserted valid *before* mutation, so a probe can only be rejected by the mutation it targets. The probe set grew from 7 to 54 — one per constraint the schema makes — after a sweep found 39 of 41 single-constraint loosenings left the section green. A floor fails the section if probes are removed |
+| 4 | The schema holds up its own examples, and still rejects | **Yes — R1 (#37), R6 (#31)** | The probes' shared base document is asserted valid *before* mutation, so a probe can only be rejected by the mutation it targets. The probe set grew from 7 to 54 — one per constraint the schema makes — after a sweep found 39 of 41 single-constraint loosenings left the section green. A floor fails the section if probes are removed |
 | 5 | Examples are assertable by Gatling | No | Unchanged |
 | 6 | Internal markdown links resolve | **Yes — R4 (#43)** | Extraction moves to `scripts/mdlinks.py`, checked against its own fixtures on every run. Text shaped like a markdown link inside a code span or fence no longer fails the section; a `/`-rooted target resolves against the repository rather than the filesystem root; an unreadable file FAILs as a file instead of aborting the section |
 | 7 | `docs/` is isolated | **Yes — R4 (#43)** | Uses the same `scripts/mdlinks.py` definition, so the two scanners can no longer disagree about whether a given piece of text is a link. Its count moved 26 → 25, the miscounted code span going away. The three clauses it checks are unchanged |

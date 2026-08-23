@@ -49,8 +49,8 @@ shape already in `scripts/verify.sh` is sound, it is only unchecked at its found
 **Implementation note, found while applying the fix, not anticipated here**: dropping the leftover
 `indicator` key from `doc()` breaks the "displayName on a series" probe, whose mutation reached
 into `indicator.distribution` — a construct that does not exist anywhere in the current schema
-(dead since the assertion-first design it belonged to was reverted, the same root cause as issue
-#38's dead conditional). That probe was repointed to test the same class of closure — an
+(removed by `7f33bdf`, having survived the assertion-first revert — the same leftover-construct
+class as issue #38's dead conditional). That probe was repointed to test the same class of closure — an
 `additionalProperties: false` object rejecting a `displayName` it never declared — at the document
 root, the one place still uncovered. The probe count stays at seven; confirmed live that all seven
 still reject correctly against the fixed base document.
@@ -191,3 +191,35 @@ and per the issue's explicit instruction ("re-answer, do not hand-edit"). If Cop
 in the environment that implements this fix, `spec.md`'s Assumptions section records the fallback:
 a manually-authored update verified line-by-line against current `AGENTS.md`, treated as a
 degraded substitute and named as such, not silently presented as the same thing.
+
+## R6 — Issue #31: the schema documents three of its nine definitions
+
+**Decision**: add `examples` to the root and to the six definitions carrying none, and make the
+gate derive the requirement from the schema rather than restate it.
+
+**Evidence**, read from the file rather than from the issue:
+
+| | `examples` |
+|---|---|
+| root | none |
+| `predicate` / `requirement` / `selector` | 4 / 1 / 3 |
+| `name`, `unit`, `op`, `aggregation`, `annotations`, `displayName` | none |
+
+**The issue's premise was stale, and that was missed the first time.** #31 was filed 2026-08-21
+saying the schema "has no `examples` anywhere". `7f33bdf` (#33/#34) added them on 2026-08-22, the
+next day, and nobody updated the issue. Two definitions it asks for — `series` and `indicator` —
+were removed by `7f33bdf` (#33/#34) — the same commit that added the examples, not by the
+assertion-first revert, which both survived. Three of the five defects in this spec had drifted
+the same way and were checked; #31 was set aside as an enhancement without being checked, which is
+the same mistake in a place it was not being looked for. The issue was rewritten against the
+current file on 2026-08-24 before any work.
+
+**Rationale for deriving the list**: `WANT = ["selector", "predicate", "requirement"]` is a
+hand-kept restatement of "which definitions must document themselves". A definition added tomorrow
+inherits nothing from it and carries no examples in silence — the same shape as the vacuous probes
+of #37, one file over. Deriving the set from `schema["$defs"]` makes the requirement apply to
+whatever the schema actually contains.
+
+**Alternatives considered**: leaving the root without an example, since no definition covers the
+whole document. Rejected — the root is the first completion an editor offers and the shape a first
+document most needs, and it is precisely what the section did not read.

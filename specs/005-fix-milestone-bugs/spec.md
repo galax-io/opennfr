@@ -8,13 +8,14 @@
 
 **Input**: User description (translated from Russian; this repository's `bash scripts/verify.sh` requires English-only documentation, `specs/` included): "Fix all the bugs in milestone https://github.com/galax-io/opennfr/milestone/2" — the milestone this pointed to has since been renumbered; see Scope note and Clarifications.
 
-**Scope note**: The six issues this spec covers (#31, #37, #38, #42, #43, #46) were originally filed against milestone v0.2.0 (`github.com/galax-io/opennfr/milestone/2`). That milestone has since **shipped** (`v0.2.0` released 2026-08-23, tag and GitHub Release both live) with all its other work closed, and these six — the only ones still open at release time — were moved to the new **milestone v0.3.0** (`github.com/galax-io/opennfr/milestone/3`), which is now the active milestone for this spec's PRs per `AGENTS.md`. Five describe defects — something that is broken, misleading, or silently wrong today: #37, #42, #38, #43, #46. The sixth, #31 ("The schema carries no examples, so an editor can offer none"), asks to *add* a capability the schema never had; it is an enhancement, not a bug, and is out of scope for this spec. See Assumptions.
+**Scope note**: The six issues this spec covers (#31, #37, #38, #42, #43, #46) were originally filed against milestone v0.2.0 (`github.com/galax-io/opennfr/milestone/2`). That milestone has since **shipped** (`v0.2.0` released 2026-08-23, tag and GitHub Release both live) with all its other work closed, and these six — the only ones still open at release time — were moved to the new **milestone v0.3.0** (`github.com/galax-io/opennfr/milestone/3`), which is now the active milestone for this spec's PRs per `AGENTS.md`. Five describe defects — something that is broken, misleading, or silently wrong today: #37, #42, #38, #43, #46. The sixth, #31, asks to *add* a capability the schema does not fully have. It is an enhancement rather than a bug and was first held out of this spec on that ground; it was picked up on 2026-08-24 once its premise turned out to be stale too. It is User Story 6, and the only `feat` here. See Clarifications and Assumptions.
 
 ## Clarifications
 
 ### Session 2026-08-23
 
 - Q: Should issue #31 ("the schema carries no examples") stay out of this bug-fix spec, or be included? → A: Keep it out — #31 is an enhancement (add examples), not a bug; this spec stays scoped to the 5 defects (#37, #42, #38, #43, #46).
+- Q (2026-08-24, reversing the above): should #31 be picked up after all? → A: yes, together with a correction to the issue itself. The classification stands — #31 is an enhancement, not a bug — but the issue's premise had gone stale in exactly the way three of the five defects had, and that was missed when it was set aside. It claims the schema carries no examples anywhere; #33/#34 (`7f33bdf`, 22 August) added them to `selector`, `predicate` and `requirement` the day after it was filed, and two definitions it asks for (`series`, `indicator`) no longer exist. The issue was rewritten against the current file, and the remaining work is User Story 6 below. It ships as its own commit, and is the one story in this spec that is a `feat` rather than a `fix`.
 - Correction (user-reported, not a formal clarification question): milestone v0.2.0 released and its remaining open issues — the same six this spec already covers — were renumbered to milestone v0.3.0 (`github.com/galax-io/opennfr/milestone/3`), confirmed via `gh api repos/galax-io/opennfr/milestones` (v0.2.0: 0 open issues, released; v0.3.0: 6 open issues, matching this spec exactly). No issue, priority, requirement or fix in this spec changes — only the milestone every resulting PR must be assigned to (`AGENTS.md`, "Milestones (ALWAYS)").
 
 ## User Scenarios & Testing *(mandatory)*
@@ -100,6 +101,37 @@ The schema's `name` field is validated by a regular expression whose bracket-gro
 
 ---
 
+### User Story 6 - The schema documents itself (#31, Priority: P6)
+
+Someone opens an editor with schema support and starts a requirement document. The editor can
+suggest a shape for a selector, a predicate and a requirement, because those three definitions
+carry `examples`. For everything else — the document itself, a name, a unit, an operator, an
+aggregation, an annotation, a display name — it has nothing to offer, and the author goes to the
+prose instead. The root is the sharpest gap: it is the first completion an editor would give, and
+the one shape a person writing their first document actually needs.
+
+**Why this priority**: last, and the only story here that is not a defect. Nothing is broken, no
+check is silent, no document is wrong; the format is simply harder to write than it needs to be.
+It ships as `feat` after all five fixes so the bug-fix commits stay separable from it.
+
+**Independent Test**: read the schema's own `examples` for each definition and confirm every one
+validates against the definition it illustrates, and that the root example validates as a whole
+document.
+
+**Acceptance Scenarios**:
+
+1. **Given** the schema, **When** its definitions are enumerated, **Then** every one carries at
+   least one `examples` entry, and so does the root.
+2. **Given** each embedded example, **When** it is validated against the definition it illustrates,
+   **Then** it is accepted — an example the schema rejects teaches a shape that does not exist.
+3. **Given** a definition added later with no `examples`, **When** `bash scripts/verify.sh` runs,
+   **Then** it FAILS — the requirement is derived from the schema, not from a hand-kept list that a
+   new definition silently escapes.
+4. **Given** the root example, **When** it is validated against the whole schema, **Then** it is
+   accepted, and the gate is what checked it: the root was previously not read at all.
+
+---
+
 ### Edge Cases
 
 - What happens when a document has more than one predicate defect at once (e.g. a bad unit on one criterion and a missing metric on another)? Each real defect must still be reported on its own, without either being obscured by an "unevaluated properties" message naming valid fields.
@@ -126,6 +158,8 @@ The schema's `name` field is validated by a regular expression whose bracket-gro
 - **FR-010**: `.copier-answers.yml`'s `architecture`, `structure`, `stack_detail`, `dep_manifest`, `role` and `test_model` answers (issue #46's table), plus `project_tagline` (its closing prose) and `commands` (found drifted by FR-011's test), MUST reflect the current content of `AGENTS.md` rather than the pre-correction state they describe.
 - **FR-011**: Rendering the template at the recorded `_commit` from the corrected record MUST produce an `AGENTS.md` byte-identical to the one on disk. This is the requirement; *how* the values reached the file is not. The "never hand-edit" header exists to stop a record that disagrees with what the template would produce, and only re-rendering can show whether it does — a value typed into a prompt is no safer than one typed into the file if nobody renders it.
 - **FR-012**: After all fixes, `bash scripts/verify.sh` MUST exit successfully (green) and every document currently in `examples/` MUST continue to validate.
+- **FR-013**: The schema MUST carry `examples` at its root and on every definition, and every embedded example MUST validate against the definition it illustrates.
+- **FR-014**: The gate MUST derive the set of definitions required to carry `examples` from the schema itself rather than from a hand-maintained list, and MUST validate the root example. A definition added later without examples MUST fail the gate.
 
 ### Key Entities
 
@@ -144,10 +178,11 @@ The schema's `name` field is validated by a regular expression whose bracket-gro
 - **SC-004**: `README.md` states the `name` pattern as the exact regular expression from the schema — not today's prose paraphrase — with zero inserted characters and zero sentences explaining internal tooling, and the gate still passes.
 - **SC-005**: `.copier-answers.yml`'s drifted answers are brought to zero, proved mechanically: re-rendering the template at the recorded `_commit` produces an `AGENTS.md` byte-identical to the one on disk.
 - **SC-006**: The unreachable conditional and the `guards.items`/`criteria.items` construction asymmetry are both removed from the schema with no change in which documents validate.
+- **SC-007**: Every definition in the schema, and the root, carries at least one example — from three of nine and no root — and each is validated by the gate rather than by inspection.
 
 ## Assumptions
 
-- **Bug vs. enhancement boundary (confirmed)**: issue #31 ("The schema carries no examples, so an editor can offer none") requests adding a capability the schema has never had; it describes an absence, not a malfunction. Confirmed out of scope during clarification — see Clarifications, Session 2026-08-23. It would need its own spec if ever pursued.
+- **Bug vs. enhancement boundary**: issue #31 requests a capability the schema does not fully have — an absence, not a malfunction. That classification did not change; the decision to act on it did (Clarifications, 2026-08-24). It ships as `feat`, in its own commit, after the five fixes, so the bug-fix commits stay separable from it.
 - **Milestone (confirmed)**: this spec's six issues now live in milestone v0.3.0, not v0.2.0 — v0.2.0 shipped and these were the only issues still open at release time, moved forward rather than blocking the release. See Clarifications, Session 2026-08-23.
 - **One fix, one change unit**: Consistent with this project's "1 issue = 1 commit" / "1 concern per PR" convention, the five user stories above are expected to ship as five independent changes, each verifiable on its own via `bash scripts/verify.sh` — not as a single combined change.
 - **No behavior change beyond the defect**: Every fix (FR-003 through FR-006, FR-007 through FR-009) is a correction to diagnostics, dead logic, or documentation; none is expected to change which documents the schema accepts, except where a fix's entire purpose is to correct an incorrect accept/reject outcome (none of the five do — all five are diagnostics, dead-code, or drift corrections, not acceptance-behavior changes).

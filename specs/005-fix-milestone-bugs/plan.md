@@ -6,15 +6,17 @@
 
 ## Summary
 
-Five independent defects, confirmed against the current repository rather than assumed from their
+Five independent defects plus one enhancement (#31, added later), confirmed against the current
+repository rather than assumed from their
 source issues (three of the five had drifted since filing — see research.md): a gate self-check
 that passes for the wrong reason (#37); a JSON Schema composition that turns one predicate mistake
 into two error messages, one of them wrong (#42); an unreachable conditional in `$defs/requirement`
 plus a matching no-op (#38); a link checker that reads a regex in a code span as a broken markdown
 link (#43); and a Copier scaffolding record that has drifted from the `AGENTS.md` it regenerates
 (#46). None adds a construct, renames a field, or changes which documents in `examples/` validate
-— confirmed by dry-run for the two fixes that touch the schema. Issue #31 (add schema examples) is
-confirmed out of scope (spec.md, Clarifications).
+— confirmed by dry-run for the two fixes that touch the schema. Issue #31 (add schema examples) was
+held out of scope as an enhancement and then picked up on 2026-08-24, once its premise proved
+stale too; it is User Story 6, the one `feat` here (spec.md, Clarifications).
 
 The approach is one fix per issue, one commit per fix, per `AGENTS.md`'s "1 issue = 1 commit" — not
 one combined change. Two of the five (#42, #38) touch the same schema keys and must be sequenced

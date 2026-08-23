@@ -384,7 +384,51 @@ would violate `AGENTS.md`'s "1 concern per PR". Each wants its own issue in v0.3
 
 ---
 
-## Phase 9: Polish & Cross-Cutting Concerns
+## Phase 9: User Story 6 — The schema documents itself (#31, Priority: P6)
+
+The one `feat` here, added after the five fixes when #31 turned out to have a stale premise of
+its own — it claims the schema carries no examples anywhere, and three definitions have carried
+them since `7f33bdf`. Its own commit, so the bug fixes stay separable.
+
+- [X] T053 [US6] Add `examples` to the schema root — one complete, minimal valid document, the
+      shape an editor offers first and the one the gate previously never read (FR-013). The
+      example is `examples/one-request-is-fast.yaml` **minus its optional `displayName`** — the
+      smallest thing the schema accepts, which that file is not quite, since it carries one
+- [X] T054 [US6] Add `examples` to `name`, `unit`, `op`, `aggregation`, `annotations` and
+      `displayName`, the six definitions carrying none (FR-013). Embedded examples go 8 → 23
+- [X] T055 [US6] Derive the "must carry examples" set from `schema["$defs"]` instead of the
+      hand-kept `WANT` list, and validate the root example, which the section did not read
+      (FR-014)
+- [X] T056 [P] [US6] Probe rather than trust: strip `examples` from one definition and from the
+      root in turn, confirm the gate FAILS naming each, then restore. **Confirmed live across 13
+      mutations** — the root, all nine definitions, an example the schema rejects, a root example
+      that is not a valid document, and a newly added definition carrying no examples, which is
+      the drift the derived list exists to catch. All 13 caught
+- [X] T057 [P] [US6] Confirm every embedded example validates against the definition it
+      illustrates, and that the root example validates as a whole document (SC-007). **Confirmed
+      live: 23 embedded examples valid**
+- [X] T058 [US6] Run `bash scripts/verify.sh` in full and confirm `PASS`. **Confirmed live: PASS**
+
+- [X] T059 [US6] Apply a second review of US6. It found the derived set was keyed on `$defs`, so a
+      shape could escape the requirement by moving: inlining every `$ref`, or relocating all nine
+      definitions to `#/definitions/`, left the check iterating nothing and reporting `ok`. The set
+      is now derived from where shapes are **used** — every `$ref` target, every object defined
+      inline at any depth, and the root — with floors on both the shape count and the example
+      count. Also: `sub()` keeps `$id` (an absolute `$ref` was resolving to the published schema
+      instead of the file under review), a dangling `$ref` reports instead of tracebacking, a shape
+      that asserts nothing fails rather than accepting any example, and the root example is held to
+      the criterionId uniqueness rule the corpus answers to. Probed: 10 mutations, all caught
+- [X] T060 [US6] Fix what the examples themselves taught. `$defs/unit` offered `%` and
+      `{request}/s`, neither valid as an unquoted YAML scalar, for a feature whose purpose is YAML
+      completion. `name` and `displayName` are `$ref`'d from three sites each and the annotation is
+      collected at every one, so `metadata.name` was offering a predicate identifier; the shared
+      examples are now site-neutral and the specific ones sit on the `$ref` siblings
+
+**Checkpoint**: the schema answers "what does this look like?" for every definition it has.
+
+---
+
+## Phase 10: Polish & Cross-Cutting Concerns
 
 - [X] T028 [P] Run the full [quickstart.md](quickstart.md) validation sequence (§ 1–6) end to end
       and confirm every expected output matches, now that all five stories have landed.
@@ -404,7 +448,8 @@ would violate `AGENTS.md`'s "1 concern per PR". Each wants its own issue in v0.3
 - **User Stories (Phase 3–7)**: all can start once Setup (T001) is done, except US3, which waits
   on US2
 - **Review response (Phase 8)**: after the five stories have landed and been reviewed
-- **Polish (Phase 9)**: after the review response
+- **User Story 6 (Phase 9)**: after the review response; independent of every other story
+- **Polish (Phase 10)**: after User Story 6
 
 ### User Story Dependencies
 
