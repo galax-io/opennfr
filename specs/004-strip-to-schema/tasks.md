@@ -128,13 +128,13 @@ Deliverable on its own.
 
 ## Phase 6: Polish and verification
 
-- [ ] T038 Walk the disposition table in [data-model.md](data-model.md) row by row and confirm every row's destination exists in the tree (SC-007). This is the one criterion no command can check, which is why the table has no blanks
-- [ ] T039 [P] Run [quickstart.md](quickstart.md) § 3 both ways: `git rm -r docs && bash scripts/verify.sh` stays PASS, and adding a markdown link from `README.md` into `docs/` makes it FAIL. Restore after each
-- [ ] T040 [P] Run [quickstart.md](quickstart.md) § 4 and confirm `aggregation` is described in `README.md` and nowhere else (SC-003)
-- [ ] T041 [P] Run [quickstart.md](quickstart.md) § 6 and confirm five markdown files and a `CONTRIBUTING.md` of roughly two kilobytes. Compare against `baseline.md` from T002 and record the deltas (SC-005, SC-008)
-- [ ] T042 Confirm `git diff main -- schema/opennfr.io/v1/requirementset.schema.json` shows **only** the two `description` strings from T021. Any other hunk means the format changed, which this feature forbids (FR-014)
+- [X] T038 Walk the disposition table in [data-model.md](data-model.md) row by row and confirm every row's destination exists in the tree (SC-007). This is the one criterion no command can check, which is why the table has no blanks
+- [X] T039 [P] Run [quickstart.md](quickstart.md) § 3 both ways: `git rm -r docs && bash scripts/verify.sh` stays PASS, and adding a markdown link from `README.md` into `docs/` makes it FAIL. Restore after each
+- [X] T040 [P] Run [quickstart.md](quickstart.md) § 4 and confirm `aggregation` is described in `README.md` and nowhere else (SC-003)
+- [X] T041 [P] Run [quickstart.md](quickstart.md) § 6 and confirm five markdown files and a `CONTRIBUTING.md` of roughly two kilobytes. Compare against `baseline.md` from T002 and record the deltas (SC-005, SC-008)
+- [X] T042 Confirm `git diff main -- schema/opennfr.io/v1/requirementset.schema.json` shows **only** the two `description` strings from T021. Any other hunk means the format changed, which this feature forbids (FR-014)
 - [ ] T043 The reader test from [quickstart.md](quickstart.md) § 7 (SC-001): ask someone who has not seen the repository to write a requirement for one request answering within 400 ms and prove it valid. Passes if they open three files. If they open a fourth, or ask which of two documents to believe, record which and why — that is the next task, not a footnote
-- [ ] T044 Delete `specs/004-strip-to-schema/baseline.md` once T041 has recorded its deltas into this file. It is scaffolding for the measurement, not an artifact of the feature
+- [X] T044 Delete `specs/004-strip-to-schema/baseline.md` once T041 has recorded its deltas into this file. It is scaffolding for the measurement, not an artifact of the feature
 
 ---
 

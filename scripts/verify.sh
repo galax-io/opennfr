@@ -52,7 +52,7 @@ fi
 
 # ---------------------------------------------------------------------------
 section "Documents map one-to-one onto JSON"
-# ADR-0002 D16: every object must map onto JSON, and anchors, aliases and merge
+# Every object must map onto JSON, and anchors, aliases and merge
 # keys are forbidden outright. Both checks have to happen before safe_load_all
 # resolves them away: by the time it returns, an alias is an ordinary dict.
 if ! command -v python3 >/dev/null 2>&1; then
@@ -70,11 +70,11 @@ def scan_events(f):
     global rc
     for ev in yaml.parse(open(f, encoding="utf-8")):
         if isinstance(ev, yaml.AliasEvent):
-            print(f"  FAIL  {f}: alias *{ev.anchor} — ADR-0002 D16 forbids aliases"); rc = 1
+            print(f"  FAIL  {f}: alias *{ev.anchor} — the format forbids aliases"); rc = 1
         elif getattr(ev, "anchor", None):
-            print(f"  FAIL  {f}: anchor &{ev.anchor} — ADR-0002 D16 forbids anchors"); rc = 1
+            print(f"  FAIL  {f}: anchor &{ev.anchor} — the format forbids anchors"); rc = 1
         elif isinstance(ev, yaml.ScalarEvent) and ev.value == "<<":
-            print(f"  FAIL  {f}: merge key << — ADR-0002 D16 forbids merge keys"); rc = 1
+            print(f"  FAIL  {f}: merge key << — the format forbids merge keys"); rc = 1
 def walk(v, path, f):
     global rc
     if v is None or isinstance(v, (bool, str, int)):
@@ -393,7 +393,7 @@ fi
 
 # ---------------------------------------------------------------------------
 section "Docs are English"
-# ADR-0001 settled on English for everything published. Cyrillic left in a file
+# Everything published is in English. Cyrillic left in a file
 # means a translation was missed, which is silent until someone outside reads it.
 #
 # This was `grep -rlP` until it turned out that `-P` is a GNU extension. BSD grep on

@@ -118,14 +118,14 @@ Nothing is listed as "deleted" without a destination for what it carried.
 
 | Issue | After |
 |---|---|
-| #35 `ARCHITECTURE.md` contradicts the constitution | **Closed** — the document is gone; the contradiction with it |
-| #36 the conformance ladder has no ADR | **Closed with a reason** — every document that cited a level is deleted or rewritten, and 3.0.0 removes the ADR requirement that made the retirement owe one |
+| #35 `ARCHITECTURE.md` contradicts the constitution | Disposition commented; **closes on merge**. Its own linkage rule closes an issue when the fix is on `main`, and these commits are on a branch |
+| #36 the conformance ladder has no ADR | Commented; closes on merge. Every document that cited a level is deleted or rewritten, and 3.0.0 removes the ADR requirement that made the retirement owe one |
 | #37 the schema self-check passes vacuously | **Stays open.** Real, and untouched by this feature |
-| #38 dead conditional in the schema | **Stays open.** The schema is not touched here (FR-014) |
-| #39 `units.md` claims a check that does not exist | **Closed** — the claim moves to `README.md` restated as a limitation |
-| #40, #41, #44, #45 | **Closed** — superseded; this feature rewrites what they delivered |
+| #38 dead conditional in the schema | **Stays open.** Its `description` is corrected — it cited the glossary for a rule about `ratio`, which the glossary no longer states — but the unreachable block is untouched |
+| #39 `units.md` claims a check that does not exist | Commented; closes on merge. The claim moved to `README.md` restated as a limitation |
+| #40, #41, #45 | Commented; close on merge. Superseded — this feature cuts further than all three. #44 is the branch's closing link |
 | #42 noisy predicate errors | **Stays open.** A schema change |
-| #43 the link check reads a regex as a link | **Closed** — the workaround it was raised against disappears with `schema/README.md` |
+| #43 the link check reads a regex as a link | **Argued to stay open.** The workaround disappeared with `schema/README.md`, but the defect bit twice more while writing this feature's quickstart, which now carries the second workaround for it |
 | #46 `.copier-answers.yml` drift | **Stays open**, and is worse |
 
 ## Totals
@@ -135,10 +135,13 @@ Measured 2026-08-23, at the commit the work starts from. **Documentation** means
 line. An earlier draft of this table said 29 files; that count had swept in the constitution, the
 pull-request template and `CLAUDE.md`, and is corrected here rather than carried.
 
+Measured after the change, 2026-08-23.
+
 | | Before | After |
 |---|---|---|
-| Prose describing no field of the format | 66,383 B | one `CONTRIBUTING.md` (~2,000 B) |
-| Documentation markdown files | 20 | 5 |
-| Documentation bytes | 168,591 B | — |
-| Documents describing a field | 2 | 1 |
-| Corpus predicates Gatling cannot run | 8 of 12 | 0 |
+| Prose describing no field of the format | 66,383 B | **2,577 B** — one `CONTRIBUTING.md` |
+| Documentation markdown files | 20 | **5** — README, GLOSSARY, CONTRIBUTING, docs/ideas.md, AGENTS |
+| Documentation bytes | 168,591 B | **53,390 B** |
+| Documents describing a field | 2 | **1** |
+| Corpus predicates Gatling cannot run | 8 of 12 | **0 of 9** |
+| Schema bytes changed | — | **0** — five `description` strings, no field |

@@ -62,7 +62,7 @@ cheapest way to see it.
 ## 3. `docs/` is still isolated, and still removable
 
 ```bash
-git rm -r --quiet docs && bash scripts/verify.sh ; git checkout docs
+git rm -r --quiet docs && bash scripts/verify.sh ; git checkout HEAD -- docs
 ```
 
 Expected: `PASS`, then the directory restored.
@@ -84,11 +84,12 @@ second workaround written for it. Worth remembering when deciding whether #43 st
 ## 4. One field, one place
 
 ```bash
-grep -rln 'aggregation' --include='*.md' . | grep -v -e '^./specs/' -e '^./.specify/' -e '^./.claude/'
+grep -rl 'p\\d{1,2}' --include='*.md' . | grep -v -e 'specs/' -e '.specify/' -e '.claude/'
 ```
 
-Expected: `./README.md` and nothing else. Any second file describing what `aggregation` accepts is
-the drift this feature exists to end.
+Expected: `./README.md` and nothing else — it is the only page stating what `aggregation`
+**accepts**. `GLOSSARY.md` names the term and says what it displaced, which is a different job and
+the intended split; a second page stating the constraint is the drift this feature exists to end.
 
 *Covers SC-003.*
 
@@ -97,12 +98,17 @@ the drift this feature exists to end.
 ```bash
 grep -rn -e 'ARCHITECTURE\.md' -e 'LAYOUT\.md' -e 'reference/' -e 'schema/README' \
   --include='*.md' --include='*.json' --include='*.yml' --include='*.yaml' --include='*.sh' . \
-  | grep -v -e '^./specs/' -e '^./.claude/' -e '^./.specify/extensions/' -e '^./.specify/presets/'
+  | grep -vE '(^\\./)?(specs|\\.claude|\\.specify)/'
 ```
 
-Expected: no output. Section 5 of the gate catches broken *links*; this catches a path named in
+Expected: no output. The gate's link check catches broken *links*; this catches a path named in
 prose, in a script, or inside the schema's own `description` strings — where a link check does not
 look.
+
+`specs/` and `.specify/` are excluded and the exclusion is not laziness. `specs/` is history: it
+records what was decided when, against the tree of the day. The constitution names the deleted
+documents on purpose, in the amendment that deletes them — a record of what went, which is the
+opposite of a stale pointer.
 
 *Covers FR-003.*
 
