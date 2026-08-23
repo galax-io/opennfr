@@ -18,7 +18,7 @@ No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), do
 
 ```bash
 # verify      bash scripts/verify.sh    (YAML parses, links resolve, docs are English)
-# links       grep-based, inside verify.sh
+# links       inside verify.sh, via scripts/mdlinks.py
 # yaml        python3 -c 'import yaml,glob; [list(yaml.safe_load_all(open(f))) for f in glob.glob("examples/*.yaml")]'
 # no build, no tests — there is nothing to compile yet
 ```

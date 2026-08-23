@@ -14,5 +14,9 @@ scratchpad-*.sh
 scratchpad-*.log
 speckit-install.log
 
+# python bytecode — scripts/verify.sh imports scripts/mdlinks.py
+__pycache__/
+*.pyc
+
 # build output
 # extend per stack: target/, build/, dist/, node_modules/, etc.
