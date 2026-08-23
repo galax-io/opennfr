@@ -1,0 +1,30 @@
+# "This call must be fast AND not fail."
+#
+# One requirement, because it is one human sentence. The selector is written once and every
+# criterion below it is about those requests — that is the whole reason the selection sits on
+# the requirement rather than on each criterion.
+#
+# Three shapes of criterion appear here. `metric` measures something the requests carry.
+# `bad` takes a fraction of them, and reads as a share or as a count depending on the
+# aggregation. Neither is a metric of its own: there is no `error_rate` in this format, because
+# a derived quantity is not a metric.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: checkout-perf
+  displayName: What checkout owes its callers
+
+spec:
+  requirements:
+    - name: checkout
+      displayName: Checkout is fast and reliable
+      selector:
+        loadtest.group.name: Checkout              # a group, and one request inside it
+        loadtest.request.name: POST /checkout
+      criteria:
+        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
+        - {displayName: Median,          metric: http.client.request.duration, aggregation: p50, op: lte, threshold: 200, unit: ms}
+        - {displayName: Slowest,         metric: http.client.request.duration, aggregation: max, op: lte, threshold: 1000, unit: ms}
+        - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate,  op: lte, threshold: 5,  unit: "%"}
+        - {displayName: Failed count,    bad: {error.type: "*"}, aggregation: count, op: lte, threshold: 20, unit: "{request}"}

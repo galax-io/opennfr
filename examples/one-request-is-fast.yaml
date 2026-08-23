@@ -1,0 +1,22 @@
+# "This one call must stay under 500 ms."
+#
+# The smallest thing the schema accepts: one requirement, one selector, one criterion.
+# Everything else in this directory is this document with more said about the same requests.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: checkout-perf
+
+spec:
+  requirements:
+    - name: checkout
+      displayName: Checkout responds quickly
+      selector:
+        loadtest.request.name: POST /checkout      # the name the tool records for this call
+      criteria:
+        - metric: http.client.request.duration     # an OpenTelemetry name, not ours
+          aggregation: p95
+          op: lte
+          threshold: 500
+          unit: ms

@@ -21,7 +21,7 @@ everything published, so it is recorded here in English rather than quoted:
 > is a general format that can be reused.
 
 Prior art this supersedes:
-[picatinny's NFR-YAML](https://github.com/galax-io/gatling-picatinny/blob/main/docs/assertions.md).
+`https://github.com/galax-io/gatling-picatinny/blob/main/docs/assertions.md`.
 
 **Scope note.** All work is inside this repository. Nothing here is a deliverable in, or a
 prerequisite for, any other project. picatinny's NFR-YAML appears only as evidence — it is the

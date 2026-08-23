@@ -9,7 +9,7 @@ is a decision of this contract, corroborated by compatibility.md § Layering —
 fixes it, and it is proposed until the architecture document lands.
 
 These contracts are **authored here**, not inherited from
-[compatibility.md](../../../docs/compatibility.md) § Layering, which gives responsibilities
+`reference/compatibility.md` § Layering, which gives responsibilities
 without contracts and sits in that document's proposal half. Two of the four are sub-roles of
 the glossary's `Adapter`; the architecture document must say so rather than introduce a rival
 decomposition.

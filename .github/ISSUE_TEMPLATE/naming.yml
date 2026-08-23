@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         The vocabulary is the part of this repo most likely to be wrong, and the cheapest
-        to fix now. See [docs/GLOSSARY.md](../blob/main/docs/GLOSSARY.md).
+        to fix now. See [GLOSSARY.md](../blob/main/GLOSSARY.md).
 
   - type: input
     id: term

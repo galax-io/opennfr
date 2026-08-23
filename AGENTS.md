@@ -1,6 +1,6 @@
 # OpenNFR — Agent Guide
 
-Design notes toward an open, tool-agnostic format for load testing requirements. Consumers will be load-test adapters and CI backends; the document vocabulary and the OpenTelemetry metric names it borrows are the compatibility surface. Nothing is stable yet.
+An open, tool-agnostic format for load testing requirements. One JSON Schema, a validated corpus, and one document describing every field. Consumers will be load-test adapters and CI backends; the vocabulary and the OpenTelemetry names it borrows are the compatibility surface. Nothing is stable yet.
 
 > The sections above the `---` are **project-specific** — fill them in for each new
 > project. Everything below the `---` is the **stack-agnostic development process**
@@ -8,18 +8,18 @@ Design notes toward an open, tool-agnostic format for load testing requirements.
 
 ## Role
 
-Principal Engineer: format and specification design, load testing, observability. This repo is a design notebook, not a product — prefer precision of vocabulary over features, and treat every added term as a cost. Argue in issues before writing files.
+Principal Engineer: format and specification design, load testing, observability. The format is minimally usable — a schema, a validated corpus and a gate — and nothing renders or evaluates yet. Prefer precision of vocabulary over features, and treat every added term as a cost. Argue in issues before writing files.
 
 ## Stack
 
-No code. Markdown notes plus YAML sketches that nothing validates, because there is no schema yet. A Go reference implementation is anticipated (docs/adr/0002-compatibility.md) but not started; constructs are already screened for whether they decode without a custom unmarshaler.
+No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), documents validated against it in `examples/`, and markdown. A Go reference implementation is anticipated but not started; constructs are already screened for whether they decode without a custom unmarshaler.
 
 ## Commands
 
 ```bash
 # verify      bash scripts/verify.sh    (YAML parses, links resolve, docs are English)
 # links       grep-based, inside verify.sh
-# yaml        python3 -c 'import yaml,glob; [list(yaml.safe_load_all(open(f))) for f in glob.glob("docs/**/*.yaml", recursive=True)]'
+# yaml        python3 -c 'import yaml,glob; [list(yaml.safe_load_all(open(f))) for f in glob.glob("examples/*.yaml")]'
 # no build, no tests — there is nothing to compile yet
 ```
 
@@ -28,15 +28,15 @@ No code. Markdown notes plus YAML sketches that nothing validates, because there
 <!-- A LIGHT search index, not a full tree. List only the entry points an agent needs
      to FIND code fast — one terse line per area (`dir/ -> what lives there`). Omit
      anything discoverable by looking; an exhaustive tree is noise and rots fast. -->
-`docs/` -> the notes themselves; `docs/adr/` -> naming arguments in ADR form (status: proposed); `docs/examples/` -> unvalidated sketches of documents; `docs/semconv/` -> proposed `loadtest.*` attribute registry; `docs/references.md` -> survey of prior art, the most finished part; `specs/` -> spec-kit working dir.
+`README.md` -> the format: what it is, and every field; `schema/` -> the schema, which decides; `examples/` -> the validated corpus; `GLOSSARY.md` -> the terms; `CONTRIBUTING.md` -> how to propose a change; `docs/ideas.md` -> constructs the format does not have; `specs/` -> spec-kit working dir, read as history.
 
 ## Architecture
 
-The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the terms, the ADRs justify them, and everything else must follow. The intended runtime layering (types -> evaluation -> data sources -> tool adapters) is described in docs/compatibility.md and exists only on paper. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in an example.
+The schema decides; `README.md` explains it and is the only document that describes a field. `GLOSSARY.md` defines the terms the schema carries. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in a published example.
 
 ## Test Model
 
-`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve and the docs stayed English. `examples/` is the validated corpus; the sketches under `docs/examples/` are deliberately outside the gate, because they illustrate ideas the format does not have — see LAYOUT.md.
+`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, checks each predicate matches a row of the Gatling capability table exactly, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve, that `docs/` is markdown-only with every idea stating its condition and nothing outside linking in, and that the docs stayed English. `examples/` is the validated corpus and the only place documents are published.
 
 ---
 
@@ -46,7 +46,7 @@ The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the terms, the
 
 ## Boundaries
 
-**Always:** format before commit, branch from `main`, keep commits semantic and green, preserve backward compat for published public APIs and any downstream consumers. `none yet — no code. docs/GLOSSARY.md is the vocabulary truth` = dependency truth, `.github/workflows/` = CI/release truth.
+**Always:** format before commit, branch from `main`, keep commits semantic and green, preserve backward compat for published public APIs and any downstream consumers. `none yet — no code. GLOSSARY.md is the vocabulary truth` = dependency truth, `.github/workflows/` = CI/release truth.
 
 **Ask first:** new deps or upgrades, changing public API signatures / observable behavior / serialized formats, editing another repo, release/publish workflow changes.
 

@@ -1,0 +1,32 @@
+# "Did the whole run behave — and did it even reach the load we assumed?"
+#
+# `selector: {}` is every request, said explicitly rather than by leaving a line out.
+#
+# The guard is the point of this document. A test meant to push 200 rps that pushed 5 shows a
+# beautiful p99 and has measured nothing: every criterion goes green and the verdict is a lie.
+# A guard states the condition the criteria assume, so a run that did not happen fails where
+# the target reports rather than passing quietly.
+#
+# A violated guard and a violated criterion mean different things — the run did not happen, as
+# against the system did not hold — and they send you to different places. The format does not
+# give them different report states, because no load generator has a third outcome to give.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: nightly-soak
+
+spec:
+  requirements:
+    - name: whole-run
+      displayName: The run as a whole
+      selector: {}
+      guards:
+        - displayName: Reached the target rate
+          aggregation: rate                        # no metric: this counts the requests themselves
+          op: gte
+          threshold: 200
+          unit: "{request}/s"
+      criteria:
+        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 1000, unit: ms}
+        - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate, op: lte, threshold: 5, unit: "%"}

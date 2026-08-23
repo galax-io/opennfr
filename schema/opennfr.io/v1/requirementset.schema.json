@@ -89,7 +89,7 @@
         },
         "bad": {
           "$ref": "#/$defs/selector",
-          "description": "Makes this a fraction: the numerator is the selected requests that also match this, the denominator is the requirement's selection. Narrows, never replaces, so it carries only what puts a request on that side. An error rate is `bad: {error.type: \"*\"}` — ADR-0001 D8, and OpenSLO's ratioMetric before it."
+          "description": "Makes this a fraction: the numerator is the selected requests that also match this, the denominator is the requirement's selection. Narrows, never replaces, so it carries only what puts a request on that side. An error rate is `bad: {error.type: \"*\"}`, after OpenSLO's ratioMetric. There is no errors metric, which is also what OpenTelemetry does."
         },
         "good": {
           "$ref": "#/$defs/selector",
@@ -296,7 +296,7 @@
               }
             }
           },
-          "description": "docs/GLOSSARY.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
+          "description": "UNREACHABLE. `indicator` was removed from `requirement`, which closes over its properties, so this `if` can never be satisfied by a document that validates. The rule it encodes survives in the predicate as `A fraction has no percentile`. Kept only because removing it is issue #38 and not this change; the text no longer cites a document for a rule that document does not state."
         }
       ],
       "examples": [
@@ -361,7 +361,7 @@
         "{iteration}/s",
         "{vu}"
       ],
-      "description": "Closed list, from docs/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
+      "description": "Closed list, from README.md. An enumeration rather than full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
     },
     "op": {
       "enum": [
