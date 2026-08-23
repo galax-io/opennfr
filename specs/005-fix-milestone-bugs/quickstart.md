@@ -103,7 +103,32 @@ answer disagrees with what the template would generate from it — which is the 
 
 *Covers SC-005.*
 
-## 6. Everything together
+## 6. The schema documents every shape it defines (#31, P6)
+
+```bash
+bash scripts/verify.sh 2>&1 | sed -n '/still rejects/,/^$/p'
+```
+
+Expected: `ok  N embedded examples valid, 54 closures still reject`, with N at least 20.
+
+The set of shapes required to carry examples is derived from where they are **used** — every
+`$ref` target, plus every object the schema defines inline, plus the root — not from the name of
+the container they sit in. Keyed on `$defs`, the requirement travelled with the definition:
+renaming one, or moving all nine to `#/definitions/`, left the check iterating nothing and
+reporting `ok`.
+
+To prove it can still go red, any of these must FAIL:
+
+- drop `examples` from one definition -> `... carries no examples`
+- add a definition, inline or under `$defs`, with none -> the same, naming its pointer
+- move every definition out from under `$defs` -> `N shapes to document, expected at least 11`
+- trim the examples down -> `N examples, expected at least 20`
+- give a definition that asserts nothing an example -> `... asserts nothing`
+- give the root example two criteria sharing a criterionId -> `duplicate criterionId`
+
+*Covers SC-007.*
+
+## 7. Everything together
 
 ```bash
 bash scripts/verify.sh
