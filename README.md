@@ -72,6 +72,7 @@ metadata:
 spec:
   requirements:
     - name: checkout
+      displayName: Checkout responds quickly
       selector:
         loadtest.request.name: POST /checkout
       criteria:

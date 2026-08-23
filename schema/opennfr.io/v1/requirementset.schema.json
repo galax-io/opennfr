@@ -3,6 +3,34 @@
   "$id": "https://opennfr.io/schema/v1/requirementset.schema.json",
   "title": "RequirementSet",
   "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry rather than defined here, so measuring something new never means changing the format.",
+  "examples": [
+    {
+      "apiVersion": "opennfr.io/v1",
+      "kind": "RequirementSet",
+      "metadata": {
+        "name": "checkout-perf"
+      },
+      "spec": {
+        "requirements": [
+          {
+            "name": "checkout",
+            "selector": {
+              "loadtest.request.name": "POST /checkout"
+            },
+            "criteria": [
+              {
+                "metric": "http.client.request.duration",
+                "aggregation": "p95",
+                "op": "lte",
+                "threshold": 500,
+                "unit": "ms"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -34,7 +62,19 @@
         "displayName": {
           "$ref": "#/$defs/displayName"
         }
-      }
+      },
+      "examples": [
+        {
+          "name": "checkout-perf"
+        },
+        {
+          "name": "checkout-perf",
+          "displayName": "Checkout is fast and reliable",
+          "annotations": {
+            "team": "checkout"
+          }
+        }
+      ]
     },
     "spec": {
       "type": "object",
@@ -50,7 +90,28 @@
             "$ref": "#/$defs/requirement"
           }
         }
-      }
+      },
+      "examples": [
+        {
+          "requirements": [
+            {
+              "name": "checkout",
+              "selector": {
+                "loadtest.request.name": "POST /checkout"
+              },
+              "criteria": [
+                {
+                  "metric": "http.client.request.duration",
+                  "aggregation": "p95",
+                  "op": "lte",
+                  "threshold": 500,
+                  "unit": "ms"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   },
   "$defs": {
@@ -66,7 +127,10 @@
       "properties": {
         "name": {
           "$ref": "#/$defs/name",
-          "description": "Optional. Identifies this predicate in a report; without it the aggregation is the identifier, so two predicates in one requirement may not then share an aggregation."
+          "description": "Optional. Identifies this predicate in a report; without it the aggregation is the identifier, so two predicates in one requirement may not then share an aggregation.",
+          "examples": [
+            "reached-target-rate"
+          ]
         },
         "aggregation": {
           "$ref": "#/$defs/aggregation"
@@ -81,7 +145,10 @@
           "$ref": "#/$defs/unit"
         },
         "displayName": {
-          "$ref": "#/$defs/displayName"
+          "$ref": "#/$defs/displayName",
+          "examples": [
+            "99th percentile"
+          ]
         },
         "metric": {
           "type": "string",
@@ -296,7 +363,11 @@
     "name": {
       "type": "string",
       "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
-      "maxLength": 253
+      "maxLength": 253,
+      "examples": [
+        "checkout",
+        "checkout-perf"
+      ]
     },
     "unit": {
       "enum": [
@@ -318,7 +389,12 @@
         "{iteration}/s",
         "{vu}"
       ],
-      "description": "Closed list, from README.md. An enumeration rather than full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
+      "description": "Closed list, from README.md. An enumeration rather than full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers.",
+      "examples": [
+        "ms",
+        "s",
+        "By"
+      ]
     },
     "op": {
       "enum": [
@@ -328,6 +404,10 @@
         "gte",
         "eq",
         "neq"
+      ],
+      "examples": [
+        "lte",
+        "gte"
       ]
     },
     "aggregation": {
@@ -348,7 +428,12 @@
           "pattern": "^p\\d{1,2}(\\.\\d+)?$"
         }
       ],
-      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape it is applied to, as it does in k6: over a `distribution` it is per second, over a `ratio` it is the fraction. k6 resolves the same overload the same way, by the metric's type."
+      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape it is applied to, as it does in k6: over a `distribution` it is per second, over a `ratio` it is the fraction. k6 resolves the same overload the same way, by the metric's type.",
+      "examples": [
+        "p95",
+        "rate",
+        "count"
+      ]
     },
     "selector": {
       "type": "object",
@@ -376,13 +461,22 @@
       "additionalProperties": {
         "type": "string"
       },
-      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved."
+      "description": "The only extension point in the format. The opennfr.io/ prefix is reserved.",
+      "examples": [
+        {
+          "team": "checkout",
+          "ticket": "PERF-1234"
+        }
+      ]
     },
     "displayName": {
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
+      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves.",
+      "examples": [
+        "Checkout is fast and reliable"
+      ]
     }
   }
 }
