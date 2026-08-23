@@ -180,9 +180,18 @@ section "The schema holds up its own examples, and still rejects"
 # rejects teaches a shape that does not exist. Tighten a pattern and they go stale in
 # silence — every other check here reads examples/, not the schema's own contents.
 #
-# And every published example is one the schema is meant to ACCEPT, so nothing notices if
-# a closure comes loose. `displayName` was added to three objects that close over their
-# properties; the probes below are the cases that must still fail.
+# And every published example is one the schema is meant to ACCEPT, so nothing notices if a
+# constraint comes loose: loosening one never invalidates a document that was already valid. The
+# probes below are documents that must still FAIL, one per constraint the schema makes.
+#
+# They started as seven, covering the `displayName` closures alone, and a sweep found that 39 of
+# the 41 single-constraint loosenings in this file left the section green — the whole closed
+# vocabulary among them, including the `mss` typo `$defs/unit`'s own description promises is a
+# parse error. Every constraint now has a probe. The sweep is the check on the checks: mutate one
+# constraint at a time and confirm this section reddens.
+#
+# The one exception is `$defs/predicate.type`, whose removal changes no verdict — the `not` rules
+# below reject a non-object anyway — so no document can probe it.
 if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the schema self-check cannot run"
 else
@@ -227,26 +236,152 @@ if checked == 0:
     sys.exit(1)
 
 # The closures. Each MUST be rejected; one that validates means a guard came loose.
+#
+# doc() must itself be valid — unmutated — before any probe below is trusted. A probe built on
+# an already-invalid base is rejected for the wrong reason, and every mutation below would then
+# "pass" no matter what it actually tests (issue #37). Checked, not assumed: see the assertion
+# immediately after this function.
 def doc():
-    return {"apiVersion": "opennfr.io/v1", "kind": "RequirementSet", "metadata": {"name": "probe"},
-            "spec": {"requirements": [{"name": "r",
-                     "indicator": {"distribution": {"metric": "m", "selector": {}}},
-                     "criteria": [{"aggregation": "max", "op": "lte", "threshold": 1, "unit": "ms"}]}]}}
+    # Carries a guard as well as a criterion: the two are the same shape and are edited as a pair,
+    # so a base document exercising only one leaves the other free to come loose unobserved.
+    return {"apiVersion": "opennfr.io/v1", "kind": "RequirementSet",
+            "metadata": {"name": "probe", "displayName": "a probe", "annotations": {"k": "v"}},
+            "spec": {"requirements": [{"name": "r", "selector": {},
+                     "guards": [{"aggregation": "rate", "op": "gte", "threshold": 1, "unit": "{request}/s"}],
+                     "criteria": [{"metric": "m", "aggregation": "max", "op": "lte", "threshold": 1, "unit": "ms"}]}]}}
+
+base_errs = list(V(schema).iter_errors(doc()))
+if base_errs:
+    for e in base_errs:
+        where = "/".join(map(str, e.path)) or "(root)"
+        print(f"  FAIL  {path}: probe base document is invalid on its own at {where}: {e.message}")
+    print("  FAIL  every probe below is meaningless until the base document validates unmutated")
+    sys.exit(1)
 
 probes = {}
 d = doc(); d["metadata"]["nope"] = "x";                       probes["unknown field on metadata"] = d
 d = doc(); d["spec"]["requirements"][0]["nope"] = "x";        probes["unknown field on a requirement"] = d
 d = doc(); d["spec"]["requirements"][0]["criteria"][0]["nope"] = "x"; probes["unknown field on a criterion"] = d
 d = doc(); d["spec"]["displayName"] = "x";                    probes["displayName on spec"] = d
-d = doc(); d["spec"]["requirements"][0]["indicator"]["distribution"]["displayName"] = "x"
-probes["displayName on a series"] = d
+# `indicator`/`distribution` ("a series") no longer exist in the schema — dead since the
+# assertion-first design they belonged to was reverted. This probe now tests the same class of
+# closure (an object with additionalProperties: false, rejecting a displayName it never declared)
+# on the one place still uncovered: the document root itself.
+d = doc(); d["displayName"] = "x";                            probes["displayName at the document root"] = d
 d = doc(); d["metadata"]["displayName"] = "x" * 201;          probes["displayName over 200 characters"] = d
 d = doc(); d["metadata"]["displayName"] = "";                 probes["empty displayName"] = d
+d = doc(); d["spec"]["requirements"][0]["guards"][0]["nope"] = "x"; probes["unknown field on a guard"] = d
+
+# Everything above closes an object. What follows holds the rest of the schema to what its own
+# descriptions promise, because none of it was covered: 65 of 78 single-constraint loosenings left
+# this section green, including the whole closed vocabulary. `$defs/unit` says its enum exists
+# "precisely so a typo like `mss` is a parse error rather than a disagreement between consumers" —
+# nothing checked that, and a promise nothing checks is the thing this section exists to catch.
+
+# The required fields, one per object. FR-002 names a missing required field as a closure the gate
+# must fail on, and until now none was probed.
+for where, field, mutate in [
+    ("the document", "apiVersion", lambda d: d.pop("apiVersion")),
+    ("the document", "kind",       lambda d: d.pop("kind")),
+    ("the document", "metadata",   lambda d: d.pop("metadata")),
+    ("the document", "spec",       lambda d: d.pop("spec")),
+    ("metadata",     "name",       lambda d: d["metadata"].pop("name")),
+    ("spec",         "requirements", lambda d: d["spec"].pop("requirements")),
+    ("a requirement", "name",     lambda d: d["spec"]["requirements"][0].pop("name")),
+    ("a requirement", "selector", lambda d: d["spec"]["requirements"][0].pop("selector")),
+    ("a requirement", "criteria", lambda d: d["spec"]["requirements"][0].pop("criteria")),
+    ("a criterion",  "aggregation", lambda d: d["spec"]["requirements"][0]["criteria"][0].pop("aggregation")),
+    ("a criterion",  "op",        lambda d: d["spec"]["requirements"][0]["criteria"][0].pop("op")),
+    ("a criterion",  "threshold", lambda d: d["spec"]["requirements"][0]["criteria"][0].pop("threshold")),
+    ("a criterion",  "unit",      lambda d: d["spec"]["requirements"][0]["criteria"][0].pop("unit")),
+]:
+    d = doc(); mutate(d);                                     probes[f"{where} without {field}"] = d
+
+# The closed vocabularies. Each is a value one letter away from a legal one, which is the mistake
+# the enumerations exist to turn into a parse error rather than a disagreement between consumers.
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["unit"] = "mss";         probes["a unit outside the enumeration"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["op"] = "approx";        probes["an op outside the enumeration"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["aggregation"] = "median-ish"; probes["an aggregation outside the set"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["aggregation"] = "p999"; probes["a percentile of three digits"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0]["threshold"] = "500ms";  probes["a threshold that is not a number"] = d
+d = doc(); d["metadata"]["name"] = "Not A Name!";                              probes["a name outside the pattern"] = d
+d = doc(); d["metadata"]["name"] = "x" * 254;                                  probes["a name over 253 characters"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"] = [];                      probes["a requirement with no criteria"] = d
+d = doc(); d["metadata"]["annotations"] = {"k": ["not", "a", "string"]};       probes["an annotation that is not a string"] = d
+d = doc(); d["apiVersion"] = "opennfr.io/v2";                                  probes["an apiVersion this schema does not define"] = d
+
+# The shapes. A `type` is the quietest constraint to lose — drop one and a string passes where an
+# object was required, with every other rule on that object silently inapplicable.
+for label, mutate in [
+    ("a document that is not an object",     lambda d: "a string"),
+    ("metadata that is not an object",       lambda d: d.__setitem__("metadata", "x") or d),
+    ("a spec that is not an object",         lambda d: d.__setitem__("spec", "x") or d),
+    ("requirements that are not an array",   lambda d: d["spec"].__setitem__("requirements", "x") or d),
+    ("no requirements at all",               lambda d: d["spec"].__setitem__("requirements", []) or d),
+    ("a requirement that is not an object",  lambda d: d["spec"]["requirements"].__setitem__(0, "x") or d),
+    ("criteria that are not an array",       lambda d: d["spec"]["requirements"][0].__setitem__("criteria", "x") or d),
+    ("a criterion that is not an object",    lambda d: d["spec"]["requirements"][0]["criteria"].__setitem__(0, "x") or d),
+    ("guards that are not an array",         lambda d: d["spec"]["requirements"][0].__setitem__("guards", "x") or d),
+    ("an empty guards array",                lambda d: d["spec"]["requirements"][0].__setitem__("guards", []) or d),
+    ("a name that is not a string",          lambda d: d["metadata"].__setitem__("name", 7) or d),
+    ("a displayName that is not a string",   lambda d: d["metadata"].__setitem__("displayName", 7) or d),
+    ("annotations that are not an object",   lambda d: d["metadata"].__setitem__("annotations", "x") or d),
+    ("a selector that is not an object",     lambda d: d["spec"]["requirements"][0].__setitem__("selector", "x") or d),
+    ("a selector value that is an object",   lambda d: d["spec"]["requirements"][0]["selector"].__setitem__("k", {}) or d),
+    ("an aggregation that is not a string",  lambda d: d["spec"]["requirements"][0]["criteria"][0].__setitem__("aggregation", 7) or d),
+    ("a metric that is not a string",        lambda d: d["spec"]["requirements"][0]["criteria"][0].__setitem__("metric", 7) or d),
+    ("an empty metric",                      lambda d: d["spec"]["requirements"][0]["criteria"][0].__setitem__("metric", "") or d),
+    ("a kind this schema does not define",   lambda d: d.__setitem__("kind", "Requirement") or d),
+]:
+    probes[label] = mutate(doc())
+
+# The four cross-field rules on a predicate — the format's own semantics, and the only place they
+# are stated machine-checkably. #38 removed a dead conditional from this file; nothing was watching
+# whether the live ones stayed live.
+# `rate` and a `%` unit, so the fraction rules are satisfied and only "not both" can reject it.
+# Written with `max` instead, this probe passed for the wrong reason — the percentile rule caught
+# it — and the rule it is named after could be deleted in silence.
+d = doc(); c = d["spec"]["requirements"][0]["criteria"][0]
+c["bad"] = {"error.type": "*"}; c["aggregation"] = "rate"; c["unit"] = "%"
+probes["a predicate that is both a metric and a fraction"] = d
+d = doc(); c = d["spec"]["requirements"][0]["criteria"][0]; c.pop("metric")
+c["bad"] = {"error.type": "*"}; c["good"] = {"error.type": "*"}; c["aggregation"] = "rate"; c["unit"] = "%"
+probes["a fraction carrying both of its sides"] = d
+d = doc(); c = d["spec"]["requirements"][0]["criteria"][0]; c.pop("metric")
+c["bad"] = {"error.type": "*"}; c["aggregation"] = "p99"; c["unit"] = "%"
+probes["a percentile over a fraction"] = d
+d = doc(); d["spec"]["requirements"][0]["criteria"][0].pop("metric")
+probes["a spread with no metric to spread"] = d
+
+# A probe that was deleted cannot fail. The base document above proves the probes stand on
+# something valid; this proves the probes are still there to stand on it. A floor at zero would
+# only catch emptying the dict outright, so it is set just under the current count: pruning most
+# of the block is the realistic accident, and it would otherwise show up as nothing but a smaller
+# number in a line nobody compares against anything.
+FLOOR = 50
+if len(probes) < FLOOR:
+    print(f"  FAIL  {path}: {len(probes)} closure probes, expected at least {FLOOR} — "
+          f"probes have been removed, and a probe that is gone cannot fail")
+    sys.exit(1)
 
 for name, bad_doc in probes.items():
     if not list(V(schema).iter_errors(bad_doc)):
         print(f"  FAIL  the schema accepts what it must reject: {name}")
         rc = 1
+
+# One rule cannot be reached by a rejection probe. `A fraction has no percentile` is redundant for
+# VALIDITY — a fraction has no metric, and every aggregation but `rate` and `count` requires one,
+# so the document is rejected either way — but it is what produces the message README.md quotes.
+# Delete it and the document is still refused, now blaming a missing `metric` the author never
+# meant to write. That is a documented diagnostic degrading in silence, so it is checked by the
+# message rather than by the verdict.
+d = doc(); c = d["spec"]["requirements"][0]["criteria"][0]; c.pop("metric")
+c["bad"] = {"error.type": "*"}; c["aggregation"] = "p95"; c["unit"] = "%"
+WANT_MESSAGE = "'p95' is not one of ['rate', 'count']"
+if not any(e.message == WANT_MESSAGE for e in V(schema).iter_errors(d)):
+    print(f"  FAIL  a percentile over a fraction no longer says why: expected {WANT_MESSAGE!r}, "
+          f"which README.md quotes as the message for this mistake")
+    rc = 1
 
 if rc == 0:
     print(f"  ok    {checked} embedded examples valid, {len(probes)} closures still reject")
