@@ -56,6 +56,7 @@
   "$defs": {
     "predicate": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "aggregation",
         "op",
@@ -85,7 +86,7 @@
         "metric": {
           "type": "string",
           "minLength": 1,
-          "description": "What to measure of the selected requests. A name borrowed from OpenTelemetry semantic conventions where one exists; this schema does not enumerate metric names and never will. Omit it to reduce the requests themselves rather than a quantity they carry — a count, a rate, or a fraction with `bad`/`good`."
+          "description": "What to measure of the selected requests. A name borrowed from OpenTelemetry semantic conventions where one exists; this schema does not enumerate metric names and never will. Omit it to reduce the requests themselves rather than a quantity they carry \u2014 a count, a rate, or a fraction with `bad`/`good`."
         },
         "bad": {
           "$ref": "#/$defs/selector",
@@ -235,27 +236,16 @@
         "guards": {
           "type": "array",
           "minItems": 1,
-          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and the difference is what a violation means — a criterion says the system did not hold, a guard says the run did not happen as intended, so a green criterion beside a violated guard is not evidence of anything. Optional, and a requirement without one asserts nothing about the conditions it assumes.",
+          "description": "Preconditions: statements that the run happened in the intended regime at all. Same shape as a criterion, and the difference is what a violation means \u2014 a criterion says the system did not hold, a guard says the run did not happen as intended, so a green criterion beside a violated guard is not evidence of anything. Optional, and a requirement without one asserts nothing about the conditions it assumes.",
           "items": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/predicate"
-              }
-            ],
-            "properties": {},
-            "unevaluatedProperties": false
+            "$ref": "#/$defs/predicate"
           }
         },
         "criteria": {
           "type": "array",
           "minItems": 1,
           "items": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/predicate"
-              }
-            ],
-            "unevaluatedProperties": false
+            "$ref": "#/$defs/predicate"
           }
         },
         "displayName": {
@@ -263,7 +253,7 @@
         },
         "selector": {
           "$ref": "#/$defs/selector",
-          "description": "Which requests this requirement is about — written once, for every criterion and guard under it. `{}` is every request."
+          "description": "Which requests this requirement is about \u2014 written once, for every criterion and guard under it. `{}` is every request."
         }
       },
       "allOf": [
@@ -395,7 +385,7 @@
     },
     "selector": {
       "type": "object",
-      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
+      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated \u2014 they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
       "examples": [
         {},
         {
@@ -425,7 +415,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer — a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
+      "description": "Free human-readable text beside the machine identifier, in any script. `name` is restricted so something can point at it; this is for a person to read. It is inert: nothing selected, measured or compared depends on it, and two documents differing only in their display names say the same thing. Keep it to the quantity, not the answer \u2014 a name reading '99th percentile under 500 ms' beside threshold: 500 is a second source for one number, and the two diverge the first time the threshold moves."
     }
   }
 }
