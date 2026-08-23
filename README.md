@@ -478,9 +478,11 @@ against, and it would be an odd thing for this page to hand you.
 | a requirement with no `selector` | `'selector' is a required property` |
 | `criteria: []` | `[] should be non-empty` |
 
-> **A wart worth knowing.** When a predicate is wrong for any reason, the closure over it fails too,
-> and you get a second message alongside the useful one: `Unevaluated properties are not allowed`,
-> listing keys that are all perfectly valid. Read the other message.
+One mistake is usually one message. A misspelled key is the exception, and both of its messages
+name the same typo: `Additional properties are not allowed ('agregation' was unexpected)` beside
+`'aggregation' is a required property`. Where a mistake breaks two rules at once — `p95` with
+`bad` is both a percentile over a fraction and a percentile with no metric — you get one message
+per rule, and both are real.
 
 ### What the schema does not check
 
