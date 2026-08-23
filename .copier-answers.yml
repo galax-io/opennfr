@@ -3,48 +3,49 @@
 # can be re-applied later.  Keep it committed.
 _commit: d8b7cd1
 _src_path: gh:galax-io/spec-kit-galaxio-bootstrap
-architecture: 'The vocabulary is the source of truth: `docs/GLOSSARY.md` defines the
-    terms, the ADRs justify them, and everything else must follow. The intended runtime
-    layering (types -> evaluation -> data sources -> tool adapters) is described in
-    docs/compatibility.md and exists only on paper. Compatibility-sensitive: any OpenTelemetry
-    semantic convention name borrowed by the format, and any field name that appears
-    in an example.'
+architecture: 'The schema decides; `README.md` explains it and is the only document that describes
+  a field. `GLOSSARY.md` defines the terms the schema carries. Compatibility-sensitive: any
+  OpenTelemetry semantic convention name borrowed by the format, and any field name that appears
+  in a published example.'
 build_test_cmd: bash scripts/verify.sh
 commands: '# verify      bash scripts/verify.sh    (YAML parses, links resolve, docs
     are English)
 
-    # links       grep-based, inside verify.sh
+    # links       inside verify.sh, via scripts/mdlinks.py
 
     # yaml        python3 -c ''import yaml,glob; [list(yaml.safe_load_all(open(f)))
-    for f in glob.glob("docs/**/*.yaml", recursive=True)]''
+    for f in glob.glob("examples/*.yaml")]''
 
     # no build, no tests — there is nothing to compile yet'
-dep_manifest: none yet — no code. docs/GLOSSARY.md is the vocabulary truth
+dep_manifest: none yet — no code. GLOSSARY.md is the vocabulary truth
 do_git: false
 org_repo: galax-io/opennfr
 project_name: OpenNFR
-project_tagline: Design notes toward an open, tool-agnostic format for load testing
-    requirements. Consumers will be load-test adapters and CI backends; the document
-    vocabulary and the OpenTelemetry metric names it borrows are the compatibility
-    surface. Nothing is stable yet.
+project_tagline: An open, tool-agnostic format for load testing requirements. One JSON Schema,
+  a validated corpus, and one document describing every field. Consumers will be load-test
+  adapters and CI backends; the vocabulary and the OpenTelemetry names it borrows are the
+  compatibility surface. Nothing is stable yet.
 publish_mechanism: GitHub Release only — nothing is published to a registry yet
 release_notes_tool: git-cliff
-role: 'Principal Engineer: format and specification design, load testing, observability.
-    This repo is a design notebook, not a product — prefer precision of vocabulary
-    over features, and treat every added term as a cost. Argue in issues before writing
-    files.'
+role: 'Principal Engineer: format and specification design, load testing, observability. The
+  format is minimally usable — a schema, a validated corpus and a gate — and nothing renders
+  or evaluates yet. Prefer precision of vocabulary over features, and treat every added term
+  as a cost. Argue in issues before writing files.'
 run_speckit: false
 stack: generic
-stack_detail: No code. Markdown notes plus YAML sketches that nothing validates, because
-    there is no schema yet. A Go reference implementation is anticipated (docs/adr/0002-compatibility.md)
-    but not started; constructs are already screened for whether they decode without
-    a custom unmarshaler.
-structure: '`docs/` -> the notes themselves; `docs/adr/` -> naming arguments in ADR
-    form (status: proposed); `docs/examples/` -> unvalidated sketches of documents;
-    `docs/semconv/` -> proposed `loadtest.*` attribute registry; `docs/references.md`
-    -> survey of prior art, the most finished part; `specs/` -> spec-kit working dir.'
-test_model: Nothing is testable yet — `scripts/verify.sh` only checks that the notes
-    are internally consistent (YAML parses, internal links resolve, the docs stayed
-    English). Once a JSON Schema exists, every file in docs/examples/ must validate
-    against it, and that becomes the real gate.
+stack_detail: No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`),
+  documents validated against it in `examples/`, and markdown. A Go reference implementation
+  is anticipated but not started; constructs are already screened for whether they decode
+  without a custom unmarshaler.
+structure: '`README.md` -> the format: what it is, and every field; `schema/` -> the schema,
+  which decides; `examples/` -> the validated corpus; `GLOSSARY.md` -> the terms; `CONTRIBUTING.md`
+  -> how to propose a change; `scripts/` -> the gate (`verify.sh`) and what it shares (`mdlinks.py`);
+  `docs/ideas.md` -> constructs the format does not have; `specs/` -> spec-kit working dir,
+  read as history.'
+test_model: '`scripts/verify.sh` is the gate. It validates every document in `examples/` against
+  `schema/opennfr.io/v1/`, checks each predicate matches a row of the Gatling capability table
+  exactly, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite
+  numbers), and checks that links resolve, that `docs/` is markdown-only with every idea stating
+  its condition and nothing outside linking in, and that the docs stayed English. `examples/` is
+  the validated corpus and the only place documents are published.'
 

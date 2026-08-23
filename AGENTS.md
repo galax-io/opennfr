@@ -28,7 +28,7 @@ No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), do
 <!-- A LIGHT search index, not a full tree. List only the entry points an agent needs
      to FIND code fast — one terse line per area (`dir/ -> what lives there`). Omit
      anything discoverable by looking; an exhaustive tree is noise and rots fast. -->
-`README.md` -> the format: what it is, and every field; `schema/` -> the schema, which decides; `examples/` -> the validated corpus; `GLOSSARY.md` -> the terms; `CONTRIBUTING.md` -> how to propose a change; `docs/ideas.md` -> constructs the format does not have; `specs/` -> spec-kit working dir, read as history.
+`README.md` -> the format: what it is, and every field; `schema/` -> the schema, which decides; `examples/` -> the validated corpus; `GLOSSARY.md` -> the terms; `CONTRIBUTING.md` -> how to propose a change; `scripts/` -> the gate (`verify.sh`) and what it shares (`mdlinks.py`); `docs/ideas.md` -> constructs the format does not have; `specs/` -> spec-kit working dir, read as history.
 
 ## Architecture
 
