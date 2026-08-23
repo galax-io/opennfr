@@ -7,7 +7,7 @@
 **Status**: Draft
 
 **Input**: User description (translated from Russian; the repository is English-only per
-[ADR-0001](../../reference/adr/0001-terminology.md)):
+`reference/adr/0001-terminology.md`):
 
 > Source: the `galax-io/ideas` note *An open format for performance requirements*
 > (`ideas/observability/open-nfr-format.md`) — what can we take from it? We need a minimal
@@ -35,8 +35,8 @@ Scope decisions taken during drafting:
 ## Context
 
 This repository is a design notebook ([README](../../README.md)). It has a candidate
-vocabulary ([GLOSSARY](../../reference/glossary.md)), two proposed ADRs, a verified tool survey
-([compatibility](../../reference/compatibility.md)), unvalidated example documents, and a
+vocabulary (`reference/glossary.md`), two proposed ADRs, a verified tool survey
+(`reference/compatibility.md`), unvalidated example documents, and a
 ratified [constitution](../../.specify/memory/constitution.md) with five principles.
 
 What it does not have is a statement of **how the parts fit together**, **where each part
@@ -77,8 +77,8 @@ principle that can produce neither is decoration, and FR-008 drops it.
 
 | Candidate | What it forbids | The argument it settles | Grounding |
 |---|---|---|---|
-| **Targets Are Data** | Any target — load generator or monitoring backend — requiring code in the format's own implementation before it can be supported | "Let us just special-case JMeter in the reader; it is only one `if`." | [ADR-0002 § D12](../../reference/adr/0002-compatibility.md) — "supporting a new tool means adding a YAML file, not forking the Go code" — plus the constitution's Compatibility Constraints, which say it for load testing tools only. The principle generalises both to monitoring backends |
-| **Evaluation Is Target-Blind** | The component that turns measurements into verdicts knowing which target produced them, or how | "k6 already computed p95 — let us trust its number." Then the verdict depends on the tool, and one document stops meaning one thing | [compatibility.md](../../reference/compatibility.md) § Requirements for the Go implementation → Layering — "The crucial part: the evaluation layer knows nothing about tools or sources. It operates on canonical names — and that is the only reason the format can promise compatibility with an arbitrary tool." Note: that section is in the document's *proposal* half and says nothing is implemented yet |
+| **Targets Are Data** | Any target — load generator or monitoring backend — requiring code in the format's own implementation before it can be supported | "Let us just special-case JMeter in the reader; it is only one `if`." | `reference/adr/0002-compatibility.md` — "supporting a new tool means adding a YAML file, not forking the Go code" — plus the constitution's Compatibility Constraints, which say it for load testing tools only. The principle generalises both to monitoring backends |
+| **Evaluation Is Target-Blind** | The component that turns measurements into verdicts knowing which target produced them, or how | "k6 already computed p95 — let us trust its number." Then the verdict depends on the tool, and one document stops meaning one thing | `reference/compatibility.md` § Requirements for the Go implementation → Layering — "The crucial part: the evaluation layer knows nothing about tools or sources. It operates on canonical names — and that is the only reason the format can promise compatibility with an arbitrary tool." Note: that section is in the document's *proposal* half and says nothing is implemented yet |
 | **Experiments Are Parked, Not Merged** | Unsettled work entering the compatibility surface because it is nearly right | "The Datadog mapping mostly works; call it v1." Four query languages and four percentile implementations are not nearly-right material | **Contested — see [research.md](research.md) § D2.** The nearest committed text is constitution Principle III's "Any artifact nothing validates MUST say so in its own text", which grounds *labelling* — the opposite of what the draft says. Two published artifacts already practise labelling over containment. Ships only in a narrowed form, or is dropped |
 | **Architecture Before Implementation** | Code arriving without a spec naming the architectural role it fills; a spec changing the architecture implicitly | "Let us write the parser and see what shape falls out." | [AGENTS.md](../../AGENTS.md) § Commits & PRs — "**Spec-first.** `specs/NNN-*/` artifacts → `docs(speckit): add NNN-&lt;feature&gt; spec/plan/tasks` commit BEFORE any `feat`/`fix`. Never folded into implementation." Co-cited with constitution Principle I's ordering rule, because AGENTS.md declares everything below its `---` to be boilerplate reused across projects rather than an argument this repository had |
 
@@ -286,7 +286,7 @@ architectural role it fills. Check that no individual deliverable appears in two
   explicitly unverified, carry the date it was made, and name the parked follow-up spec that
   owns verifying it.
 - **FR-005**: The data source MUST remain a parameter of evaluation and MUST NOT appear in a
-  requirement document, preserving [ADR-0002 § D18](../../reference/adr/0002-compatibility.md).
+  requirement document, preserving `reference/adr/0002-compatibility.md`.
 - **FR-005a**: The architecture MUST keep two distinct concepts with two distinct words for
   the two directions a metrics product can face: the **data source**, inbound, which supplies
   normalised series to evaluation and stays a parameter of it; and the **monitoring backend**,
@@ -314,7 +314,7 @@ architectural role it fills. Check that no individual deliverable appears in two
   widen that constraint rather than add a parallel one saying nearly the same thing.
 - **FR-012**: Every word this feature introduces MUST carry at least one rejected alternative
   before it appears anywhere else, in exactly one of two homes:
-  - a word that collides with one already used in [GLOSSARY.md](../../reference/glossary.md) —
+  - a word that collides with one already used in `reference/glossary.md` —
     `target` against "target load" in the Requirement entry, and `binding` if that word is
     kept — MUST be settled in the glossary, where the collision is visible;
   - every other governance word — `artifact class`, `component role`,
@@ -472,10 +472,10 @@ architectural role it fills. Check that no individual deliverable appears in two
 
 - **The ratified constitution** ([constitution.md](../../.specify/memory/constitution.md)) —
   amended by this feature, and binding on it in the meantime.
-- **The existing vocabulary and decision records** ([GLOSSARY.md](../../reference/glossary.md),
-  [ADR-0001](../../reference/adr/0001-terminology.md),
-  [ADR-0002](../../reference/adr/0002-compatibility.md)) — inputs, not subjects.
-- **The verified tool survey** ([compatibility.md](../../reference/compatibility.md)) — what each
+- **The existing vocabulary and decision records** (`reference/glossary.md`,
+  `reference/adr/0001-terminology.md`,
+  `reference/adr/0002-compatibility.md`) — inputs, not subjects.
+- **The verified tool survey** (`reference/compatibility.md`) — what each
   tool actually emits as of August 2026. Any new claim about a tool or a monitoring backend
   must be checked the same way and dated.
 - **Four monitoring backends' query semantics** — Datadog, Prometheus, VictoriaMetrics and

@@ -25,11 +25,11 @@ first is what makes the amendment legal.
 ## Technical Context
 
 **Language/Version**: None — this feature ships no code. Markdown as GitHub renders it, and
-YAML 1.2 restricted to its JSON-compatible subset ([ADR-0002 § D16](../../reference/adr/0002-compatibility.md))
+YAML 1.2 restricted to its JSON-compatible subset (`reference/adr/0002-compatibility.md`)
 where existing sketches are quoted.
 
 **Primary Dependencies**: OpenTelemetry semantic conventions, as the source of every borrowed
-name; this repository's own dated tool survey ([compatibility.md](../../reference/compatibility.md),
+name; this repository's own dated tool survey (`reference/compatibility.md`,
 "Verified against documentation as of August 2026").
 
 **Storage**: Files in git. No database, no state.

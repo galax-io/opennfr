@@ -19,6 +19,7 @@ Closes #
 - [ ] Milestone assigned (CI fails without one)
 - [ ] `Closes #<issue>` above points at an issue in the same milestone
 - [ ] `bash scripts/verify.sh` passes locally
-- [ ] If a term changed: [docs/GLOSSARY.md](../reference/glossary.md) updated, including the
+- [ ] If a term changed: [GLOSSARY.md](../GLOSSARY.md) updated, including the
       *Rejected* note explaining what the old term got wrong
-- [ ] If a decision changed: the relevant ADR updated rather than contradicted elsewhere
+- [ ] If a compatibility-sensitive surface changed — a borrowed OpenTelemetry name, or a
+      field name in a published example — it was argued in the issue above first

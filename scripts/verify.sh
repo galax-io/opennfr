@@ -3,11 +3,9 @@
 # verify.sh — the "green per commit" gate for this repository.
 #
 # There is no code here yet, so this checks the only things that can currently be
-# wrong: that the sketches still parse, that the notes do not link into the void,
-# and that the docs stayed in English (see reference/adr/0001-terminology.md).
-#
-# The schema gate validates examples/ against schema/opennfr.io/v1/. The sketches
-# under docs/examples/ are outside it on purpose — see AGENTS.md > Test Model.
+# wrong: that every published document validates against the schema, that nothing
+# links into the void, that no documentation links into docs/, and that the docs
+# stayed in English.
 #
 # Constitution III (No Silent Green) binds this file to itself: a section that cannot
 # run reports FAIL, never ok and never a bare skip, and a section that scanned nothing
@@ -24,7 +22,7 @@ ok()      { printf '  ok    %s\n' "$1"; }
 bad()     { printf '  FAIL  %s\n' "$1"; fail=1; }
 
 # ---------------------------------------------------------------------------
-section "YAML sketches parse"
+section "YAML parses"
 if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the YAML parse gate cannot run"
 else
@@ -36,7 +34,7 @@ except ImportError:
     print("  FAIL  PyYAML not installed (pip install pyyaml)")
     sys.exit(1)
 rc = 0
-files = sorted(glob.glob("examples/*.yaml") + glob.glob("docs/**/*.yaml", recursive=True))
+files = sorted(glob.glob("examples/*.yaml"))
 if not files:
     print("  FAIL  no YAML document found to parse")
     sys.exit(1)
@@ -53,7 +51,7 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
-section "Sketches map one-to-one onto JSON"
+section "Documents map one-to-one onto JSON"
 # ADR-0002 D16: every object must map onto JSON, and anchors, aliases and merge
 # keys are forbidden outright. Both checks have to happen before safe_load_all
 # resolves them away: by the time it returns, an alias is an ordinary dict.
@@ -97,7 +95,7 @@ def walk(v, path, f):
         return
     print(f"  FAIL  {f}: {path}: {type(v).__name__} has no JSON equivalent ({v!r})")
     rc = 1
-files = sorted(glob.glob("examples/*.yaml") + glob.glob("docs/examples/**/*.yaml", recursive=True))
+files = sorted(glob.glob("examples/*.yaml"))
 if not files:
     print("  FAIL  no YAML document found to map onto JSON")
     sys.exit(1)
@@ -113,9 +111,7 @@ JSONABLE
 fi
 
 section "Examples validate against the schema"
-# The real gate. Every document in examples/ must satisfy the schema. The
-# sketches under docs/examples/ are deliberately outside it — see AGENTS.md >
-# Test Model — because they illustrate ideas the format does not have.
+# The real gate. Every document in examples/ must satisfy the schema.
 if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the schema gate cannot run"
 else
@@ -385,31 +381,6 @@ if rc == 0:
     print(f"  ok    no non-English text in {len(files)} files")
 sys.exit(rc)
 ENGLISH
-fi
-
-# ---------------------------------------------------------------------------
-section "Examples are labelled as sketches"
-# Nothing validates the sketches, so each one must say so — otherwise a reader
-# mistakes an illustration for syntax.
-#
-# Two ways to find nothing, and they are not the same thing. A missing docs/ means the
-# whole ideas area was dropped, which is a supported operation and leaves nothing to
-# label. A docs/examples/ that exists and holds no YAML means the glob stopped matching,
-# which is a broken check reporting a clean scan. The first is ok, the second is FAIL.
-if [ ! -d docs ]; then
-  ok "docs/ is absent — the ideas area was dropped, so there is nothing to label"
-else
-  sketches=0
-  for f in docs/examples/*.yaml; do
-    [ -e "$f" ] || continue
-    sketches=$((sketches + 1))
-    if head -6 "$f" | grep -qi 'sketch'; then
-      ok "$f"
-    else
-      bad "$f does not announce itself as a sketch in its first 6 lines"
-    fi
-  done
-  [ "$sketches" -gt 0 ] || bad "docs/examples/ holds no sketch to check"
 fi
 
 # ---------------------------------------------------------------------------

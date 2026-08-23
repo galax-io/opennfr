@@ -296,7 +296,7 @@
               }
             }
           },
-          "description": "reference/glossary.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
+          "description": "GLOSSARY.md permits only rate and count over a ratio. A percentile of a fraction has no meaning, and nothing downstream could evaluate it."
         }
       ],
       "examples": [
@@ -361,7 +361,7 @@
         "{iteration}/s",
         "{vu}"
       ],
-      "description": "Closed list, from reference/units.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
+      "description": "Closed list, from README.md. ADR-0002 D15 chose an enumeration over full UCUM precisely so a typo like `mss` is a parse error rather than a disagreement between consumers."
     },
     "op": {
       "enum": [

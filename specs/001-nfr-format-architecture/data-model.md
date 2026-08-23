@@ -46,7 +46,7 @@ A named job on the path from a requirement to an outcome. Roles are contracts, n
 see [contracts/component-roles.md](contracts/component-roles.md) for the full contracts.
 
 **Provenance, because this is the feature's most load-bearing table.** These roles are
-**authored here**, not inherited. [compatibility.md](../../reference/compatibility.md) § Layering
+**authored here**, not inherited. `reference/compatibility.md` § Layering
 lists four layers, but it gives four *responsibilities* and zero contracts — no inputs, no
 outputs, no forbidden dependencies — and it sits under `## Requirements for the Go
 implementation`, which that document classifies as a proposal. FR-013 makes component roles
@@ -92,7 +92,7 @@ requirement → criterion → verdict → gate → outcome
 ```
 
 **The endpoint matters.** The specification originally ended the trace at *verdict*, but in
-[GLOSSARY.md](../../reference/glossary.md) a `Verdict` is the result of checking **one** criterion;
+`reference/glossary.md` a `Verdict` is the result of checking **one** criterion;
 what a CI job prints is an `Outcome`, the aggregated result of the whole run. Ending at
 `verdict` stops one component short of `gate` — which User Story 1's own acceptance scenario
 requires to be named. See [research.md](research.md) § D5.
