@@ -255,6 +255,74 @@ SELFCHECK
 fi
 
 # ---------------------------------------------------------------------------
+section "Examples are assertable by Gatling"
+# An example nothing can run teaches a shape nobody can use. Gatling is the only target
+# with a waiting counterparty, so the published corpus is held to what its assertion DSL
+# can express — see specs/004-strip-to-schema/contracts/gatling-reach.md, sourced to
+# Gatling v3.15.1 and checked 2026-08-20.
+#
+# This reads examples/ and NEVER the schema. The format is deliberately wider than the
+# corpus: http.route, sum and neq are valid and no example uses them. Extending this
+# section to read the schema would be the format narrowing to one tool, which the
+# constitution's Principle VI forbids.
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the Gatling reach gate cannot run"
+else
+  python3 - <<'GATLING' || fail=1
+import glob, sys
+try:
+    import yaml
+except ImportError as e:
+    print(f"  FAIL  {e.name} not installed (pip install pyyaml)"); sys.exit(1)
+
+# Assertion scope is Global, ForAll, or Details(parts) — a path of recorded group and
+# request names. Not a route, not a method, not a status code.
+SELECTIONS = [set(), {"loadtest.request.name"}, {"loadtest.group.name", "loadtest.request.name"}]
+METRIC = "http.client.request.duration"      # responseTime; nothing else is addressable
+NO_AGG = {"sum"}                             # responseTime has no sum, and none is derivable
+NO_OP  = {"neq"}                             # conditions have no negation
+UNITS  = {"ms", "s", "%", "1", "{request}", "{request}/s"}
+
+rc, checked = 0, 0
+files = sorted(glob.glob("examples/*.yaml"))
+if not files:
+    print("  FAIL  examples/ holds no document to check")
+    sys.exit(1)
+for f in files:
+    for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
+        if not isinstance(doc, dict):
+            continue
+        for r in doc.get("spec", {}).get("requirements", []) or []:
+            sel = set(r.get("selector") or {})
+            for section in ("guards", "criteria"):
+                for p in r.get(section) or []:
+                    checked += 1
+                    why = []
+                    if sel not in SELECTIONS:
+                        why.append(f"selector {sorted(sel)} is not an assertion path")
+                    if p.get("metric", METRIC) != METRIC:
+                        why.append(f"metric {p['metric']} is not addressable")
+                    if p.get("aggregation") in NO_AGG:
+                        why.append(f"aggregation {p['aggregation']} has no equivalent")
+                    if p.get("op") in NO_OP:
+                        why.append(f"op {p['op']} has no equivalent")
+                    if p.get("unit") not in UNITS:
+                        why.append(f"unit {p['unit']} is not reachable")
+                    if why:
+                        cid = p.get("name") or p.get("aggregation")
+                        print(f"  FAIL  {f}: {r.get('name')}/{section}/{cid}: " + "; ".join(why))
+                        rc = 1
+# A scan that checked nothing reads exactly like a scan that passed.
+if checked == 0:
+    print("  FAIL  no predicate found to check — the scan is broken")
+    sys.exit(1)
+if rc == 0:
+    print(f"  ok    {checked} predicates, all assertable by Gatling")
+sys.exit(rc)
+GATLING
+fi
+
+# ---------------------------------------------------------------------------
 section "Internal markdown links resolve"
 missing=0
 found=0

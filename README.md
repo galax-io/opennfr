@@ -60,7 +60,8 @@ tool's documentation, August 2026.)*
 
 ## A document
 
-The smallest thing the schema accepts:
+This is [`examples/one-request-is-fast.yaml`](examples/one-request-is-fast.yaml), whole — the
+smallest thing the schema accepts:
 
 ```yaml
 apiVersion: opennfr.io/v1
@@ -485,6 +486,37 @@ for e in V(schema).iter_errors(yaml.safe_load(open(sys.argv[1]))):
 - **Anything about a run.** It validates a document. Nothing here executes one.
 
 ---
+
+## What any tool can actually run
+
+The format is deliberately wider than anything available can execute, and the gap is worth
+knowing before you write a document you cannot run.
+
+**Gatling** is the target with a waiting counterparty, so it is the one this repository holds its
+examples to. Its assertion scope is `Global`, `ForAll`, or `Details(parts)` — a path of recorded
+group and request names. *(Sourced to Gatling v3.15.1's `AssertionSupport.scala`,
+`AssertionBuilders.scala`, `AssertionPathParts.scala` and `AssertionModel.scala`; checked
+2026-08-20.)*
+
+| | Gatling can assert | It cannot |
+|---|---|---|
+| **Selection** | `{}`, `{loadtest.request.name: X}`, `{loadtest.group.name: G, loadtest.request.name: X}` | `http.route`, `http.request.method`, `http.response.status_code`, any other attribute |
+| **Metric** | `http.client.request.duration` — as `responseTime` | body sizes, and every other metric |
+| **Over a metric** | `p50`…`p99.9`, `max`, `min`, `avg`, `stddev` — target is `Int` milliseconds, so a fractional millisecond is not representable | `sum` |
+| **Over the requests** | `count` (`allRequests`), `rate` (`requestsPerSec`) | |
+| **Over a fraction** | `rate` and `count`, with `bad` or `good` — as `failedRequests` / `successfulRequests`, percent or count | a percentile, which the schema rejects anyway |
+| **Operators** | `lt`, `lte`, `gt`, `gte`, `eq` (as `is`) | `neq` — there is no negating condition |
+| **Units** | `ms`, `s`, `%`, `1`, `{request}`, `{request}/s` | the rest, none reachable through an assertable statistic |
+
+It also cannot abort a run on a violated assertion, and it has one place it can pass on absent
+data: a `ForAll` assertion expands to the requests observed, so if none were observed it yields
+zero results and the run exits successfully — nothing failed because nothing was checked. A
+`details(...)` path that matches nothing behaves the opposite way and fails.
+
+**The published corpus is restricted to that. The format is not.** `http.route`, `sum` and `neq`
+are valid and no example uses them, because an example nothing can execute teaches a shape nobody
+can use. `scripts/verify.sh` enforces the restriction on `examples/` and never reads the schema —
+narrowing the format to one tool's feature set is the thing this project exists not to do.
 
 ## What is not in the format yet
 
