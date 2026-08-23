@@ -26,38 +26,30 @@ not introduced.
 ## 2. Every example is wholly assertable by Gatling
 
 ```bash
-python3 - <<'PY'
-import glob, yaml
-SEL = [set(), {"loadtest.request.name"}, {"loadtest.group.name", "loadtest.request.name"}]
-rc = 0
-for f in sorted(glob.glob("examples/*.yaml")):
-    for r in yaml.safe_load(open(f))["spec"]["requirements"]:
-        sel = set(r["selector"])
-        for section in ("guards", "criteria"):
-            for p in r.get(section) or []:
-                bad = []
-                if sel not in SEL: bad.append(f"selector {sorted(sel)}")
-                if p.get("metric", "http.client.request.duration") != "http.client.request.duration":
-                    bad.append("metric " + p["metric"])
-                frac = "bad" in p or "good" in p
-                agg = p["aggregation"]
-                if frac and agg not in {"rate", "count"}: bad.append("agg " + agg)
-                if not frac and agg == "sum": bad.append("agg sum")
-                if p["op"] == "neq": bad.append("op neq")
-                if p["unit"] not in {"ms", "s", "%", "1", "{request}", "{request}/s"}:
-                    bad.append("unit " + p["unit"])
-                if bad:
-                    print(f"UNRUNNABLE {f} {r['name']}/{section}: {'; '.join(bad)}"); rc = 1
-print("all predicates assertable by Gatling" if rc == 0 else "FAILED")
-raise SystemExit(rc)
-PY
+bash scripts/verify.sh 2>&1 | sed -n '/assertable by Gatling/,/^$/p'
 ```
 
-Expected: `all predicates assertable by Gatling`. On the tree as it stands today this prints eight
-`UNRUNNABLE` lines — that is the defect being fixed, and running it before the change is the
-cheapest way to see it.
+Expected: `ok  N predicates, all assertable by Gatling`, with N matching the number of predicates
+in `examples/`.
 
-*Covers SC-002. The rules it applies are `contracts/gatling-reach.md`.*
+**This page does not carry its own copy of the rules.** An earlier draft did — a second script
+restating the selector set, the metric name and the unit list — and that is two sources for one
+decision in a change whose whole argument is that two sources drift. The rules live in
+`scripts/verify.sh`, sourced from [contracts/gatling-reach.md](contracts/gatling-reach.md); this
+step reads what the gate found.
+
+To see the check fail, give an example something Gatling cannot express and run it again:
+
+```bash
+sed -i.bak 's|loadtest.request.name: POST /checkout|http.route: /api/v1/checkout|' examples/one-request-is-fast.yaml
+bash scripts/verify.sh 2>&1 | sed -n '/assertable by Gatling/,/^$/p'
+mv examples/one-request-is-fast.yaml.bak examples/one-request-is-fast.yaml
+```
+
+Expected: `FAIL … selector ['http.route'] is not an assertion path`. On the tree as it stood
+before this feature, the unmodified corpus produced eight such lines.
+
+*Covers SC-002.*
 
 ## 3. `docs/` is still isolated, and still removable
 

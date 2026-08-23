@@ -55,11 +55,17 @@ Over a fraction, with `bad` or `good`:
 
 | | Gatling | |
 |---|---|---|
-| `rate` with `bad` | `failedRequests.percent` | **can** — percent, 0..100, not a 0..1 rate |
-| `count` with `bad` | `failedRequests.count` | **can** |
-| `rate` with `good` | `successfulRequests.percent` | **can** |
-| `count` with `good` | `successfulRequests.count` | **can** |
+| `rate` with `bad: {error.type: "*"}` | `failedRequests.percent` | **can** — percent, 0..100, not a 0..1 rate |
+| `count` with `bad: {error.type: "*"}` | `failedRequests.count` | **can** |
+| any narrower `bad` — a status code, an error class | — | **cannot**. `failedRequests` counts KO and nothing else; a filtered numerator has no correspondence |
+| `bad: {}` | — | **cannot**. Its numerator is every selected request, which is the denominator |
+| `good` in any form | — | **cannot**. `successfulRequests` exists, but a selector matches presence and never absence, so no OpenNFR fraction corresponds to it |
 | a percentile of a fraction | — | rejected by the schema before it reaches a target |
+
+**The numerator is part of the correspondence, not a detail of it.** An earlier draft of this
+contract listed the fraction shape without constraining `bad`, and the gate written from it
+accepted `bad: {}` and arbitrary status-code filters — both of which would have to be
+approximated at render time, which Principle III forbids.
 
 ## Operators
 
@@ -71,14 +77,20 @@ Over a fraction, with `bad` or `good`:
 
 ## Units
 
-| OpenNFR | Gatling expects | |
-|---|---|---|
-| `ms` | milliseconds, `Int` | direct |
-| `s` | milliseconds | ×1000 |
-| `%` | percent, 0..100 | direct |
-| `1` | percent | ×100 |
-| `{request}/s` | `requestsPerSec`, `Double` | direct |
-| `{request}` | count, `Int` | direct |
+Units are per statistic, not a shared pool: a unit valid for one statistic is not thereby valid
+for another. A percentile in `%` is not a Gatling assertion.
+
+| Statistic | Accepts | Native | Target |
+|---|---|---|---|
+| `responseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
+| `failedRequests.percent` | `%`, `1` | percent, 0..100 | `Double` |
+| `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Int`** |
+| `requestsPerSec` | `{request}/s` | per second | `Double` |
+
+**Where the target is an `Int`, the threshold converted to the native unit must be a whole
+number.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
+fine. Rounding is not an option — it would move the bar silently, which is the approximation
+Principle III forbids.
 | `ns`, `us`, `min`, `h`, `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
 
 ## Two things Gatling cannot do at all
@@ -92,8 +104,12 @@ Over a fraction, with `bad` or `good`:
 
 ## How this contract is applied
 
-The corpus is checked predicate by predicate against these tables. A mechanical check is possible
-and is what SC-002 asks for: for each predicate, the selector's key set must be one of the three
-in **Selection**; `metric` if present must be `http.client.request.duration`; the aggregation must
-be in the row matching the predicate's shape; the operator must not be `neq`; the unit must be
-reachable.
+`scripts/verify.sh` § *Examples are assertable by Gatling* implements these tables and is the
+only implementation — this page is the source, the gate is the check, and nothing else restates
+either.
+
+**The tables partition each axis.** A predicate is assertable only if it matches a row exactly;
+anything unlisted is rejected. That direction is load-bearing. The first implementation was
+written as a denylist — reject `sum`, reject `neq`, accept the rest — and defaulting to *allow*
+is what let four unrenderable shapes through: a filtered `bad`, an empty `bad`, a percentile in
+percent, and a fractional millisecond. A gap in these tables must fail the corpus, not pass it.

@@ -14,6 +14,12 @@ what it previously forbade".
      reference/, so the requirement becomes an argued issue plus a glossary entry recording what
      was rejected. Both instruments already existed under Principle I; nothing new is introduced.
 
+     Four further clauses made an ADR mandatory and are redirected in the same amendment, because
+     leaving any of them would be the defect this amendment exists to remove, one file over:
+     Principle I's rename rule, Principle IV's ADR-status rule, Principle V's custom-decoding
+     justification, and the Development Workflow's contradict-an-ADR rule. A rule that cannot be
+     obeyed is not a rule.
+
 Travelling with other work, disclosed as the amendment procedure requires: this ships in the
 pull request that reduces the repository to a schema, examples and one field description. What
 breaks without it is not hypothetical — Principle VII would bind against a file that no longer
@@ -58,8 +64,8 @@ harder to withdraw than a feature.
   schema, or an implementation.
 - Every glossary entry MUST record at least one rejected alternative and the reason it
   was rejected. The rejection outlives the term it protects.
-- Renaming a term MUST update the glossary and the ADR that argued for it in the same
-  change. Contradicting an ADR elsewhere is not permitted; amend it instead.
+- Renaming a term MUST update `GLOSSARY.md` in the same change, and the entry MUST record
+  what the old term got wrong. The argument for a rename lives in its issue.
 - Naming disagreements MUST be argued in an issue before files change.
 
 **Rationale**: every added word is a permanent cost paid by every reader and every
@@ -106,8 +112,8 @@ does not happen. All three have happened here.
 ### IV. Honest Status
 
 - A document MUST NOT read as more settled than it is. Notes are labelled as notes.
-- An ADR's status MUST reflect reality: `proposed` until something validates or
-  implements it.
+- A construct's status MUST reflect reality. Nothing may be described as working, checked
+  or supported until something in this repository demonstrates it.
 - Verified facts MUST be separated from speculation, and the reader MUST be able to tell
   which is which without reading the git history.
 - A claim about an external tool MUST be checked against that tool's documentation and
@@ -121,8 +127,8 @@ contributions and, worse, invites someone to build against names that will chang
 - Format fields MUST be validatable by a schema without a bespoke parser.
 - String DSLs and embedded expressions are FORBIDDEN in the format's own documents.
 - Value sets MUST be closed enumerations rather than open grammars.
-- Any construct that would require custom decoding logic MUST be justified in an ADR,
-  naming what it buys and what it costs.
+- Any construct that would require custom decoding logic MUST be justified in the issue that
+  proposes it, naming what it buys and what it costs.
 
 **Rationale**: a grammar inside a specification has to be reimplemented, identically, in
 every backend that reads it — and it never is. This is precisely where the string-DSL
@@ -247,7 +253,7 @@ adds only the constraints that outrank convenience:
   a closing link, as enforced by `scripts/check-linkage.sh`.
 - A PR that changes a term MUST update `GLOSSARY.md` in the same PR. Vocabulary
   drift between a change and its documentation is not acceptable, however brief.
-- A PR that contradicts an ADR MUST amend that ADR instead.
+- A PR that contradicts a decision recorded in `GLOSSARY.md` MUST amend that entry instead.
 
 ## Governance
 

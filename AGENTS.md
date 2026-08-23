@@ -36,7 +36,7 @@ The schema decides; `README.md` explains it and is the only document that descri
 
 ## Test Model
 
-`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, checks each is assertable by Gatling, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve, that no documentation links into `docs/`, and that the docs stayed English. `examples/` is the validated corpus and the only place documents are published.
+`scripts/verify.sh` is the gate. It validates every document in `examples/` against `schema/opennfr.io/v1/`, checks each predicate matches a row of the Gatling capability table exactly, rejects YAML that cannot map onto JSON (anchors, aliases, merge keys, non-finite numbers), and checks that links resolve, that `docs/` is markdown-only with every idea stating its condition and nothing outside linking in, and that the docs stayed English. `examples/` is the validated corpus and the only place documents are published.
 
 ---
 

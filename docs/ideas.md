@@ -1,6 +1,6 @@
 # Ideas
 
-**Nothing here is documentation.** Every entry is a construct the format does not have — something
+Nothing here is documentation. Every entry is a construct the format does not have — something
 to be built, reworked or dropped. What the format *is* lives at the repository root, and this file
 is deliberately not linked from there.
 
@@ -30,6 +30,8 @@ A `ratio` also had to name a metric it did not measure — an error-rate require
 `metric: http.client.request.duration`, because a histogram's count is the request count and
 OpenTelemetry defines no HTTP client request counter.
 
+*Would need*: an OpenTelemetry request counter, so a fraction stops having to name a metric it does not measure — and a reason to reverse ADR-0003's split, which none has appeared.
+
 **`window`** — measure only the steady phase, excluding ramp-up and ramp-down. Blocked on a
 `loadtest.phase` attribute that nothing emits. A construct whose only meaning comes from an
 attribute no target produces is a field that always matches everything, which is a silent green
@@ -47,24 +49,32 @@ its cost: an early draft's `onNoData: fail` meant a run in which nothing failed 
 carrying `error.type`, hence no data, hence a failed run — the system was perfect and the gate said
 no.
 
+*Would need*: somebody to hit the wall: a real run where one failed criterion should not have failed the build, argued in an issue. Until then the knob is a policy language inside a format whose argument is that it has none.
+
 **`enforcement` + `onViolation`** — where a criterion is checked, and whether to abort. Both
 describe what a target can do, not what a requirement says. A requirement carrying them names a
 target by implication, which the constitution forbids. Where a target can abort, that is a fact
 about the target.
+
+*Would need*: a target's description to exist, so the capability can be declared where it belongs. Neither field can return to the requirement itself, whatever else changes.
 
 **`defaults` and `indicatorRef`** — sugar. `defaults` buys brevity and costs merge semantics: what
 happens when a requirement overrides one key of an inherited map, and does a reader know without
 checking. The duplication it was meant to remove is largely gone anyway, since the selector is now
 written once per requirement.
 
+*Would need*: a document where the duplication actually hurts after ADR-0003, plus merge semantics stated so precisely that two consumers cannot implement them differently. The second is the hard half.
+
 **The load profile** — stages, arrival rate, duration. *Not a "yet".* The tools do not agree on what
 an open or a closed workload model does under degradation, so borrowing the construct would import
 that disagreement into a format whose only asset is that one document means one thing. The word
 `workload` is reserved and unused so it is not consumed by the wrong meaning first.
 
+*Would need*: the surveyed tools to agree on what an open or a closed model does under degradation. That is not something this format can bring about, which is why this is not a "yet".
+
 ## A result document
 
-`Verdict` — the result of checking one predicate: `pass | warn | fail | noData | skipped`. `Outcome`
+**A result document.** `Verdict` — the result of checking one predicate: `pass | warn | fail | noData | skipped`. `Outcome`
 — the aggregate: `pass | warn | fail | inconclusive`. `EvaluationReport` — the schema that would
 carry them, using **existing** OpenTelemetry attributes for run identity (`test.suite.name`,
 `cicd.pipeline.run.id`, `service.name`, `deployment.environment.name`) rather than fields of its
@@ -89,17 +99,23 @@ document: an assertion is a generated artifact, not a source of truth, and the m
 format the format is nailed to one tool's semantics. The strongest constraint these notes have
 produced, and the one that has survived every change of direction.
 
+*Would need*: nothing. This one is settled, and it is recorded here so the next person does not reopen it.
+
 **Adapter** — renames metrics to canonical names, converts units, renames the tool's labelling into
 attributes, and renders criteria into native assertions. Always required, including for tools with
 built-in OTLP output, because OTLP is a transport and not a vocabulary. Units are where an adapter
 is most dangerous: tools report milliseconds where the conventions require seconds, and an error
 there is three orders of magnitude wide.
 
+*Would need*: something to render or ingest at all. No adapter can be written before there is a renderer for it to be part of.
+
 **MetricMapping** — the declarative table binding one tool's names to canonical ones. Support as
 data, not code: the alternative caps the tool list at maintainer bandwidth. The open problem is the
 failure signal — k6 signals a failed request with a separate metric, JMeter with a boolean column,
 Gatling with KO, and expressing that declaratively without reinventing a rules DSL inside a format
 whose argument is that it has no DSL is unsolved.
+
+*Would need*: the failure signal solved — a declarative way to say "an error happened" across tools that each signal it differently, without a rules DSL. That is the open problem, not a detail of the file format.
 
 **The conformance ladder** — `report` / `assert` / `abort`, cumulative levels describing how deeply
 a tool is integrated, where `report` was a complete mode rather than a degraded one. Retired by
@@ -108,10 +124,14 @@ evaluation out of scope the bottom rung guarantees nothing anything can consume.
 is not an ordinal — what a target can assert, what it cannot, how it names things and how its units
 convert are declared per capability, each claim dated and sourced.
 
+*Would need*: post-run evaluation to return to scope, which would make a bottom rung mean something again. Nothing else revives an ordinal.
+
 **A reference implementation.** Anticipated in Go and never started. What survives is the technique
 rather than the design: pointers for mutually exclusive variants so no custom unmarshaler is
 needed, `KnownFields(true)` so an unknown field is an error, `float64` throughout with no decimal
 strings, and a conversion table rather than a UCUM parser.
+
+*Would need*: a specification that names the role it fills, per the process this repository already follows. The technique above is not a design and does not substitute for one.
 
 ## The `loadtest.*` registry
 
@@ -132,12 +152,15 @@ Deliberately absent from it: `loadtest.throughput` (derived — `aggregation: ra
 `http.client.request.duration`), `loadtest.apdex` (composite), `loadtest.run.id`
 (`cicd.pipeline.run.id` already exists).
 
-Two names from this registry — `loadtest.request.name` and `loadtest.group.name` — are **not** ideas
+**The rest of the registry** stays an idea. two names from this registry — `loadtest.request.name` and `loadtest.group.name` — are **not** ideas
 any more. Every published example depends on them, and `README.md` defines them and records the debt.
+
+*Would need*: submission upstream, and something that emits the names. A namespace nobody has
+claimed and nothing publishes is a vocabulary of one, which is what the debt in `README.md` says.
 
 ## The monitoring direction
 
-The claim: one requirement document, unchanged, turned into both a query returning the canonical
+**One document, four backends.** The claim: one requirement document, unchanged, turned into both a query returning the canonical
 measurement and a native monitoring definition, for Datadog, Prometheus, VictoriaMetrics and
 InfluxDB. **Nothing verifies any part of it**, and it is stated so it can be argued with rather than
 because it is believed.

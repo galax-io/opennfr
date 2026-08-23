@@ -261,6 +261,10 @@ section "Examples are assertable by Gatling"
 # can express — see specs/004-strip-to-schema/contracts/gatling-reach.md, sourced to
 # Gatling v3.15.1 and checked 2026-08-20.
 #
+# Capabilities PARTITION each axis: a predicate is assertable only if it matches a row
+# below exactly. Anything unlisted is rejected, never allowed by default — a denylist
+# would bless the next construct added to the schema without anyone noticing.
+#
 # This reads examples/ and NEVER the schema. The format is deliberately wider than the
 # corpus: http.route, sum and neq are valid and no example uses them. Extending this
 # section to read the schema would be the format narrowing to one tool, which the
@@ -270,18 +274,69 @@ if ! command -v python3 >/dev/null 2>&1; then
 else
   python3 - <<'GATLING' || fail=1
 import glob, sys
+from fractions import Fraction
 try:
     import yaml
 except ImportError as e:
     print(f"  FAIL  {e.name} not installed (pip install pyyaml)"); sys.exit(1)
 
 # Assertion scope is Global, ForAll, or Details(parts) — a path of recorded group and
-# request names. Not a route, not a method, not a status code.
+# request names. Not a route, not a method, not a status code. Path parts are strings.
 SELECTIONS = [set(), {"loadtest.request.name"}, {"loadtest.group.name", "loadtest.request.name"}]
-METRIC = "http.client.request.duration"      # responseTime; nothing else is addressable
-NO_AGG = {"sum"}                             # responseTime has no sum, and none is derivable
-NO_OP  = {"neq"}                             # conditions have no negation
-UNITS  = {"ms", "s", "%", "1", "{request}", "{request}/s"}
+
+# responseTime is the only addressable metric family.
+METRIC = "http.client.request.duration"
+
+# `bad` maps to failedRequests, which counts KO and nothing else, so the only numerator
+# with an exact correspondence is "an error happened". A narrower filter — a status code,
+# an error class — has no equivalent, and an empty one would count every request.
+BAD = {"error.type": "*"}
+
+# Conditions: lt, lte, gt, gte, between, around, deviatesAround, is, in. `eq` is `is`;
+# there is no negation, so `neq` has no equivalent.
+OPS = {"lt": "lt", "lte": "lte", "gt": "gt", "gte": "gte", "eq": "is"}
+
+# The partition. (shape, aggregation) -> what Gatling asserts, in which units, and
+# whether the target is an Int — a fractional value against an Int target is
+# unrenderable rather than roundable, and rounding would move the bar silently.
+TIME = {"ms": Fraction(1), "s": Fraction(1000)}          # -> native milliseconds
+SHARE = {"%": Fraction(1), "1": Fraction(100)}           # -> native percent
+COUNT = {"{request}": Fraction(1)}
+PERSEC = {"{request}/s": Fraction(1)}
+def percentile(a): return a.startswith("p") and a[1:].replace(".", "", 1).isdigit()
+
+TABLE = {
+    "metric": {
+        "PERCENTILE": ("responseTime.percentile", TIME, True),
+        "max":        ("responseTime.max",        TIME, True),
+        "min":        ("responseTime.min",        TIME, True),
+        "avg":        ("responseTime.mean",       TIME, True),
+        "stddev":     ("responseTime.stdDev",     TIME, True),
+        "count":      ("allRequests.count",       COUNT, True),
+        "rate":       ("requestsPerSec",          PERSEC, False),
+    },
+    "fraction": {
+        "rate":  ("failedRequests.percent", SHARE, False),
+        "count": ("failedRequests.count",   COUNT, True),
+    },
+    "requests": {
+        "count": ("allRequests.count", COUNT, True),
+        "rate":  ("requestsPerSec",    PERSEC, False),
+    },
+}
+
+def shape_of(p, why):
+    if "good" in p:
+        # successfulRequests exists, but a selector matches presence and never absence,
+        # so no OpenNFR fraction corresponds to it. See README > Names.
+        why.append("`good` has no expressible numerator: a selector cannot say an attribute is absent")
+        return None
+    if "bad" in p:
+        if p["bad"] != BAD:
+            why.append(f"bad {p['bad']} is not `{{error.type: \"*\"}}`; failedRequests counts KO and nothing else")
+            return None
+        return "fraction"
+    return "metric" if "metric" in p else "requests"
 
 rc, checked = 0, 0
 files = sorted(glob.glob("examples/*.yaml"))
@@ -289,27 +344,51 @@ if not files:
     print("  FAIL  examples/ holds no document to check")
     sys.exit(1)
 for f in files:
-    for doc in yaml.safe_load_all(open(f, encoding="utf-8")):
+    with open(f, encoding="utf-8") as fh:
+        docs = list(yaml.safe_load_all(fh))
+    for doc in docs:
         if not isinstance(doc, dict):
             continue
         for r in doc.get("spec", {}).get("requirements", []) or []:
-            sel = set(r.get("selector") or {})
+            sel = r.get("selector") or {}
             for section in ("guards", "criteria"):
                 for p in r.get(section) or []:
                     checked += 1
                     why = []
-                    if sel not in SELECTIONS:
+
+                    if set(sel) not in SELECTIONS:
                         why.append(f"selector {sorted(sel)} is not an assertion path")
+                    elif any(not isinstance(v, str) for v in sel.values()):
+                        why.append("an assertion path part must be a string")
+
                     if p.get("metric", METRIC) != METRIC:
                         why.append(f"metric {p['metric']} is not addressable")
-                    if p.get("aggregation") in NO_AGG:
-                        why.append(f"aggregation {p['aggregation']} has no equivalent")
-                    if p.get("op") in NO_OP:
-                        why.append(f"op {p['op']} has no equivalent")
-                    if p.get("unit") not in UNITS:
-                        why.append(f"unit {p['unit']} is not reachable")
+
+                    shape = shape_of(p, why)
+                    agg = p.get("aggregation")
+                    row = None
+                    if shape:
+                        key = "PERCENTILE" if percentile(str(agg)) else agg
+                        row = TABLE[shape].get(key)
+                        if row is None:
+                            why.append(f"aggregation {agg} over a {shape} has no equivalent")
+
+                    if p.get("op") not in OPS:
+                        why.append(f"op {p.get('op')} has no equivalent")
+
+                    if row:
+                        native, units, integral = row
+                        factor = units.get(p.get("unit"))
+                        if factor is None:
+                            why.append(f"unit {p.get('unit')} is not a unit of {native}")
+                        elif integral:
+                            value = Fraction(str(p["threshold"])) * factor
+                            if value.denominator != 1:
+                                why.append(f"threshold {p['threshold']} {p['unit']} is {value} for {native}, "
+                                           f"whose target is an integer")
+
                     if why:
-                        cid = p.get("name") or p.get("aggregation")
+                        cid = p.get("name") or agg
                         print(f"  FAIL  {f}: {r.get('name')}/{section}/{cid}: " + "; ".join(why))
                         rc = 1
 # A scan that checked nothing reads exactly like a scan that passed.
@@ -353,42 +432,86 @@ fi
 
 # ---------------------------------------------------------------------------
 section "docs/ is isolated"
-# docs/ holds ideas: constructs the format does not have, each of which will be built,
-# reworked or dropped. Real documentation must not link into it, or dropping one costs a
-# sweep through files that were never about it. Links the other way are fine — an argument
-# about a construct has to name what it would change.
+# Constitution Principle VIII, all three clauses, checked rather than asserted:
+#   - docs/ holds ideas and nothing else — markdown only, so nothing there can be a
+#     document the format's own gates would otherwise have to validate;
+#   - nothing outside docs/ links into it, so `git rm -r docs` breaks nothing;
+#   - every idea states what would have to become true before it could enter the format.
 #
-# The property this buys is runnable: `git rm -r docs && bash scripts/verify.sh` stays PASS.
-# Outside references name a path in prose, inside a code span, never as link syntax.
-leaked=0
-scanned=0
-while IFS= read -r line; do
-  src="${line%%:*}"
-  target="${line#*:}"
-  # specs/ is the spec-kit working record, read as history and left as written — the
-  # constitution says so explicitly. It is not documentation and is not held to this rule.
-  case "$src" in ./docs/*|./specs/*) continue ;; esac
-  scanned=$((scanned + 1))
-  base="$(dirname "$src")"
-  path="${target%%#*}"
-  [ -z "$path" ] && continue
-  case "$path" in *'<'*|*'>'*|*'{'*) continue ;; esac
-  resolved="$(cd "$base" 2>/dev/null && printf '%s' "$(python3 -c 'import os,sys; print(os.path.normpath(os.path.join(os.getcwd(), sys.argv[1])))' "$path")")"
-  case "$resolved" in
-    "$PWD"/docs|"$PWD"/docs/*)
-      bad "$src links into docs/ -> $target"
-      leaked=1 ;;
-  esac
-done < <(
-  grep -rn --include='*.md' -oE '\]\([^)]+\)' . \
-    | grep -v '^\./\.' \
-    | sed -E 's/^([^:]+):[0-9]+:\]\((.*)\)$/\1:\2/' \
-    | grep -vE ':(https?|mailto):'
-)
-if [ "$scanned" -eq 0 ]; then
-  bad "no links found outside docs/ — the isolation scan is broken"
-elif [ "$leaked" -eq 0 ]; then
-  ok "no documentation links into docs/ ($scanned links checked)"
+# specs/ is exempt and it is the ONLY exemption: it is the spec-kit working record, read
+# as history and left as written. Dot-directories are NOT exempt — .github/ and
+# .specify/ hold markdown that a reader follows, and a link from there into docs/ would
+# dangle the moment the ideas area is dropped.
+if ! command -v python3 >/dev/null 2>&1; then
+  bad "python3 not found — the isolation gate cannot run"
+else
+  python3 - <<'ISOLATION' || fail=1
+import os, re, subprocess, sys
+
+def tracked():
+    out = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                         capture_output=True, check=True).stdout
+    return sorted(f for f in out.decode("utf-8").split("\0") if f)
+
+try:
+    files = tracked()
+except (OSError, subprocess.CalledProcessError) as e:
+    print(f"  FAIL  cannot enumerate files ({e}) — the isolation gate cannot run")
+    sys.exit(1)
+
+rc = 0
+
+# --- docs/ holds markdown and nothing else -----------------------------------------
+strays = [f for f in files if f.startswith("docs/") and not f.endswith(".md")]
+for f in strays:
+    print(f"  FAIL  {f}: docs/ holds ideas and nothing else — markdown only")
+    rc = 1
+
+# --- every idea says what would have to become true ---------------------------------
+ideas = "docs/ideas.md"
+if os.path.exists(ideas):
+    text = open(ideas, encoding="utf-8").read()
+    entries = re.findall(r"^\*\*(.+?)\*\*", text, re.M)
+    needs = text.count("*Would need*")
+    if not entries:
+        print(f"  FAIL  {ideas}: no idea found — the entry scan is broken")
+        rc = 1
+    elif needs != len(entries):
+        print(f"  FAIL  {ideas}: {len(entries)} ideas, {needs} say what would have to "
+              f"become true — Principle VIII requires one each")
+        rc = 1
+
+# --- nothing outside docs/ links into it --------------------------------------------
+LINK = re.compile(r"\]\(([^)]+)\)")
+root = os.getcwd()
+scanned = 0
+sources = [f for f in files
+           if f.endswith(".md") and not f.startswith(("docs/", "specs/"))]
+if not sources:
+    print("  FAIL  no markdown found outside docs/ — the isolation scan is broken")
+    sys.exit(1)
+for f in sources:
+    base = os.path.dirname(f)
+    for target in LINK.findall(open(f, encoding="utf-8").read()):
+        if target.startswith(("http://", "https://", "mailto:", "#")):
+            continue
+        path = target.split("#")[0]
+        if not path or any(c in path for c in "<>{"):
+            continue
+        scanned += 1
+        # Pure path arithmetic: no chdir, so nothing can silently fail to resolve.
+        resolved = os.path.normpath(os.path.join(root, base, path))
+        if resolved == os.path.join(root, "docs") or resolved.startswith(os.path.join(root, "docs") + os.sep):
+            print(f"  FAIL  {f} links into docs/ -> {target}")
+            rc = 1
+if scanned == 0:
+    print("  FAIL  no links found outside docs/ — the isolation scan is broken")
+    sys.exit(1)
+if rc == 0:
+    print(f"  ok    docs/ is markdown-only, every idea states its condition, "
+          f"and none of {scanned} links outside it points in")
+sys.exit(rc)
+ISOLATION
 fi
 
 # ---------------------------------------------------------------------------

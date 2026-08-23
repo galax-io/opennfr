@@ -452,10 +452,16 @@ python3 -c "
 import json, sys, yaml
 from jsonschema import Draft202012Validator as V
 schema = json.load(open('schema/opennfr.io/v1/requirementset.schema.json'))
-for e in V(schema).iter_errors(yaml.safe_load(open(sys.argv[1]))):
+errors = sorted(V(schema).iter_errors(yaml.safe_load(open(sys.argv[1]))), key=lambda e: list(e.path))
+for e in errors:
     print('/'.join(map(str, e.path)) or '(root)', ':', e.message)
+sys.exit(1 if errors else 0)
 " my-requirements.yaml
 ```
+
+It exits non-zero when the document is invalid, so `… && deploy` does what you expect. A
+validator that prints errors and returns success is the silent green this format argues
+against, and it would be an odd thing for this page to hand you.
 
 ### What you will see when it is wrong
 
@@ -504,9 +510,11 @@ group and request names. *(Sourced to Gatling v3.15.1's `AssertionSupport.scala`
 | **Metric** | `http.client.request.duration` — as `responseTime` | body sizes, and every other metric |
 | **Over a metric** | `p50`…`p99.9`, `max`, `min`, `avg`, `stddev` — target is `Int` milliseconds, so a fractional millisecond is not representable | `sum` |
 | **Over the requests** | `count` (`allRequests`), `rate` (`requestsPerSec`) | |
-| **Over a fraction** | `rate` and `count`, with `bad` or `good` — as `failedRequests` / `successfulRequests`, percent or count | a percentile, which the schema rejects anyway |
+| **Over a fraction** | `rate` and `count` with `bad: {error.type: "*"}` — as `failedRequests`, percent or count | any narrower `bad` (a status code, an error class), and `bad: {}`; `failedRequests` counts KO and nothing else |
+| **The other side** | — | `good` in any form. `successfulRequests` exists, but a selector matches presence and never absence, so no fraction here corresponds to it |
 | **Operators** | `lt`, `lte`, `gt`, `gte`, `eq` (as `is`) | `neq` — there is no negating condition |
-| **Units** | `ms`, `s`, `%`, `1`, `{request}`, `{request}/s` | the rest, none reachable through an assertable statistic |
+| **Units** | per statistic: `ms`/`s` for response time, `%`/`1` for a share, `{request}` for a count, `{request}/s` for throughput | any other pairing — a percentile in `%` is not a Gatling assertion |
+| **Thresholds** | whole numbers in the native unit | a fractional millisecond or a fractional count. Response-time and count targets are `Int`, and rounding would move the bar silently |
 
 It also cannot abort a run on a violated assertion, and it has one place it can pass on absent
 data: a `ForAll` assertion expands to the requests observed, so if none were observed it yields
