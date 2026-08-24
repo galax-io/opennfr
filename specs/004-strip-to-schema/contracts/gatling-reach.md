@@ -86,12 +86,12 @@ for another. A percentile in `%` is not a Gatling assertion.
 | `failedRequests.percent` | `%`, `1` | percent, 0..100 | `Double` |
 | `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Int`** |
 | `requestsPerSec` | `{request}/s` | per second | `Double` |
+| — | `ns`, `us`, `min`, `h`, `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
 
 **Where the target is an `Int`, the threshold converted to the native unit must be a whole
 number.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
 fine. Rounding is not an option — it would move the bar silently, which is the approximation
 Principle III forbids.
-| `ns`, `us`, `min`, `h`, `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
 
 ## Two things Gatling cannot do at all
 
