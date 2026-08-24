@@ -55,13 +55,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
 
+      # cliff.toml's remote_url() macro reads {{ remote.github.owner }} / {{ remote.github.repo
+      # }}. Neither the action nor the git-cliff binary infers them from this checkout's origin
+      # by default in this environment — both v0.2.0 and v0.3.0 shipped with the "Full diff" link
+      # rendering as github.com///compare. github_token and GITHUB_REPO are what populate them.
       - uses: orhun/git-cliff-action@v4
         id: notes
         with:
           config: cliff.toml
           args: --latest --strip header
+          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
 
       - name: Publish GitHub Release
         run: |
