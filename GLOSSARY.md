@@ -52,8 +52,15 @@ struck in constitution 2.0.0 for the reason above.
 
 ### selector
 
-Selects requests by attribute; a map where every entry must match. Written once per requirement.
-`{}` is every request, said explicitly, and reads as one statement about all of them together.
+Selects requests by attribute; a map where every entry must match, by equality. Written once per
+requirement. `{}` is every request, said explicitly, and reads as one statement about all of them
+together.
+
+`loadtest.group.name` is the request's enclosing groups as an ordered list, outermost first, at any
+depth: `{loadtest.group.name: [Checkout, Payment], loadtest.request.name: GET /test/id}` is that
+request inside `Payment` inside `Checkout`. Each element is a literal recorded name, so a group
+actually called `Checkout / Payment` is one element and not two. The list is matched by equality
+like every other value, which makes it the request's whole hierarchy and not a prefix of it.
 `"*"` means the attribute is present with any value — it is presence, not a glob. On a
 **requirement's** selector it also quantifies: each distinct value is a statement of its own, so
 `{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them.
@@ -63,7 +70,15 @@ number.
 A selector matches presence, never absence. That is why `bad` can be written and its mirror image
 cannot.
 
-*Rejected*: `filter` (Keptn) — too generic. `tags` — k6 terminology. `scope` — already means
+*Rejected*: a **scalar** `loadtest.group.name` — what this entry carried until #53. It stopped at
+one group, so a request nested deeper was unwritable, and the spelling reached for instead,
+`"Checkout / Payment"`, denotes a group whose recorded name is those eighteen characters. A separate
+`loadtest.group.path` key beside it — two keys for one attribute, which Principle II forbids as a
+second spelling; the name was never what was missing, the arity was. A scalar-or-array **union**
+keeping the old spelling at depth one — two spellings of one hierarchy, and every row that renders
+would then have to say which it meant. `loadtest.group.name: []` for "no enclosing group" — a third
+spelling of what omitting the key already says, and one that reads as "unconstrained" to whoever
+meets it first. `filter` (Keptn) — too generic. `tags` — k6 terminology. `scope` — already means
 visibility. Holding the selection per criterion — reads fine for one criterion and duplicates for
 every requirement with more than one thing to say. Reading `"*"` as presence alone, pooled the way
 `{}` is — what this entry said until #55 and #56: it settled that the attribute must be there and

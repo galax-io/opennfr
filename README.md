@@ -233,16 +233,20 @@ A map of attribute name to expected value. Every entry must match.
 selector: {}                                   # every request, said explicitly
 selector: {loadtest.request.name: GET /}       # one request, by the name the tool records
 selector:                                      # one request inside a group
-  loadtest.group.name: MyGroup
+  loadtest.group.name: [MyGroup]
   loadtest.request.name: MyRequest
+selector:                                      # inside Payment, inside Checkout
+  loadtest.group.name: [Checkout, Payment]
+  loadtest.request.name: GET /test/id
 selector: {error.type: "*"}                    # present with any value — and one bar per value
 selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 ```
 
 | | |
 |---|---|
-| Keys | any string. Attribute names are **not enumerated by the schema** and never will be |
-| Values | string, number or boolean. `null` is rejected |
+| Keys | any string. Which attribute names are **admitted** is not enumerated by the schema and never will be — enumerating them would make every new attribute a change to the format. The schema names exactly one attribute, `loadtest.group.name`, and names it only to fix the shape of its value |
+| Values | string, number or boolean. `null` is rejected. `loadtest.group.name` is the one exception: an array of strings, at least one element. An array under any other attribute is rejected |
+| `loadtest.group.name` | the request's enclosing groups, outermost first, at any depth. Each element is a literal recorded name, so a group actually called `Checkout / Payment` is one element and not two. Matched by equality like every other value, which makes the list the request's whole hierarchy and not a prefix of it. `"*"` is not a recorded name, so a hierarchy carrying one spells no path |
 | `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*`. On a requirement's `selector` it also quantifies: each distinct value is a statement of its own, so `{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them. Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one number |
 
 A selector cannot say an attribute is **absent**. That is why `bad: {error.type: "*"}` works and the
@@ -534,10 +538,11 @@ them apart.
 |---|---|---|
 | `{}` | `global` | **can** |
 | `{loadtest.request.name: X}`, `X` a string other than `"*"` | `details("X")` | **can** — `X` is a path part, never a pattern |
-| `{loadtest.group.name: G, loadtest.request.name: X}`, both strings other than `"*"` | `details("G" / "X")` | **can** |
+| `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: X}`, every part a string other than `"*"` | `details("G₁" / … / "Gₙ" / "X")` | **can** — at any depth |
 | `{loadtest.request.name: "*"}` | `forAll()` | **can** — the quantified reading: one assertion per observed request, not one number over all of them |
-| `{loadtest.group.name: G, loadtest.request.name: "*"}`, `G` other than `"*"` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
-| `{loadtest.group.name: "*", loadtest.request.name: X}` | — | **cannot** — the same, and a group is not addressable on its own |
+| `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: "*"}` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
+| `{loadtest.group.name: [..., "*", ...], loadtest.request.name: X}` | — | **cannot** — a group at that position with any name, and no scope carries a wildcard path part |
+| `loadtest.group.name` as a string, or `[]` | — | rejected by the **schema** before this table is reached: a hierarchy has one spelling, and "no enclosing group" is said by omitting the key. The gate carries the same two rejections, so each is probed |
 | any path value that is not a string | — | **cannot** — a path is `AssertionPathParts(parts: List[String])`. `{loadtest.request.name: 200}` and `{loadtest.request.name: "200"}` are different documents and only the second is renderable |
 | `{http.route: ...}` | — | **cannot** |
 | `{http.request.method: ...}` | — | **cannot** |

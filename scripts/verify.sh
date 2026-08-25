@@ -430,6 +430,19 @@ d = doc(); d["spec"]["requirements"][0]["criteria"] = [];                      p
 d = doc(); d["metadata"]["annotations"] = {"k": ["not", "a", "string"]};       probes["an annotation that is not a string"] = d
 d = doc(); d["apiVersion"] = "opennfr.io/v2";                                  probes["an apiVersion this schema does not define"] = d
 
+# The hierarchy. `loadtest.group.name` is the one attribute whose value shape the schema names,
+# and it is named so the SCHEMA can reject a scalar and an empty list rather than leaving both
+# to the gate. The fourth probe is the other half of that edit: `properties` was added beside
+# `additionalProperties` and not instead of it, so an array under any other attribute is still
+# refused. Widen that type list and only this probe notices.
+for label, sel in [
+    ("a scalar loadtest.group.name",      {"loadtest.group.name": "Checkout"}),
+    ("an empty loadtest.group.name",      {"loadtest.group.name": []}),
+    ("a group name that is not a string", {"loadtest.group.name": ["Checkout", 7]}),
+    ("an array under another attribute",  {"http.route": ["a", "b"]}),
+]:
+    d = doc(); d["spec"]["requirements"][0]["selector"] = sel;                 probes[label] = d
+
 # The shapes. A `type` is the quietest constraint to lose — drop one and a string passes where an
 # object was required, with every other rule on that object silently inapplicable.
 for label, mutate in [
@@ -478,7 +491,7 @@ probes["a spread with no metric to spread"] = d
 # only catch emptying the dict outright, so it is set just under the current count: pruning most
 # of the block is the realistic accident, and it would otherwise show up as nothing but a smaller
 # number in a line nobody compares against anything.
-FLOOR = 50
+FLOOR = 54
 if len(probes) < FLOOR:
     print(f"  FAIL  {path}: {len(probes)} closure probes, expected at least {FLOOR} — "
           f"probes have been removed, and a probe that is gone cannot fail")
@@ -536,14 +549,21 @@ try:
 except ImportError as e:
     print(f"  FAIL  {e.name} not installed (pip install pyyaml)"); sys.exit(1)
 
+# The two keys that spell a request's recorded position. Written once: they appear in the key
+# sets, in the value rules and in the flattener below, and four literals of one attribute name
+# are four chances to fix three of them.
+HIERARCHY = "loadtest.group.name"
+REQUEST = "loadtest.request.name"
+
 # Assertion scope is Global, ForAll, or Details(parts) — a path of recorded group and
-# request names. Not a route, not a method, not a status code. Path parts are strings.
-SELECTIONS = [set(), {"loadtest.request.name"}, {"loadtest.group.name", "loadtest.request.name"}]
+# request names. Not a route, not a method, not a status code. Path parts are strings, and
+# the hierarchy carries them as a list while the request name carries one.
+SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
 
 # Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
 # path, so a quantified selection carrying one has no correspondence. Held beside SELECTIONS
 # so that adding a selection there forces a decision here instead of silently rejecting it.
-QUANTIFIABLE = [{"loadtest.request.name"}]
+QUANTIFIABLE = [{REQUEST}]
 
 # responseTime is the only addressable metric family.
 METRIC = "http.client.request.duration"
@@ -589,7 +609,18 @@ TABLE = {
 # Written once so the rule and the probes below cannot drift into different words.
 NOT_A_PATH = "selector {} is not an assertion path"
 NOT_A_STRING = "an assertion path part must be a string"
+NOT_A_LIST = (f"{HIERARCHY} is a hierarchy: the enclosing groups outermost first, "
+              "a list of names and never one name")
+NO_GROUPS = (f"{HIERARCHY}: [] is not a hierarchy — a request with no enclosing group "
+             f"is spelled by omitting the key")
 QUANTIFIED = 'a quantified selection cannot carry a path: `"*"` reaches forAll(), which takes none'
+
+def path_parts(sel):
+    # The path a selector spells: its enclosing groups outermost first, then the request name.
+    # The two keys carry different arities, so every rule below is written about a part rather
+    # than about the key it came from. Only ever called once the hierarchy is known to be a
+    # list — on a scalar, list() would spell it out one character at a time.
+    return list(sel.get(HIERARCHY, [])) + ([sel[REQUEST]] if REQUEST in sel else [])
 
 def selection_why(sel):
     # Why this selector is not an assertion path, or [] if it is. A function rather than
@@ -598,13 +629,30 @@ def selection_why(sel):
     why = []
     if set(sel) not in SELECTIONS:
         why.append(NOT_A_PATH.format(sorted(sel)))
-    elif any(not isinstance(v, str) for v in sel.values()):
-        why.append(NOT_A_STRING)
-    elif any(v == "*" for v in sel.values()) and set(sel) not in QUANTIFIABLE:
-        # `"*"` quantifies: each distinct value is a statement of its own. Gatling spells
-        # that forAll(), which takes no path, so "every request inside one group" — and
-        # every other position `"*"` could occupy — has no correspondence.
-        why.append(QUANTIFIED)
+    elif HIERARCHY in sel and not isinstance(sel[HIERARCHY], list):
+        # Before the parts are flattened, and never after. A scalar group name is a perfectly
+        # good string, so flattened first it becomes one path part per CHARACTER — "Checkout"
+        # is eight parts, all strings — and every rule below passes over it.
+        why.append(NOT_A_LIST)
+    elif HIERARCHY in sel and not sel[HIERARCHY]:
+        why.append(NO_GROUPS)
+    else:
+        # Only here is the hierarchy known to be a non-empty list, which is what makes the
+        # flattening safe — so the path is built once, after the branches above and never
+        # before them, and both rules below read the same list.
+        parts = path_parts(sel)
+        if any(not isinstance(p, str) for p in parts):
+            why.append(NOT_A_STRING)
+        elif any(p == "*" for p in parts) and set(sel) not in QUANTIFIABLE:
+            # `"*"` quantifies: the requirement is stated once of each request position the
+            # selector admits. Gatling spells that forAll(), which takes no path, so "every
+            # request inside one group" — and every other position `"*"` could occupy — has no
+            # correspondence. The row follows from the anchoring rule rather than excepting it:
+            # `"*"` is not a name, so no hierarchy is claimed and none may be carried. The test
+            # reads the flattened path and not sel.values(): a hierarchy is a list and never
+            # equals `"*"`, so under sel.values() this branch would be dead for every group
+            # position.
+            why.append(QUANTIFIED)
     return why
 
 def shape_of(p, why):
@@ -625,22 +673,55 @@ def shape_of(p, why):
 # cannot be rendered, paired with the reason its row gives. A probe that stops being
 # rejected FAILs the section instead of passing quietly.
 SELECTION_PROBES = [
-    ({"loadtest.request.name": 200},  NOT_A_STRING),
-    ({"loadtest.request.name": True}, NOT_A_STRING),
-    ({"loadtest.group.name": "Checkout", "loadtest.request.name": "*"}, QUANTIFIED),
-    ({"loadtest.group.name": "*", "loadtest.request.name": "POST /checkout"}, QUANTIFIED),
+    ({HIERARCHY: "Checkout", REQUEST: "POST /checkout"}, NOT_A_LIST),
+    ({HIERARCHY: "*", REQUEST: "POST /checkout"}, NOT_A_LIST),
+    ({HIERARCHY: [], REQUEST: "POST /checkout"}, NO_GROUPS),
+    ({REQUEST: 200},  NOT_A_STRING),
+    ({REQUEST: True}, NOT_A_STRING),
+    ({HIERARCHY: ["Checkout", 7], REQUEST: "POST /checkout"}, NOT_A_STRING),
+    ({HIERARCHY: ["Checkout"], REQUEST: "*"}, QUANTIFIED),
+]
+
+# And the other direction. A rejection probe cannot show that a row still RENDERS, and the
+# corpus cannot either: nothing published nests two groups, so a depth bound added to the rule
+# above would leave every check here green. These must produce no reason at all.
+SELECTION_RENDERS = [
+    {},
+    {REQUEST: "POST /checkout"},
+    {REQUEST: "*"},
+    {HIERARCHY: ["Checkout"], REQUEST: "POST /checkout"},
+    {HIERARCHY: ["Checkout", "Payment"], REQUEST: "GET /test/id"},
 ]
 
 rc, checked = 0, 0
 
-# An emptied probe table reports no failures and reads exactly like a sound one.
-if not SELECTION_PROBES:
-    print("  FAIL  no selection probe left — a rule nothing probes is a rule nothing checks")
+# A pruned probe table reports no failures and reads exactly like a sound one. BOTH floors are
+# EXACT, and that is deliberate — the closure floor above sits just under its count because its
+# probes overlap, and these do not. Each probe here is the sole catcher of its own class.
+#
+# Two of them are worth naming, because each is one deletion away from a rule nothing checks.
+# The depth-2 rendering probe is the sole catcher of a depth bound anywhere in the rule, and
+# the corpus cannot stand in for it: nothing published nests two groups. The `["*"]` rejection
+# probe is the sole catcher of the quantifier test reading sel.values() instead of the
+# flattened path, where a hierarchy is a list, never equals `"*"`, and leaves the branch dead.
+# At a floor of one less, either could be dropped green and the rule it guards broken green
+# afterwards: two steps, both passing. Adding a probe means raising the number beside it,
+# which is the intended cost.
+REJECTIONS, RENDERS = 7, 5
+if len(SELECTION_PROBES) < REJECTIONS or len(SELECTION_RENDERS) < RENDERS:
+    print(f"  FAIL  {len(SELECTION_PROBES)} rejection and {len(SELECTION_RENDERS)} rendering "
+          f"probes, expected at least {REJECTIONS} and {RENDERS} — a rule nothing probes is a "
+          f"rule nothing checks")
     sys.exit(1)
 for probe, expected in SELECTION_PROBES:
     got = selection_why(probe)
     if expected not in got:
         print(f"  FAIL  probe {probe}: expected rejection {expected!r}, got {got or 'accepted'}")
+        rc = 1
+for probe in SELECTION_RENDERS:
+    got = selection_why(probe)
+    if got:
+        print(f"  FAIL  probe {probe}: renders, but the rule rejects it: {'; '.join(got)}")
         rc = 1
 
 files = sorted(glob.glob("examples/*.yaml"))
@@ -696,7 +777,8 @@ if checked == 0:
     sys.exit(1)
 if rc == 0:
     print(f"  ok    {checked} predicates assertable by Gatling, "
-          f"{len(SELECTION_PROBES)} selection probes still rejected")
+          f"{len(SELECTION_PROBES)} selection probes still rejected, "
+          f"{len(SELECTION_RENDERS)} still rendered")
 sys.exit(rc)
 GATLING
 fi
