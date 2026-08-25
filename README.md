@@ -592,6 +592,13 @@ assertion API consumes a "a request, not a group" distinction, and whether a run
 group is not knowable when a document is written, so this is recorded as a fact about the target
 rather than legislated around. `forAll()` is immune: it never calls `findPathByParts`.
 
+**A requirement's guards are quantified with its criteria**, because the selector is written once
+and binds both. A guard under `{loadtest.request.name: "*"}` renders `forAll().requestsPerSec…` and
+states its condition of each position rather than of the run — and on a run that recorded nothing it
+expands to zero assertions and passes. The guard that says the run happened has to sit on a `{}`
+requirement, and today it cannot sit there alone: `criteria` is required and non-empty
+([#61](https://github.com/galax-io/opennfr/issues/61)).
+
 **The value is part of the correspondence, not a detail of it.** An earlier draft partitioned this
 axis by key set alone, and the gate written from it approved `{loadtest.request.name: "*"}` — which
 this table then rendered as a request literally named `*`, a path matching nothing, failing the run

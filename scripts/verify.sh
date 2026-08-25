@@ -748,6 +748,9 @@ for f in files:
             continue
         for r in doc.get("spec", {}).get("requirements", []) or []:
             sel = r.get("selector") or {}
+            # One selector judges both: it is written once for the requirement and binds
+            # every criterion and guard beneath it, so a quantified selection quantifies a
+            # guard too.
             for section in ("guards", "criteria"):
                 for p in r.get(section) or []:
                     checked += 1
