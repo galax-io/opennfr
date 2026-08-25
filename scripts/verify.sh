@@ -558,6 +558,12 @@ REQUEST = "loadtest.request.name"
 # Assertion scope is Global, ForAll, or Details(parts) — a path of recorded group and
 # request names. Not a route, not a method, not a status code. Path parts are strings, and
 # the hierarchy carries them as a list while the request name carries one.
+#
+# What each denotes: {} is every request pooled; a request name alone is that request with NO
+# enclosing group, because an absent hierarchy beside a named request means the empty one; the
+# pair is that request at whatever depth the list spells. {HIERARCHY} alone is absent on
+# purpose — it has a meaning, the requests whose hierarchy is exactly those groups, but
+# Gatling's group scope measures a cumulated duration the Metrics table cannot name (#52).
 SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
 
 # Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
@@ -673,6 +679,8 @@ def shape_of(p, why):
 # cannot be rendered, paired with the reason its row gives. A probe that stops being
 # rejected FAILs the section instead of passing quietly.
 SELECTION_PROBES = [
+    ({"http.route": "/api/v1/checkout"}, NOT_A_PATH.format(["http.route"])),
+    ({HIERARCHY: ["Checkout"]}, NOT_A_PATH.format([HIERARCHY])),
     ({HIERARCHY: "Checkout", REQUEST: "POST /checkout"}, NOT_A_LIST),
     ({HIERARCHY: "*", REQUEST: "POST /checkout"}, NOT_A_LIST),
     ({HIERARCHY: [], REQUEST: "POST /checkout"}, NO_GROUPS),
@@ -707,7 +715,7 @@ rc, checked = 0, 0
 # At a floor of one less, either could be dropped green and the rule it guards broken green
 # afterwards: two steps, both passing. Adding a probe means raising the number beside it,
 # which is the intended cost.
-REJECTIONS, RENDERS = 7, 5
+REJECTIONS, RENDERS = 9, 5
 if len(SELECTION_PROBES) < REJECTIONS or len(SELECTION_RENDERS) < RENDERS:
     print(f"  FAIL  {len(SELECTION_PROBES)} rejection and {len(SELECTION_RENDERS)} rendering "
           f"probes, expected at least {REJECTIONS} and {RENDERS} — a rule nothing probes is a "

@@ -249,8 +249,23 @@ selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 | `loadtest.group.name` | the request's enclosing groups, outermost first, at any depth. Each element is a literal recorded name, so a group actually called `Checkout / Payment` is one element and not two. Matched by equality like every other value, which makes the list the request's whole hierarchy and not a prefix of it. `"*"` is not a recorded name, so a hierarchy carrying one spells no path |
 | `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*`. On a requirement's `selector` it also quantifies: each distinct value is a statement of its own, so `{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them. Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one number |
 
-A selector cannot say an attribute is **absent**. That is why `bad: {error.type: "*"}` works and the
-mirror-image `good` does not — write the failed fraction and compare with `lte`.
+**Where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy** —
+the request has no enclosing group. That is the only rule a selector has beyond equality, and it is
+what makes `{loadtest.request.name: POST /checkout}` a different set of requests from
+`{loadtest.group.name: [Checkout], loadtest.request.name: POST /checkout}` rather than a set
+containing it. The rule fires only where a request is named, so it needs no carve-out for the two
+selectors that name none: `{}` names no request, and `"*"` is not a name, so neither is anchored and
+both reach every request at any depth.
+
+Everything above reads the same inside `bad` and `good`, which are selectors too — the same
+equalities, the same list, the same rule about an absent hierarchy — save the quantifier. In
+practice it reads inertly there: the only numerator any target renders is `{error.type: "*"}`,
+which names no request.
+
+A selector cannot otherwise say an attribute is **absent**. That is why `bad: {error.type: "*"}`
+works and the mirror-image `good` does not — write the failed fraction and compare with `lte`. The
+hierarchy is the exception because it is not a filter: a position is complete, or it is not a
+position.
 
 ### `criteria` and `guards` — one shape, two meanings
 
@@ -537,17 +552,33 @@ them apart.
 | OpenNFR selector | Gatling | |
 |---|---|---|
 | `{}` | `global` | **can** |
-| `{loadtest.request.name: X}`, `X` a string other than `"*"` | `details("X")` | **can** — `X` is a path part, never a pattern |
-| `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: X}`, every part a string other than `"*"` | `details("G₁" / … / "Gₙ" / "X")` | **can** — at any depth |
+| `{loadtest.request.name: X}`, `X` a string other than `"*"` | `details("X")` | **can** — **the request named `X` with no enclosing group**, which is what a one-part path resolves against. `X` is a path part, never a pattern |
+| `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: X}`, every part a string other than `"*"` | `details("G₁" / … / "Gₙ" / "X")` | **can** — **the request named `X` whose hierarchy is exactly `G₁…Gₙ`**, at any depth |
 | `{loadtest.request.name: "*"}` | `forAll()` | **can** — the quantified reading: one assertion per observed request, not one number over all of them |
 | `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: "*"}` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
 | `{loadtest.group.name: [..., "*", ...], loadtest.request.name: X}` | — | **cannot** — a group at that position with any name, and no scope carries a wildcard path part |
 | `loadtest.group.name` as a string, or `[]` | — | rejected by the **schema** before this table is reached: a hierarchy has one spelling, and "no enclosing group" is said by omitting the key. The gate carries the same two rejections, so each is probed |
+| `{loadtest.group.name: [G₁, …, Gₙ]}`, no request name | — | **cannot** — it denotes the requests whose hierarchy is exactly those groups, and Gatling's group scope measures a *cumulated* duration the Metrics table cannot name. Whether a group-scoped statement should exist at all is open, as [#52](https://github.com/galax-io/opennfr/issues/52) |
 | any path value that is not a string | — | **cannot** — a path is `AssertionPathParts(parts: List[String])`. `{loadtest.request.name: 200}` and `{loadtest.request.name: "200"}` are different documents and only the second is renderable |
 | `{http.route: ...}` | — | **cannot** |
 | `{http.request.method: ...}` | — | **cannot** |
 | `{http.response.status_code: ...}` | — | **cannot** |
 | any other attribute | — | **cannot** |
+
+**The two `details(...)` rows carry a precondition: the rendered path must not also be the full
+hierarchy of a recorded group.** Where it is, Gatling's own resolution is unspecified.
+`LogFileData.findPathByParts` is a single `collectFirst` over the keys of a `mutable.HashMap`
+holding request paths and group paths together, so which one matches depends on hash order — and
+where the group wins, the assertion measures that group's **cumulated** response time rather than
+the request's, a different quantity under the same metric name. *(Read from source 2026-08-25 at
+`v3.15.1` and `v3.13.5`, where the method is identical. That the outcome also shifts as unrelated
+requests are added is a replication of the three case classes on the pinned Scala version, not a
+reading of Gatling.)*
+
+The rows do not say which of the two they denote, because Gatling does not. Nothing in its
+assertion API consumes a "a request, not a group" distinction, and whether a run records such a
+group is not knowable when a document is written, so this is recorded as a fact about the target
+rather than legislated around. `forAll()` is immune: it never calls `findPathByParts`.
 
 **The value is part of the correspondence, not a detail of it.** An earlier draft partitioned this
 axis by key set alone, and the gate written from it approved `{loadtest.request.name: "*"}` — which
