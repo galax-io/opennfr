@@ -72,6 +72,21 @@ that disagreement into a format whose only asset is that one document means one 
 
 *Would need*: the surveyed tools to agree on what an open or a closed model does under degradation. That is not something this format can bring about, which is why this is not a "yet".
 
+**apdex** — one number for how many users were served well: each request is classified against a
+threshold `T` as satisfied (`rt <= T`), tolerating (`T < rt <= 4T`) or frustrated, and the score is
+`(satisfied + tolerating / 2) / total`. It is the one figure in this area a stakeholder reads
+without training, and `APDEX` is a literal key in the NFR-YAML documents this format is meant to
+replace, so it gets asked for. Two constructs are missing and neither is small. A predicate carries
+one threshold, and a fraction — `bad` or `good` — splits a selection in two by attribute presence,
+so nothing here produces three bands or takes a second threshold. And no aggregation the format has
+— `p*`, `max`, `min`, `avg`, `stddev`, `count`, `rate` — takes a weighted sum of counts.
+
+This is why apdex sits here and not beside throughput and an error rate. Those two are **derived**:
+each reduces to one construct the format already has, `aggregation: rate` and a `bad` fraction.
+Apdex is **composite** and reduces to none.
+
+*Would need*: a banded classification carrying a second threshold, and an aggregation that weights the bands — each argued on its own merits rather than as a step toward apdex, because a scoring policy that arrives one field at a time is still a scoring policy inside a format whose argument is that it has none.
+
 ## A result document
 
 **A result document.** `Verdict` — the result of checking one predicate: `pass | warn | fail | noData | skipped`. `Outcome`

@@ -387,8 +387,8 @@ because the schema deliberately does not know that `http.client.request.duration
 
 Metric and attribute names are **borrowed from OpenTelemetry wherever an equivalent exists**, never
 invented. Names of our own are permitted only under `loadtest.*`, and only where semconv has none.
-Aliases and second spellings are forbidden. Derived quantities — throughput, error rate, apdex —
-must not become metrics; they are computed by aggregation from metrics that already exist.
+Aliases and second spellings are forbidden. Derived quantities — throughput and error rate — must
+not become metrics; they are computed by aggregation from metrics that already exist.
 
 The payoff is not tidiness: a report written in borrowed names correlates with the traces of the
 same run without glue, because both sides already agree on what an endpoint is called.
