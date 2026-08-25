@@ -38,11 +38,17 @@ Over a metric:
 
 | | Gatling | |
 |---|---|---|
-| `p50`…`p99.9` | `responseTime.percentile(n)` | **can** — target is `Int` milliseconds, so a fractional millisecond is not representable |
+| any percentile the schema admits — `^p\d{1,2}(\.\d+)?$` | `responseTime.percentile(n)` | **can** — target is `Int` milliseconds, so a fractional millisecond is not representable |
 | `max`, `min` | `responseTime.max` / `.min` | **can** |
 | `avg` | `responseTime.mean` | **can** |
 | `stddev` | `responseTime.stdDev` | **can** |
 | `sum` | — | **cannot** — `responseTime` offers no sum and no arithmetic that would produce one |
+
+The percentile row is the pattern and not a range, because a row is matched exactly and a range is
+not something a predicate matches. `p1`, `p10` and `p99.99` are all decidable from it, and all three
+are what the gate and `percentile(Double)` already accept. `p100` falls outside the pattern — the
+integer part is capped at two digits — and needs no row: the quantity it names, the slowest observed
+request, is `max`.
 
 Over the requests themselves, with no `metric` and no `bad`/`good`:
 
@@ -64,8 +70,10 @@ Over a fraction, with `bad` or `good`:
 
 **The numerator is part of the correspondence, not a detail of it.** An earlier draft of this
 contract listed the fraction shape without constraining `bad`, and the gate written from it
-accepted `bad: {}` and arbitrary status-code filters — both of which would have to be
-approximated at render time, which Principle III forbids.
+accepted `bad: {}` and arbitrary status-code filters. Neither has a `failedRequests` equivalent, so
+a renderer meeting one has to pick the nearest available number and has nowhere to say it picked
+one. The document asks for a share of a named failure and the run reports a share of something
+else.
 
 ## Operators
 
@@ -90,8 +98,8 @@ for another. A percentile in `%` is not a Gatling assertion.
 
 **Where the target is an `Int`, the threshold converted to the native unit must be a whole
 number.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
-fine. Rounding is not an option — it would move the bar silently, which is the approximation
-Principle III forbids.
+fine. Rounding is not an option: it moves the bar the author wrote, so the document states one
+limit and the run enforces another, and the report names neither.
 
 ## Two things Gatling cannot do at all
 
