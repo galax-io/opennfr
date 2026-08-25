@@ -513,8 +513,9 @@ fi
 section "Examples are assertable by Gatling"
 # An example nothing can run teaches a shape nobody can use. Gatling is the only target
 # with a waiting counterparty, so the published corpus is held to what its assertion DSL
-# can express — see specs/004-strip-to-schema/contracts/gatling-reach.md, sourced to
-# Gatling v3.15.1 and checked 2026-08-20.
+# can express — see README.md > "What any tool can actually run", which is the source
+# these rows implement and the only place the tables are stated. Sourced to Gatling
+# v3.15.1 and checked 2026-08-20.
 #
 # Capabilities PARTITION each axis: a predicate is assertable only if it matches a row
 # below exactly. Anything unlisted is rejected, never allowed by default — a denylist
