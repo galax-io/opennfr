@@ -2,8 +2,10 @@
 #
 # The blanket requirement, and the reason `"*"` quantifies. `{}` would pool every request into one
 # number, where one busy fast endpoint hides a quiet slow one and the verdict is green for the
-# wrong reason. `"*"` says the bar applies to each named request on its own, so any single endpoint
-# breaching it fails the run.
+# wrong reason. `"*"` says the bar applies to each recorded request position on its own — a
+# position being a request's enclosing groups, in order, then its name — so any single one
+# breaching it fails the run. One name recorded under two different hierarchies is two positions
+# and two bars; the same name nested three groups deep is still one position.
 #
 # One case that does not cover: a quantified selection expands to the requests actually observed,
 # so a run that recorded none has nothing to check and ends green. That is a fact about the target
@@ -24,7 +26,7 @@ spec:
     - name: every-named-request
       displayName: No endpoint is slow
       selector:
-        loadtest.request.name: "*"                 # each named request, separately — not pooled
+        loadtest.request.name: "*"                 # each recorded position, separately — not pooled
       criteria:
         - displayName: 95th percentile
           metric: http.client.request.duration

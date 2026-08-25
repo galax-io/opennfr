@@ -62,10 +62,15 @@ request inside `Payment` inside `Checkout`. Each element is a literal recorded n
 actually called `Checkout / Payment` is one element and not two. The list is matched by equality
 like every other value, which makes it the request's whole hierarchy and not a prefix of it.
 `"*"` means the attribute is present with any value — it is presence, not a glob. On a
-**requirement's** selector it also quantifies: each distinct value is a statement of its own, so
-`{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them.
-Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one
-number.
+**requirement's** selector it also quantifies: the requirement is stated once of each **request
+position** the selector admits — a position being a request's enclosing groups, in order, then its
+name, as the run records it. Not once per distinct value, and not once per occurrence: one name
+recorded under two different hierarchies is two positions and two statements — while that same
+name nested inside `[Checkout, Payment]` is one position however deep it sits — and one position
+hit a thousand times is one. So `{loadtest.request.name: "*"}` is one statement per recorded position where `{}`
+is one statement over all of them, and because `"*"` is not a name, no hierarchy is claimed and the
+quantifier reaches every position at any depth. Inside `bad` or `good` it does not quantify — those
+narrow a numerator, and a numerator is one number.
 
 One rule governs an absent hierarchy, and it is the only rule a selector has beyond equality:
 **where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy** —
@@ -90,7 +95,12 @@ would then have to say which it meant. `loadtest.group.name: []` for "no enclosi
 spelling of what omitting the key already says, and one that reads as "unconstrained" to whoever
 meets it first. `filter` (Keptn) — too generic. `tags` — k6 terminology. `scope` — already means
 visibility. Holding the selection per criterion — reads fine for one criterion and duplicates for
-every requirement with more than one thing to say. Reading `"*"` as presence alone, pooled the way
+every requirement with more than one thing to say. Quantifying over each **distinct attribute value** — what #55 and #56 wrote, retracted by #70: it
+counts names while the run counts positions, so one name recorded under two hierarchies was one
+statement here and two assertions there, and a document could pass on a pooled number while one of
+its positions failed. Quantifying over each **occurrence** — a third granularity, and one no target
+has: a position observed a thousand times yields one assertion. Reading `"*"` as presence alone,
+pooled the way
 `{}` is — what this entry said until #55 and #56: it settled that the attribute must be there and
 left the quantifier unstated, so the only honest reading of `{loadtest.request.name: "*"}` was one
 `{}` already had, and the value was a longer spelling of something else. "The average endpoint is

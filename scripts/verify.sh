@@ -567,8 +567,10 @@ REQUEST = "loadtest.request.name"
 SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
 
 # Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
-# path, so a quantified selection carrying one has no correspondence. Held beside SELECTIONS
-# so that adding a selection there forces a decision here instead of silently rejecting it.
+# path, so a quantified selection carrying one has no correspondence. It is admitted only as
+# the request-name value: anywhere else in a path it is not a recorded name. Held beside
+# SELECTIONS so that adding a selection there forces a decision here instead of silently
+# rejecting it.
 QUANTIFIABLE = [{REQUEST}]
 
 # responseTime is the only addressable metric family.
@@ -619,7 +621,8 @@ NOT_A_LIST = (f"{HIERARCHY} is a hierarchy: the enclosing groups outermost first
               "a list of names and never one name")
 NO_GROUPS = (f"{HIERARCHY}: [] is not a hierarchy — a request with no enclosing group "
              f"is spelled by omitting the key")
-QUANTIFIED = 'a quantified selection cannot carry a path: `"*"` reaches forAll(), which takes none'
+QUANTIFIED = ('`"*"` is presence: in place of a request name it quantifies to forAll(), which '
+              'carries no path, and in any other position no scope carries a wildcard path part')
 
 def path_parts(sel):
     # The path a selector spells: its enclosing groups outermost first, then the request name.
@@ -688,6 +691,7 @@ SELECTION_PROBES = [
     ({REQUEST: True}, NOT_A_STRING),
     ({HIERARCHY: ["Checkout", 7], REQUEST: "POST /checkout"}, NOT_A_STRING),
     ({HIERARCHY: ["Checkout"], REQUEST: "*"}, QUANTIFIED),
+    ({HIERARCHY: ["*"], REQUEST: "POST /checkout"}, QUANTIFIED),
 ]
 
 # And the other direction. A rejection probe cannot show that a row still RENDERS, and the
@@ -715,7 +719,7 @@ rc, checked = 0, 0
 # At a floor of one less, either could be dropped green and the rule it guards broken green
 # afterwards: two steps, both passing. Adding a probe means raising the number beside it,
 # which is the intended cost.
-REJECTIONS, RENDERS = 9, 5
+REJECTIONS, RENDERS = 10, 5
 if len(SELECTION_PROBES) < REJECTIONS or len(SELECTION_RENDERS) < RENDERS:
     print(f"  FAIL  {len(SELECTION_PROBES)} rejection and {len(SELECTION_RENDERS)} rendering "
           f"probes, expected at least {REJECTIONS} and {RENDERS} — a rule nothing probes is a "

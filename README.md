@@ -238,7 +238,7 @@ selector:                                      # one request inside a group
 selector:                                      # inside Payment, inside Checkout
   loadtest.group.name: [Checkout, Payment]
   loadtest.request.name: GET /test/id
-selector: {error.type: "*"}                    # present with any value — and one bar per value
+selector: {error.type: "*"}                    # present with any value — one statement per position
 selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 ```
 
@@ -246,8 +246,8 @@ selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 |---|---|
 | Keys | any string. Which attribute names are **admitted** is not enumerated by the schema and never will be — enumerating them would make every new attribute a change to the format. The schema names exactly one attribute, `loadtest.group.name`, and names it only to fix the shape of its value |
 | Values | string, number or boolean. `null` is rejected. `loadtest.group.name` is the one exception: an array of strings, at least one element. An array under any other attribute is rejected |
-| `loadtest.group.name` | the request's enclosing groups, outermost first, at any depth. Each element is a literal recorded name, so a group actually called `Checkout / Payment` is one element and not two. Matched by equality like every other value, which makes the list the request's whole hierarchy and not a prefix of it. `"*"` is not a recorded name, so a hierarchy carrying one spells no path |
-| `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*`. On a requirement's `selector` it also quantifies: each distinct value is a statement of its own, so `{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them. Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one number |
+| `loadtest.group.name` | the request's enclosing groups, outermost first, at any depth. Each element is a literal recorded name, so a group actually called `Checkout / Payment` is one element and not two. Matched by equality like every other value, which makes the list the request's whole hierarchy and not a prefix of it. `"*"` in an element is presence, as everywhere — a group at that position with any name — and no scope carries a wildcard path part |
+| `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*`. On a requirement's `selector` it also quantifies: the requirement is stated once of each **request position** the selector admits — a position being a request's enclosing groups, in order, then its name, as the run records it. Not once per distinct value, and not once per occurrence: one name recorded under two different hierarchies is two positions and two statements, while the same name nested inside `[Checkout, Payment]` is one position however deep it sits, and one position hit a thousand times is one. So `{loadtest.request.name: "*"}` is one statement per recorded position where `{}` is one statement over all of them. Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one number |
 
 **Where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy** —
 the request has no enclosing group. That is the only rule a selector has beyond equality, and it is
@@ -255,7 +255,19 @@ what makes `{loadtest.request.name: POST /checkout}` a different set of requests
 `{loadtest.group.name: [Checkout], loadtest.request.name: POST /checkout}` rather than a set
 containing it. The rule fires only where a request is named, so it needs no carve-out for the two
 selectors that name none: `{}` names no request, and `"*"` is not a name, so neither is anchored and
-both reach every request at any depth.
+both reach every request at any depth. That is also why the quantified selection reaches a scope
+carrying no path — not by an exception written for one row, but because it spells no hierarchy.
+
+Since a hierarchy is unbounded, the quantified selection **instantiates**: every position it ranges
+over can be named by a singular selector of the same shape, at any depth, and expanding it by hand
+yields the same statements. Before the list form it could not, because a singular selector reached
+only depth zero.
+
+One kind of position is the exception, and it is **unnameable rather than unrendered**: a request
+whose recorded name is literally `*`, or one enclosed by a group recorded as `*`. `forAll()`
+enumerates it like any other, and no singular selector can name it, because `"*"` is reserved as
+presence everywhere it appears. That is a limitation of the value rather than of the hierarchy, and
+it is what one spelling for "any" costs.
 
 Everything above reads the same inside `bad` and `good`, which are selectors too — the same
 equalities, the same list, the same rule about an absent hierarchy — save the quantifier. In
@@ -543,7 +555,7 @@ status code, not an error type.
 A selector matches a row on its keys **and** on its values. Partitioning this axis by key set alone
 leaves the value free, and the value is what a renderer emits.
 
-`"*"` says the attribute is present and that each distinct value is a statement of its own — a
+`"*"` says the attribute is present, and on a requirement's selector that it quantifies — a
 statement about the format, whose home is § `selector` above. Here it is only mapped: the
 quantifier reaches `forAll()`, and `{}` stays the pooled reading. The two are different
 requirements — "the average endpoint is fast" against "no endpoint is slow" — and the table keeps
@@ -554,7 +566,7 @@ them apart.
 | `{}` | `global` | **can** |
 | `{loadtest.request.name: X}`, `X` a string other than `"*"` | `details("X")` | **can** — **the request named `X` with no enclosing group**, which is what a one-part path resolves against. `X` is a path part, never a pattern |
 | `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: X}`, every part a string other than `"*"` | `details("G₁" / … / "Gₙ" / "X")` | **can** — **the request named `X` whose hierarchy is exactly `G₁…Gₙ`**, at any depth |
-| `{loadtest.request.name: "*"}` | `forAll()` | **can** — the quantified reading: one assertion per observed request, not one number over all of them |
+| `{loadtest.request.name: "*"}` | `forAll()` | **can** — one statement per **request position** the run records, at any depth, not one number over all of them. `allRequestPaths()` `collect`s only the request keys of a map, so groups are discarded and each (hierarchy, name) pair appears exactly once |
 | `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: "*"}` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
 | `{loadtest.group.name: [..., "*", ...], loadtest.request.name: X}` | — | **cannot** — a group at that position with any name, and no scope carries a wildcard path part |
 | `loadtest.group.name` as a string, or `[]` | — | rejected by the **schema** before this table is reached: a hierarchy has one spelling, and "no enclosing group" is said by omitting the key. The gate carries the same two rejections, so each is probed |
