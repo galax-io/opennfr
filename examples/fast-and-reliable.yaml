@@ -20,7 +20,7 @@ spec:
     - name: checkout
       displayName: Checkout is fast and reliable
       selector:
-        loadtest.group.name: Checkout              # a group, and one request inside it
+        loadtest.group.name: [Checkout]             # a group, and one request inside it
         loadtest.request.name: POST /checkout
       criteria:
         - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
