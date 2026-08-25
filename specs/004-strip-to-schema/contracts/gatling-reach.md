@@ -14,11 +14,15 @@ Gatling's assertion scope is `Global`, `ForAll`, or `Details(parts)` where `part
 recorded group and request names. Nothing else is addressable — not a route, not a method, not a
 status code, not an error type.
 
+A selector matches a row on its keys **and** on its values. Partitioning this axis by key set alone
+leaves the value free, and the value is what a renderer emits.
+
 | OpenNFR selector | Gatling | |
 |---|---|---|
 | `{}` | `global` | **can** |
-| `{loadtest.request.name: X}` | `details("X")` | **can** |
-| `{loadtest.group.name: G, loadtest.request.name: X}` | `details("G" / "X")` | **can** |
+| `{loadtest.request.name: X}`, `X` a string | `details("X")` | **can** — `X` is a path part, never a pattern |
+| `{loadtest.group.name: G, loadtest.request.name: X}`, both strings | `details("G" / "X")` | **can** |
+| any path value that is not a string | — | **cannot** — a path is `AssertionPathParts(parts: List[String])`. `{loadtest.request.name: 200}` and `{loadtest.request.name: "200"}` are different documents and only the second is renderable |
 | `{http.route: ...}` | — | **cannot** |
 | `{http.request.method: ...}` | — | **cannot** |
 | `{http.response.status_code: ...}` | — | **cannot** |
