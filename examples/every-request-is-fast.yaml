@@ -9,8 +9,15 @@
 #
 # One case that does not cover: a quantified selection expands to the requests actually observed,
 # so a run that recorded none has nothing to check and ends green. That is a fact about the target
-# rather than something this document can state — see the-run-held-up.yaml, where a guard is what
-# says the run happened at all.
+# rather than something this document can state.
+#
+# A guard is what says the run happened at all — see the-run-held-up.yaml — but it cannot be added
+# here. A selector is written once and binds guards as well as criteria, so a guard under this
+# requirement is quantified too: it would state its condition of each request position rather than
+# of the run, and on a run that recorded nothing it expands to zero assertions and passes. Vacuous
+# in exactly the case it exists to catch. The guard has to sit on a `{}` requirement, which is why
+# it sits on one in the-run-held-up.yaml, and today it cannot sit there alone: a requirement
+# requires at least one criterion. That is opennfr#61.
 #
 # This is the only document here whose selection is quantified rather than pooled. Compare
 # the-run-held-up.yaml, which says `{}` and means the whole run as one.
