@@ -580,6 +580,21 @@ TABLE = {
     },
 }
 
+# Written once so the rule and the probes below cannot drift into different words.
+NOT_A_PATH = "selector {} is not an assertion path"
+NOT_A_STRING = "an assertion path part must be a string"
+
+def selection_why(sel):
+    # Why this selector is not an assertion path, or [] if it is. A function rather than
+    # inline code so the probes below exercise the same rule the corpus is judged by;
+    # two copies would be free to disagree, which is the defect this section is fixing.
+    why = []
+    if set(sel) not in SELECTIONS:
+        why.append(NOT_A_PATH.format(sorted(sel)))
+    elif any(not isinstance(v, str) for v in sel.values()):
+        why.append(NOT_A_STRING)
+    return why
+
 def shape_of(p, why):
     if "good" in p:
         # successfulRequests exists, but a selector matches presence and never absence,
@@ -593,7 +608,27 @@ def shape_of(p, why):
         return "fraction"
     return "metric" if "metric" in p else "requests"
 
+# Rules that REJECT have nothing in examples/ to prove they fire: the corpus holds only
+# documents that validate and are assertable. Each probe is a selector this contract says
+# cannot be rendered, paired with the reason its row gives. A probe that stops being
+# rejected FAILs the section instead of passing quietly.
+SELECTION_PROBES = [
+    ({"loadtest.request.name": 200},  NOT_A_STRING),
+    ({"loadtest.request.name": True}, NOT_A_STRING),
+]
+
 rc, checked = 0, 0
+
+# An emptied probe table reports no failures and reads exactly like a sound one.
+if not SELECTION_PROBES:
+    print("  FAIL  no selection probe left — a rule nothing probes is a rule nothing checks")
+    sys.exit(1)
+for probe, expected in SELECTION_PROBES:
+    got = selection_why(probe)
+    if expected not in got:
+        print(f"  FAIL  probe {probe}: expected rejection {expected!r}, got {got or 'accepted'}")
+        rc = 1
+
 files = sorted(glob.glob("examples/*.yaml"))
 if not files:
     print("  FAIL  examples/ holds no document to check")
@@ -609,12 +644,7 @@ for f in files:
             for section in ("guards", "criteria"):
                 for p in r.get(section) or []:
                     checked += 1
-                    why = []
-
-                    if set(sel) not in SELECTIONS:
-                        why.append(f"selector {sorted(sel)} is not an assertion path")
-                    elif any(not isinstance(v, str) for v in sel.values()):
-                        why.append("an assertion path part must be a string")
+                    why = selection_why(sel)
 
                     if p.get("metric", METRIC) != METRIC:
                         why.append(f"metric {p['metric']} is not addressable")
@@ -651,7 +681,8 @@ if checked == 0:
     print("  FAIL  no predicate found to check — the scan is broken")
     sys.exit(1)
 if rc == 0:
-    print(f"  ok    {checked} predicates, all assertable by Gatling")
+    print(f"  ok    {checked} predicates assertable by Gatling, "
+          f"{len(SELECTION_PROBES)} selection probes still rejected")
 sys.exit(rc)
 GATLING
 fi
