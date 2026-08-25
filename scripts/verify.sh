@@ -539,6 +539,11 @@ except ImportError as e:
 # request names. Not a route, not a method, not a status code. Path parts are strings.
 SELECTIONS = [set(), {"loadtest.request.name"}, {"loadtest.group.name", "loadtest.request.name"}]
 
+# Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
+# path, so a quantified selection carrying one has no correspondence. Held beside SELECTIONS
+# so that adding a selection there forces a decision here instead of silently rejecting it.
+QUANTIFIABLE = [{"loadtest.request.name"}]
+
 # responseTime is the only addressable metric family.
 METRIC = "http.client.request.duration"
 
@@ -583,6 +588,7 @@ TABLE = {
 # Written once so the rule and the probes below cannot drift into different words.
 NOT_A_PATH = "selector {} is not an assertion path"
 NOT_A_STRING = "an assertion path part must be a string"
+QUANTIFIED = 'a quantified selection cannot carry a path: `"*"` reaches forAll(), which takes none'
 
 def selection_why(sel):
     # Why this selector is not an assertion path, or [] if it is. A function rather than
@@ -593,6 +599,11 @@ def selection_why(sel):
         why.append(NOT_A_PATH.format(sorted(sel)))
     elif any(not isinstance(v, str) for v in sel.values()):
         why.append(NOT_A_STRING)
+    elif any(v == "*" for v in sel.values()) and set(sel) not in QUANTIFIABLE:
+        # `"*"` quantifies: each distinct value is a statement of its own. Gatling spells
+        # that forAll(), which takes no path, so "every request inside one group" — and
+        # every other position `"*"` could occupy — has no correspondence.
+        why.append(QUANTIFIED)
     return why
 
 def shape_of(p, why):
@@ -615,6 +626,8 @@ def shape_of(p, why):
 SELECTION_PROBES = [
     ({"loadtest.request.name": 200},  NOT_A_STRING),
     ({"loadtest.request.name": True}, NOT_A_STRING),
+    ({"loadtest.group.name": "Checkout", "loadtest.request.name": "*"}, QUANTIFIED),
+    ({"loadtest.group.name": "*", "loadtest.request.name": "POST /checkout"}, QUANTIFIED),
 ]
 
 rc, checked = 0, 0

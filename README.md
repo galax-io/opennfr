@@ -235,7 +235,7 @@ selector: {loadtest.request.name: GET /}       # one request, by the name the to
 selector:                                      # one request inside a group
   loadtest.group.name: MyGroup
   loadtest.request.name: MyRequest
-selector: {error.type: "*"}                    # the attribute is present, any value
+selector: {error.type: "*"}                    # present with any value — and one bar per value
 selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 ```
 
@@ -243,7 +243,7 @@ selector: {http.route: /api/v1/checkout}       # one endpoint, by route
 |---|---|
 | Keys | any string. Attribute names are **not enumerated by the schema** and never will be |
 | Values | string, number or boolean. `null` is rejected |
-| `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*` |
+| `"*"` | presence, not a glob. `{http.route: "/api/*"}` selects the literal string `/api/*`. On a requirement's `selector` it also quantifies: each distinct value is a statement of its own, so `{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them. Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one number |
 
 A selector cannot say an attribute is **absent**. That is why `bad: {error.type: "*"}` works and the
 mirror-image `good` does not — write the failed fraction and compare with `lte`.

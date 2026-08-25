@@ -1,0 +1,34 @@
+# "No endpoint may be slow."
+#
+# The blanket requirement, and the reason `"*"` quantifies. `{}` would pool every request into one
+# number, where one busy fast endpoint hides a quiet slow one and the verdict is green for the
+# wrong reason. `"*"` says the bar applies to each named request on its own, so any single endpoint
+# breaching it fails the run.
+#
+# One case that does not cover: a quantified selection expands to the requests actually observed,
+# so a run that recorded none has nothing to check and ends green. That is a fact about the target
+# rather than something this document can state — see the-run-held-up.yaml, where a guard is what
+# says the run happened at all.
+#
+# This is the only document here whose selection is quantified rather than pooled. Compare
+# the-run-held-up.yaml, which says `{}` and means the whole run as one.
+
+apiVersion: opennfr.io/v1
+kind: RequirementSet
+metadata:
+  name: every-request-perf
+  displayName: What every endpoint owes its callers
+
+spec:
+  requirements:
+    - name: every-named-request
+      displayName: No endpoint is slow
+      selector:
+        loadtest.request.name: "*"                 # each named request, separately — not pooled
+      criteria:
+        - displayName: 95th percentile
+          metric: http.client.request.duration
+          aggregation: p95
+          op: lte
+          threshold: 3
+          unit: s
