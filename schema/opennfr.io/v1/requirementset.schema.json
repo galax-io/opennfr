@@ -320,7 +320,7 @@
         },
         "selector": {
           "$ref": "#/$defs/selector",
-          "description": "Which requests this requirement is about — written once, for every criterion and guard under it. `{}` is every request, pooled into one statement. A \"*\" value here also quantifies: each distinct value is a statement of its own. Inside `bad` or `good` it does not — those narrow a numerator, which is one number."
+          "description": "Which requests this requirement is about — written once, and binding every criterion and guard beneath it. What the values mean is on the selector definition this refers to."
         }
       },
       "examples": [
@@ -437,7 +437,7 @@
     },
     "selector": {
       "type": "object",
-      "description": "Selects time series by attribute. {} means every series. A value of \"*\" means the attribute is present with any value. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
+      "description": "Selects requests by attribute; every entry must match, by equality. {} is every request. `loadtest.group.name` is the request's enclosing groups as an ordered list, outermost first, at any depth — each element a literal recorded name, matched as the whole hierarchy and never a prefix of it. Where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy: the request has no enclosing group. That is the only rule beyond equality, and it fires only where a request is named. A value of \"*\" means the attribute is present with any value; on a requirement's selector it also quantifies, stating the requirement once of each request position the selector admits — a position being a request's enclosing groups, in order, then its name, as the run records it — not once per distinct value, and not once per occurrence. Inside `bad` or `good` it does not quantify: those narrow a numerator, which is one number. Attribute names are not enumerated — they are borrowed from OpenTelemetry, whose values may be strings, numbers or booleans.",
       "examples": [
         {},
         {
