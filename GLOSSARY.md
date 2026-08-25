@@ -67,8 +67,18 @@ like every other value, which makes it the request's whole hierarchy and not a p
 Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one
 number.
 
-A selector matches presence, never absence. That is why `bad` can be written and its mirror image
-cannot.
+One rule governs an absent hierarchy, and it is the only rule a selector has beyond equality:
+**where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy** —
+the request has no enclosing group. So `{loadtest.request.name: POST /checkout}` is that request at
+the root, and the request of the same name inside `Checkout` is a different request, written
+`{loadtest.group.name: [Checkout], loadtest.request.name: POST /checkout}`. The rule fires only
+where a request is named: `{}` names none, and `"*"` is not a name. Everything here reads the same
+inside `bad` and `good`, and reads inertly: the only numerator any surveyed target renders is
+`{error.type: "*"}`, which names no request.
+
+A selector otherwise matches presence, never absence. That is why `bad` can be written and its
+mirror image cannot; the hierarchy is the exception because it is not a filter but a position, and
+a position is complete or it is not one.
 
 *Rejected*: a **scalar** `loadtest.group.name` — what this entry carried until #53. It stopped at
 one group, so a request nested deeper was unwritable, and the spelling reached for instead,
