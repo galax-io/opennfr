@@ -320,7 +320,7 @@
         },
         "selector": {
           "$ref": "#/$defs/selector",
-          "description": "Which requests this requirement is about — written once, for every criterion and guard under it. `{}` is every request."
+          "description": "Which requests this requirement is about — written once, for every criterion and guard under it. `{}` is every request, pooled into one statement. A \"*\" value here also quantifies: each distinct value is a statement of its own. Inside `bad` or `good` it does not — those narrow a numerator, which is one number."
         }
       },
       "examples": [

@@ -2,7 +2,9 @@
 
 **Source**: `mappings/gatling.yaml` @ `cb7cb58`, itself sourced to the Gatling v3.15.1 source
 files `AssertionSupport.scala`, `AssertionBuilders.scala`, `AssertionPathParts.scala` and
-`AssertionModel.scala`. **Checked 2026-08-20.**
+`AssertionModel.scala`. **Checked 2026-08-20**, and re-checked 2026-08-24 for the scope rows:
+`AssertionSupport.scala` has three scopes and no more — `Global`, `ForAll`, `Details(parts)` — and
+only `Details` carries author strings, so `ForAll` takes no path.
 
 This is the bar FR-010, FR-011 and FR-012 test the corpus against. A predicate that is not in the
 **can** column below may not appear in a published example. It may still appear in a document
@@ -17,16 +19,31 @@ status code, not an error type.
 A selector matches a row on its keys **and** on its values. Partitioning this axis by key set alone
 leaves the value free, and the value is what a renderer emits.
 
+`"*"` says the attribute is present and that each distinct value is a statement of its own — a
+statement about the format, defined in `GLOSSARY.md` and restated in `README.md`. Here it is only
+mapped: the quantifier reaches `forAll()`, and `{}` stays the pooled reading. The two are different
+requirements — "the average endpoint is fast" against "no endpoint is slow" — and the table keeps
+them apart.
+
 | OpenNFR selector | Gatling | |
 |---|---|---|
 | `{}` | `global` | **can** |
-| `{loadtest.request.name: X}`, `X` a string | `details("X")` | **can** — `X` is a path part, never a pattern |
-| `{loadtest.group.name: G, loadtest.request.name: X}`, both strings | `details("G" / "X")` | **can** |
+| `{loadtest.request.name: X}`, `X` a string other than `"*"` | `details("X")` | **can** — `X` is a path part, never a pattern |
+| `{loadtest.group.name: G, loadtest.request.name: X}`, both strings other than `"*"` | `details("G" / "X")` | **can** |
+| `{loadtest.request.name: "*"}` | `forAll()` | **can** — the quantified reading: one assertion per observed request, not one number over all of them |
+| `{loadtest.group.name: G, loadtest.request.name: "*"}`, `G` other than `"*"` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
+| `{loadtest.group.name: "*", loadtest.request.name: X}` | — | **cannot** — the same, and a group is not addressable on its own |
 | any path value that is not a string | — | **cannot** — a path is `AssertionPathParts(parts: List[String])`. `{loadtest.request.name: 200}` and `{loadtest.request.name: "200"}` are different documents and only the second is renderable |
 | `{http.route: ...}` | — | **cannot** |
 | `{http.request.method: ...}` | — | **cannot** |
 | `{http.response.status_code: ...}` | — | **cannot** |
 | any other attribute | — | **cannot** |
+
+**The value is part of the correspondence, not a detail of it.** An earlier draft partitioned this
+axis by key set alone, and the gate written from it approved `{loadtest.request.name: "*"}` — which
+this table then rendered as a request literally named `*`, a path matching nothing, failing the run
+for a reason unrelated to what was asserted. The fraction axis learned the same lesson about `bad`,
+one table down.
 
 ## Metrics
 
@@ -108,11 +125,14 @@ limit and the run enforces another, and the report names neither.
 ## Two things Gatling cannot do at all
 
 - **Abort a run on a violated assertion.** Assertions are evaluated after the run.
-- **Fail on absent data in one case.** A `ForAll` assertion expands to the requests observed; if
-  none were observed it yields zero results and the run exits successfully — nothing failed
-  because nothing was checked. A `details(...)` path that matches nothing behaves the opposite
-  way and fails with a resolution error. Both are recorded because the difference reads as an
-  inconsistency otherwise.
+- **Fail on absent data in one case.** A `forAll()` assertion — the Selection row for
+  `{loadtest.request.name: "*"}` — expands to the requests observed; if none were observed it
+  yields zero results and the run exits successfully, because nothing failed and nothing was
+  checked. A `details(...)` path that matches nothing behaves the opposite way and fails with a
+  resolution error. Both are recorded because the difference reads as an inconsistency otherwise.
+  Neither is compensated for here: a document is not obliged to carry a guard and the gate does not
+  require one. This is a fact about the target, and recording one is not the same as legislating
+  around it.
 
 ## How this contract is applied
 

@@ -53,15 +53,23 @@ struck in constitution 2.0.0 for the reason above.
 ### selector
 
 Selects requests by attribute; a map where every entry must match. Written once per requirement.
-`{}` is every request, said explicitly. `"*"` means the attribute is present with any value — it
-is presence, not a glob.
+`{}` is every request, said explicitly, and reads as one statement about all of them together.
+`"*"` means the attribute is present with any value — it is presence, not a glob. On a
+**requirement's** selector it also quantifies: each distinct value is a statement of its own, so
+`{loadtest.request.name: "*"}` is one bar per named request where `{}` is one bar over all of them.
+Inside `bad` or `good` it does not quantify — those narrow a numerator, and a numerator is one
+number.
 
 A selector matches presence, never absence. That is why `bad` can be written and its mirror image
 cannot.
 
 *Rejected*: `filter` (Keptn) — too generic. `tags` — k6 terminology. `scope` — already means
 visibility. Holding the selection per criterion — reads fine for one criterion and duplicates for
-every requirement with more than one thing to say.
+every requirement with more than one thing to say. Reading `"*"` as presence alone, pooled the way
+`{}` is — what this entry said until #55 and #56: it settled that the attribute must be there and
+left the quantifier unstated, so the only honest reading of `{loadtest.request.name: "*"}` was one
+`{}` already had, and the value was a longer spelling of something else. "The average endpoint is
+fast" and "no endpoint is slow" are different requirements; the format now writes both.
 
 ### metric
 
