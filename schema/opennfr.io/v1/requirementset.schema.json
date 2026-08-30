@@ -428,7 +428,7 @@
           "pattern": "^p\\d{1,2}(\\.\\d+)?$"
         }
       ],
-      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape it is applied to, as it does in k6: over a `distribution` it is per second, over a `ratio` it is the fraction. k6 resolves the same overload the same way, by the metric's type.",
+      "description": "How the indicator is reduced to one number. The set is k6's, which is the one every surveyed tool can serve: p50/p95/p99/p99.9 and any other percentile, avg, min, max, sum, stddev, count, rate.\n`rate` reads from the shape the predicate is, and there are three: over the requests themselves it is per second, over a `bad`/`good` fraction it is the share, and over a `metric` it is that metric's observations per second.",
       "examples": [
         "p95",
         "rate",
