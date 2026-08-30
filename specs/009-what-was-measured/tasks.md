@@ -135,12 +135,12 @@ including one carrying no metric, which the old reason did not cover.
 answer must be no, for a reason that holds with a metric and without one, and that depends on nothing
 undated.
 
-- [ ] T025 [US6] Rewrite the reason on the group-only row of `README.md`'s Selection table: it denotes the requests whose hierarchy is exactly those groups, and **no scope denotes the requests a path encloses** — the scopes are `Global`, `ForAll` and `Details(parts)`, and `Details` on a group's path resolves to the group. Add that what the group scope does compute is a cumulated response time no name in § *Names* is true of
-- [ ] T026 [US6] Remove the deferral `Whether a group-scoped statement should exist at all is open, as [#52](…)` from that row, and with it the only issue reference in the reach tables that stands in place of a reason. #61's reference stays: it records a real limitation with its provenance
-- [ ] T027 [P] [US6] Remove the trailing `(#52)` from the comment above `SELECTIONS` in `scripts/verify.sh` and keep the sentence that gives the reason. Do **not** copy the row's paragraph in: `README.md` is the only place the tables are stated
-- [ ] T028 [US6] Verify no behaviour changed — `SELECTIONS`, `QUANTIFIABLE`, `selection_why`, every probe and both floors untouched, and `{loadtest.group.name: ["Checkout"]}` still refused with `selector ['loadtest.group.name'] is not an assertion path`
-- [ ] T029 [US6] Run [quickstart.md](quickstart.md) check 7; it must now print `0` deferrals and `1` issue reference, against the branch point's `1` and `2`
-- [ ] T030 [US6] Commit `fix(contract): a group-only selection is a decided cannot (#52)`, closing #52
+- [X] T025 [US6] Rewrite the reason on the group-only row of `README.md`'s Selection table: it denotes the requests whose hierarchy is exactly those groups, and **no scope denotes the requests a path encloses** — the scopes are `Global`, `ForAll` and `Details(parts)`, and `Details` on a group's path resolves to the group. Add that what the group scope does compute is a cumulated response time no name in § *Names* is true of
+- [X] T026 [US6] Remove the deferral `Whether a group-scoped statement should exist at all is open, as [#52](…)` from that row, and with it the only issue reference in the reach tables that stands in place of a reason. #61's reference stays: it records a real limitation with its provenance
+- [X] T027 [P] [US6] Remove the trailing `(#52)` from the comment above `SELECTIONS` in `scripts/verify.sh` and keep the sentence that gives the reason. Do **not** copy the row's paragraph in: `README.md` is the only place the tables are stated
+- [X] T028 [US6] Verify no behaviour changed — `SELECTIONS`, `QUANTIFIABLE`, `selection_why`, every probe and both floors untouched, and `{loadtest.group.name: ["Checkout"]}` still refused with `selector ['loadtest.group.name'] is not an assertion path`
+- [X] T029 [US6] Run [quickstart.md](quickstart.md) check 7; it must now print `0` deferrals and `1` issue reference, against the branch point's `1` and `2`
+- [X] T030 [US6] Commit `fix(contract): a group-only selection is a decided cannot (#52)`, closing #52
 
 **Checkpoint**: no verdict in the reach tables is deferred.
 
