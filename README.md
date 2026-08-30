@@ -332,11 +332,14 @@ predicate carrying neither `metric` nor `bad` count the requests themselves.
 pattern allows at most two digits before the decimal point. Write `p99.9`. `avg` rather than `mean`:
 that is the spelling in every format surveyed.
 
-`rate` reads from the shape it is applied to. Over requests it is per second — `count / window
-duration`, exactly `rate(..._count[…])` in Prometheus. Over a fraction it is the share. One word,
-two readings, disambiguated by whether `bad`/`good` is present. k6 carries the identical overload
-and resolves it the identical way, so the wart is borrowed rather than invented; a second word to
-avoid it would cost more than it saves.
+`rate` reads from the shape it is applied to, and a predicate has three. Over the requests
+themselves it is per second — `count / window duration`, exactly `rate(..._count[…])` in Prometheus.
+Over a fraction it is the share. Over a `metric` it is that metric's observations per second, which
+equals the request rate only where every selected request carries one. One word, three readings, and
+the shape decides: `bad`/`good` makes it a fraction, a `metric` makes it a measurement, neither
+makes it the requests. One word for three is a wart, and it is cheaper than three words: a
+second name would have to be chosen, defended and carried by every consumer, to distinguish
+readings the predicate's own shape already distinguishes.
 
 **`op`.** Words, not symbols — `<=` has to be parsed out of a string, and `>` needs escaping in half
 the places a document travels through.

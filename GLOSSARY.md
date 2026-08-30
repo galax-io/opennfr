@@ -145,8 +145,9 @@ construction, and writing it twice invites the two to disagree.
 
 ### aggregation
 
-The statistic that reduces many numbers to one. `rate` reads from the shape it is applied to: over
-requests it is per second, over a fraction it is the share.
+The statistic that reduces many numbers to one. `rate` reads from the shape it is applied to, and a
+predicate has three: over the requests themselves it is per second, over a fraction it is the share,
+over a `metric` it is that metric's observations per second.
 
 *Rejected*: `mean` — `avg` is the spelling in every format surveyed. A separate `throughput`
 statistic — it is `rate`, and OpenTelemetry has no throughput metric either, for the same reason.
