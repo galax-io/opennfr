@@ -645,6 +645,8 @@ Over a metric:
 | `avg` | `responseTime.mean` | **can** |
 | `stddev` | `responseTime.stdDev` | **can** |
 | `sum` | — | **cannot** — `responseTime` offers no sum and no arithmetic that would produce one |
+| `count` | — | **cannot** — none of the rows above is a count, and `allRequests.count` is the row *below*: it counts requests, not what a metric carries, and the two differ wherever a metric is not recorded for every request |
+| `rate` | — | **cannot** — the same, one row down: `requestsPerSec` is a rate of requests, and no row here is a rate of a metric's own observations |
 
 The percentile row is the pattern and not a range, because a row is matched exactly and a range is
 not something a predicate matches. `p1`, `p10` and `p99.99` are all decidable from it, and all three

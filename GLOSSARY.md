@@ -151,6 +151,18 @@ over a `metric` it is that metric's observations per second.
 
 *Rejected*: `mean` — `avg` is the spelling in every format surveyed. A separate `throughput`
 statistic — it is `rate`, and OpenTelemetry has no throughput metric either, for the same reason.
+Making `count` and `rate` beside a `metric` **invalid in the schema** — proposed by #57 as the way
+to remove the ambiguity at its source, and rejected in v0.6.0: the shape denotes how many
+observations of the metric the selection carries, which is not how many requests it carries wherever
+the metric is not recorded for every request, and narrowing the schema to a target's reach is what
+the constitution's compatibility constraints forbid. It would also have put this shape on the far side of a
+line the format draws everywhere else: `sum`, `neq` and `http.route` are refused by the reach tables
+and valid in the schema, and no principle distinguishes this one from them.
+What would reverse it: no surveyed target computing a per-metric observation count, checked against
+dated documentation.
+Declaring the `metric` **ignored** where the aggregation does not read it — #57's other option, and
+the one Principle III forbids by name: an ignored key is a document saying something the run does not
+check.
 
 ### op
 

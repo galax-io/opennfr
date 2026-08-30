@@ -601,8 +601,6 @@ TABLE = {
         "min":        ("responseTime.min",        TIME, True),
         "avg":        ("responseTime.mean",       TIME, True),
         "stddev":     ("responseTime.stdDev",     TIME, True),
-        "count":      ("allRequests.count",       COUNT, True),
-        "rate":       ("requestsPerSec",          PERSEC, False),
     },
     "fraction": {
         "rate":  ("failedRequests.percent", SHARE, False),
@@ -664,6 +662,44 @@ def selection_why(sel):
             why.append(QUANTIFIED)
     return why
 
+def predicate_why(p):
+    # Why this predicate has no Gatling equivalent, or [] if it has one. A function for the same
+    # reason selection_why is one: the probes below exercise the rule the corpus is judged by, and
+    # two copies would be free to disagree. It was inline until v0.6.0, which is part of why the
+    # predicate axes went unprobed — there was nothing a probe could call.
+    why = []
+    if p.get("metric", METRIC) != METRIC:
+        why.append(f"metric {p['metric']} is not addressable")
+
+    shape = shape_of(p, why)
+    agg = p.get("aggregation")
+    row = None
+    if shape:
+        key = "PERCENTILE" if percentile(str(agg)) else agg
+        row = TABLE[shape].get(key)
+        if row is None:
+            why.append(f"aggregation {agg} over a {shape} has no equivalent")
+
+    if p.get("op") not in OPS:
+        why.append(f"op {p.get('op')} has no equivalent")
+
+    if row:
+        native, units, integral = row
+        factor = units.get(p.get("unit"))
+        if factor is None:
+            why.append(f"unit {p.get('unit')} is not a unit of {native}")
+        elif integral and "threshold" not in p:
+            # The one key the old inline block read without .get(). A predicate missing it is
+            # schema-invalid, but this section reads examples/ and never the schema, so it has to
+            # say so rather than abort the scan and leave the rest of the corpus unread.
+            why.append(f"threshold is absent, and {native} takes one")
+        elif integral:
+            value = Fraction(str(p["threshold"])) * factor
+            if value.denominator != 1:
+                why.append(f"threshold {p['threshold']} {p['unit']} is {value} for {native}, "
+                           f"whose target is an integer")
+    return why
+
 def shape_of(p, why):
     if "good" in p:
         # successfulRequests exists, but a selector matches presence and never absence,
@@ -705,9 +741,70 @@ SELECTION_RENDERS = [
     {HIERARCHY: ["Checkout", "Payment"], REQUEST: "GET /test/id"},
 ]
 
+# And the other four axes, which had NO probe at all until v0.6.0. Selection was probed; metric,
+# aggregation, operator and unit were not, so every rejection rule on them was unexercised and any
+# could have been deleted green. The corpus cannot stand in for them — it holds only documents that
+# are assertable. That is how TABLE["metric"] carried `count` and `rate`, rendering a shape these
+# tables reject and discarding the `metric` key without a message, for five releases (#57).
+#
+# Each entry is one axis's rule, exercised through predicate_why — the same function the corpus is
+# judged by, never a copy of it. Written as a mutation of one renderable predicate so a probe
+# differs from a passing one in exactly the thing it tests.
+RENDERABLE = {"metric": METRIC, "aggregation": "p95", "op": "lte", "threshold": 500, "unit": "ms"}
+PREDICATE_PROBES = [
+    ({**RENDERABLE, "aggregation": "count", "unit": "{request}"},
+     "aggregation count over a metric has no equivalent"),
+    ({**RENDERABLE, "aggregation": "rate", "unit": "{request}/s"},
+     "aggregation rate over a metric has no equivalent"),
+    ({**RENDERABLE, "aggregation": "sum"},
+     "aggregation sum over a metric has no equivalent"),
+    ({**RENDERABLE, "metric": "http.client.response.body.size"},
+     "metric http.client.response.body.size is not addressable"),
+    ({**RENDERABLE, "op": "neq"},
+     "op neq has no equivalent"),
+    ({**RENDERABLE, "unit": "%"},
+     "unit % is not a unit of responseTime.percentile"),
+    ({**RENDERABLE, "threshold": 0.1},
+     "threshold 0.1 ms is 1/10 for responseTime.percentile, whose target is an integer"),
+    ({k: v for k, v in RENDERABLE.items() if k != "threshold"},
+     "threshold is absent, and responseTime.percentile takes one"),
+    ({"good": {"error.type": "*"}, "aggregation": "rate", "op": "lte", "threshold": 5, "unit": "%"},
+     "`good` has no expressible numerator: a selector cannot say an attribute is absent"),
+    ({"bad": {"http.response.status_code": 500}, "aggregation": "rate", "op": "lte",
+      "threshold": 5, "unit": "%"},
+     'bad {\'http.response.status_code\': 500} is not `{error.type: "*"}`; '
+     "failedRequests counts KO and nothing else"),
+]
+
+# And the other direction, which the first draft of this section did without on the grounds that
+# the corpus already exercises every accepted shape. It does not: the corpus is ten predicates and
+# reaches five of TABLE's nine rows, four of six unit keys and two of five operators, so `min`,
+# `avg`, `stddev`, `allRequests.count`, a fraction in `1`, and three of the four comparisons could
+# each be deleted with this section still green. Same argument as SELECTION_RENDERS, one axis over.
+#
+# The first entry is the base every probe above mutates. Without it the whole table can pass on a
+# broken baseline: drop `lte` from OPS and all the rejection probes still fire their own reason
+# alongside the new one, because the check is membership and not equality.
+PREDICATE_RENDERS = [
+    RENDERABLE,
+    {**RENDERABLE, "aggregation": "max"},
+    {**RENDERABLE, "aggregation": "min"},
+    {**RENDERABLE, "aggregation": "avg"},
+    {**RENDERABLE, "aggregation": "stddev"},
+    {**RENDERABLE, "aggregation": "p99.9", "unit": "s", "threshold": 1},
+    {**RENDERABLE, "op": "lt"},
+    {**RENDERABLE, "op": "gt"},
+    {**RENDERABLE, "op": "gte"},
+    {**RENDERABLE, "op": "eq"},
+    {"aggregation": "count", "op": "lte", "threshold": 20, "unit": "{request}"},
+    {"aggregation": "rate", "op": "gte", "threshold": 200, "unit": "{request}/s"},
+    {"bad": {"error.type": "*"}, "aggregation": "rate", "op": "lte", "threshold": 0.05, "unit": "1"},
+    {"bad": {"error.type": "*"}, "aggregation": "count", "op": "lte", "threshold": 20, "unit": "{request}"},
+]
+
 rc, checked = 0, 0
 
-# A pruned probe table reports no failures and reads exactly like a sound one. BOTH floors are
+# A pruned probe table reports no failures and reads exactly like a sound one. ALL FOUR floors are
 # EXACT, and that is deliberate — the closure floor above sits just under its count because its
 # probes overlap, and these do not. Each probe here is the sole catcher of its own class.
 #
@@ -719,12 +816,19 @@ rc, checked = 0, 0
 # At a floor of one less, either could be dropped green and the rule it guards broken green
 # afterwards: two steps, both passing. Adding a probe means raising the number beside it,
 # which is the intended cost.
-REJECTIONS, RENDERS = 10, 5
-if len(SELECTION_PROBES) < REJECTIONS or len(SELECTION_RENDERS) < RENDERS:
-    print(f"  FAIL  {len(SELECTION_PROBES)} rejection and {len(SELECTION_RENDERS)} rendering "
-          f"probes, expected at least {REJECTIONS} and {RENDERS} — a rule nothing probes is a "
-          f"rule nothing checks")
-    sys.exit(1)
+#
+# The two predicate floors are exact for a related but different reason, worth stating because it is
+# not the sentence above: each REJECTION probe is the sole catcher of one rule regressing, and three
+# of them share the aggregation-row lookup while catching three distinct regressions. Each RENDERING
+# probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
+# no corpus document can show.
+FLOORS = [("rejection", SELECTION_PROBES, 10), ("rendering", SELECTION_RENDERS, 5),
+          ("predicate rejection", PREDICATE_PROBES, 10), ("predicate rendering", PREDICATE_RENDERS, 14)]
+for _label, _probes, _floor in FLOORS:
+    if len(_probes) < _floor:
+        print(f"  FAIL  {len(_probes)} {_label} probes, expected at least {_floor} — "
+              f"a rule nothing probes is a rule nothing checks")
+        sys.exit(1)
 for probe, expected in SELECTION_PROBES:
     got = selection_why(probe)
     if expected not in got:
@@ -732,6 +836,16 @@ for probe, expected in SELECTION_PROBES:
         rc = 1
 for probe in SELECTION_RENDERS:
     got = selection_why(probe)
+    if got:
+        print(f"  FAIL  probe {probe}: renders, but the rule rejects it: {'; '.join(got)}")
+        rc = 1
+for probe, expected in PREDICATE_PROBES:
+    got = predicate_why(probe)
+    if expected not in got:
+        print(f"  FAIL  probe {probe}: expected rejection {expected!r}, got {got or 'accepted'}")
+        rc = 1
+for probe in PREDICATE_RENDERS:
+    got = predicate_why(probe)
     if got:
         print(f"  FAIL  probe {probe}: renders, but the rule rejects it: {'; '.join(got)}")
         rc = 1
@@ -754,36 +868,10 @@ for f in files:
             for section in ("guards", "criteria"):
                 for p in r.get(section) or []:
                     checked += 1
-                    why = selection_why(sel)
-
-                    if p.get("metric", METRIC) != METRIC:
-                        why.append(f"metric {p['metric']} is not addressable")
-
-                    shape = shape_of(p, why)
-                    agg = p.get("aggregation")
-                    row = None
-                    if shape:
-                        key = "PERCENTILE" if percentile(str(agg)) else agg
-                        row = TABLE[shape].get(key)
-                        if row is None:
-                            why.append(f"aggregation {agg} over a {shape} has no equivalent")
-
-                    if p.get("op") not in OPS:
-                        why.append(f"op {p.get('op')} has no equivalent")
-
-                    if row:
-                        native, units, integral = row
-                        factor = units.get(p.get("unit"))
-                        if factor is None:
-                            why.append(f"unit {p.get('unit')} is not a unit of {native}")
-                        elif integral:
-                            value = Fraction(str(p["threshold"])) * factor
-                            if value.denominator != 1:
-                                why.append(f"threshold {p['threshold']} {p['unit']} is {value} for {native}, "
-                                           f"whose target is an integer")
+                    why = selection_why(sel) + predicate_why(p)
 
                     if why:
-                        cid = p.get("name") or agg
+                        cid = p.get("name") or p.get("aggregation")
                         print(f"  FAIL  {f}: {r.get('name')}/{section}/{cid}: " + "; ".join(why))
                         rc = 1
 # A scan that checked nothing reads exactly like a scan that passed.
@@ -793,7 +881,9 @@ if checked == 0:
 if rc == 0:
     print(f"  ok    {checked} predicates assertable by Gatling, "
           f"{len(SELECTION_PROBES)} selection probes still rejected, "
-          f"{len(SELECTION_RENDERS)} still rendered")
+          f"{len(SELECTION_RENDERS)} still rendered, "
+          f"{len(PREDICATE_PROBES)} predicate probes still rejected, "
+          f"{len(PREDICATE_RENDERS)} still rendered")
 sys.exit(rc)
 GATLING
 fi
