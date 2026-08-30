@@ -562,8 +562,8 @@ REQUEST = "loadtest.request.name"
 # What each denotes: {} is every request pooled; a request name alone is that request with NO
 # enclosing group, because an absent hierarchy beside a named request means the empty one; the
 # pair is that request at whatever depth the list spells. {HIERARCHY} alone is absent on
-# purpose — it has a meaning, the requests whose hierarchy is exactly those groups, but
-# Gatling's group scope measures a cumulated duration the Metrics table cannot name (#52).
+# purpose, and settled rather than pending: it has a meaning, the requests whose hierarchy is
+# exactly those groups, and no Gatling scope denotes the requests a path encloses.
 SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
 
 # Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
