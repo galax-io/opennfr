@@ -3,9 +3,15 @@ SYNC IMPACT REPORT
 ==================
 Version change: 3.0.0 -> 4.0.0
 
-Bump rationale: MAJOR. Principle VI's second bullet is "redefined in a way that permits what it
-previously forbade" — adding a target may now change one existing document, the one holding the
-target descriptions, where the previous wording forbade changing any.
+Bump rationale: MAJOR, at two limbs, and the highest governs.
+
+  1. Principle VI's second bullet is "redefined in a way that permits what it previously forbade" —
+     adding a target may now change one existing document, the one holding the target descriptions,
+     where the previous wording forbade changing any. MAJOR.
+  2. Principle II gains a clause: composite quantities do not become metrics either, for a reason
+     that is not the derived one. That is "existing guidance is materially expanded". MINOR.
+
+Both ride one amendment, so the document takes one version number, as the versioning policy says.
 
 Travelling with other work: no. This amendment IS the work. Milestone v0.7.0 exists to make this
 file stop contradicting the documents that follow it, and the pull request carrying it says so in
@@ -20,7 +26,22 @@ ships two normative documents that contradict each other, with the reconciliatio
 feature plan under a directory AGENTS.md itself reads as history (#83). Every milestone after this
 one writes another target fact into the document Principle VI forbids changing.
 
+The second half is smaller and the same shape. #64 removed apdex from README.md's derived-quantities
+sentence because the stated reason — computed by aggregation from metrics that already exist — is
+false of it: apdex needs a banded classification carrying a second threshold and an aggregation
+weighting the bands, and the format has neither. Principle II kept all three names under that reason,
+so the repository shipped two normative statements about the same three names that disagreed, with
+the false one in the higher-authority document (#75). The deferral that recorded this closed with its
+milestone and has had no open home since.
+
 Sections materially changed:
+  - Principle II — the derived-quantities clause becomes two. apdex leaves the derived list, where
+    the stated reason is false of it, and is named in a new clause for COMPOSITE quantities, which
+    reduce to no construct the format has. The clause states the rule; the argument for why apdex
+    reduces to nothing stays in docs/ideas.md, where this repository argues about constructs it does
+    not have. Mirroring README.md's deletion without replacement was the alternative, and was
+    rejected: it makes the two documents agree by making this one silent, and this principle is the
+    only place the constitution says what may not become a metric name.
   - Principle VI — the second bullet becomes two. A target's DESCRIPTION is defined as what a
     renderer reads to turn a requirement document into that target's assertions; exactly one is
     required per target; a description MAY be a section of an existing document; and a gate
@@ -76,8 +97,11 @@ unusable across tools because their words meant different things in different pl
   semconv has no equivalent.
 - Aliases and second spellings for the same concept are FORBIDDEN, including
   human-friendly shorthands.
-- Derived quantities (throughput, error rate, apdex) MUST NOT become metrics. They are
-  computed by aggregation from metrics that already exist.
+- Derived quantities (throughput, error rate) MUST NOT become metrics. They are computed by
+  aggregation from metrics that already exist.
+- Composite quantities MUST NOT become metrics either, for the opposite reason: they reduce to
+  no construct the format has. apdex is the case on the record, and `docs/ideas.md` carries what
+  would have to become true before it could enter.
 
 **Rationale**: a second vocabulary is a second source of truth, and the two diverge as
 soon as either changes. Borrowing is also what makes a result report correlate with the
