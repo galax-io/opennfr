@@ -41,7 +41,7 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 Answer each gate explicitly. A "no" is either fixed or justified in Complexity Tracking
-below — never left blank. See `.specify/memory/constitution.md` (v3.0.0).
+below — never left blank. See `.specify/memory/constitution.md` (v4.0.0).
 
 - [ ] **I. Vocabulary Before Features** — does this feature introduce or rename a term? If so, is
       `GLOSSARY.md` updated in the same change, with a rejected alternative and its reason? Was
@@ -60,7 +60,9 @@ below — never left blank. See `.specify/memory/constitution.md` (v3.0.0).
       parser? Are value sets closed?
 - [ ] **VI. The Requirement Is Target-Blind** — does any requirement document name a target, in a
       field, a value, a metric name or an example? Does adding a target change the format, the
-      schema, or an existing document?
+      schema, the published corpus, or any existing document other than the one holding the target
+      descriptions? Is there still exactly one description per target, and does any gate carry a
+      second copy of its rows?
 - [ ] **VII** — *withdrawn in 3.0.0. No gate.*
 - [ ] **VIII. Ideas Are Parked, Not Merged** — does anything outside `docs/` link into it? Does
       every idea state what would have to become true before it could enter the format? Does
