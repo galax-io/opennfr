@@ -160,24 +160,24 @@ name. Then restore the deleted `TABLE["metric"]` row and confirm the gate goes r
 
 ### The gate and the tables (US1)
 
-- [ ] T031 [US1] Delete the `"count"` and `"rate"` entries from `TABLE["metric"]` in `scripts/verify.sh`. They are byte-identical to the `"requests"` rows, which is why the `metric` key resolved to nothing and was reported nowhere
-- [ ] T032 [P] [US1] Add `count` and `rate` rows marked **cannot** to `README.md` § *Aggregations* → *Over a metric*, each with its reason, so the shape is matched by a row rather than excluded by the table's silence
-- [ ] T033 [P] [US1] Add to `GLOSSARY.md` § *aggregation*'s *Rejected* line the schema-rule outcome and the binding constraint it would have broken, plus the outcome declaring the `metric` ignored, which Principle III forbids by name
-- [ ] T034 [US1] Verify the **withdrawn** edits were not made: `README.md` § *What a criterion can be about*'s `metric` row still lists `count` and `rate`, § *A predicate*'s note about rule 4 is intact, and § *What you will see when it is wrong* has no new row
-- [ ] T035 [US1] Verify `git diff main -- schema/` shows changes inside `$defs/selector.description` and nowhere else — no `allOf` branch, no `properties`, no `required`, no keyword
+- [X] T031 [US1] Delete the `"count"` and `"rate"` entries from `TABLE["metric"]` in `scripts/verify.sh`. They are byte-identical to the `"requests"` rows, which is why the `metric` key resolved to nothing and was reported nowhere
+- [X] T032 [P] [US1] Add `count` and `rate` rows marked **cannot** to `README.md` § *Aggregations* → *Over a metric*, each with its reason, so the shape is matched by a row rather than excluded by the table's silence
+- [X] T033 [P] [US1] Add to `GLOSSARY.md` § *aggregation*'s *Rejected* line the schema-rule outcome and the binding constraint it would have broken, plus the outcome declaring the `metric` ignored, which Principle III forbids by name
+- [X] T034 [US1] Verify the **withdrawn** edits were not made: `README.md` § *What a criterion can be about*'s `metric` row still lists `count` and `rate`, § *A predicate*'s note about rule 4 is intact, and § *What you will see when it is wrong* has no new row
+- [X] T035 [US1] Verify `git diff main -- schema/` shows changes inside `$defs/selector.description` and nowhere else — no `allOf` branch, no `properties`, no `required`, no keyword
 
 ### The probe list (US2)
 
-- [ ] T036 [US2] Add a predicate probe list to the Gatling section of `scripts/verify.sh`, in the shape `SELECTION_PROBES` has: each entry a predicate the tables refuse, paired with the reason its row gives. Cover `{metric, count}`, `{metric, rate}`, `{metric, sum}`, a non-addressable metric, `op: neq`, a percentile in `%`, and a fractional-millisecond threshold — the seven listed in [contracts/predicate-axes.md](contracts/predicate-axes.md)
-- [ ] T037 [US2] Add its floor beside it, set to the probe count, with the comment the selection floors already carry: a probe that is gone cannot fail
-- [ ] T038 [US2] Mutation check — restore `"count": ("allRequests.count", COUNT, True)` to `TABLE["metric"]`, run the gate, confirm it **fails** naming the `{metric, count}` probe, then revert
-- [ ] T039 [US2] Mutation check — delete one predicate probe without lowering the floor, run the gate, confirm it **fails** naming the floor, then revert
+- [X] T036 [US2] Add a predicate probe list to the Gatling section of `scripts/verify.sh`, in the shape `SELECTION_PROBES` has: each entry a predicate the tables refuse, paired with the reason its row gives. Cover `{metric, count}`, `{metric, rate}`, `{metric, sum}`, a non-addressable metric, `op: neq`, a percentile in `%`, and a fractional-millisecond threshold — the seven listed in [contracts/predicate-axes.md](contracts/predicate-axes.md)
+- [X] T037 [US2] Add its floor beside it, set to the probe count, with the comment the selection floors already carry: a probe that is gone cannot fail
+- [X] T038 [US2] Mutation check — restore `"count": ("allRequests.count", COUNT, True)` to `TABLE["metric"]`, run the gate, confirm it **fails** naming the `{metric, count}` probe, then revert
+- [X] T039 [US2] Mutation check — delete one predicate probe without lowering the floor, run the gate, confirm it **fails** naming the floor, then revert
 
 ### Close
 
-- [ ] T040 [US1] Run `bash scripts/verify.sh`; confirm `58 closures still reject` and the corpus's `10 predicates assertable` are unchanged, and that the new predicate probe count is printed
-- [ ] T041 [US1] Run [quickstart.md](quickstart.md) checks 1, 2, 3 and 6 in full, including copying the probe document into `examples/` to see the gate fail and removing it again
-- [ ] T042 [US1] Commit `fix(contract): the gate stops rendering what the tables reject (#57)`, closing #57
+- [X] T040 [US1] Run `bash scripts/verify.sh`; confirm `58 closures still reject` and the corpus's `10 predicates assertable` are unchanged, and that the new predicate probe count is printed
+- [X] T041 [US1] Run [quickstart.md](quickstart.md) checks 1, 2, 3 and 6 in full, including copying the probe document into `examples/` to see the gate fail and removing it again
+- [X] T042 [US1] Commit `fix(contract): the gate stops rendering what the tables reject (#57)`, closing #57
 
 **Checkpoint**: all five issues closed. This commit is revertable on its own.
 
@@ -185,9 +185,9 @@ name. Then restore the deleted `TABLE["metric"]` row and confirm the gate goes r
 
 ## Phase 8: Polish, and what this milestone found but does not fix
 
-- [ ] T043 Run every check in [quickstart.md](quickstart.md), all nine, against the finished branch
-- [ ] T044 [P] Verify `GLOSSARY.md` still has fifteen `###` entries and that § *aggregation*, § *selector* and § *metric* each record what was rejected — quickstart check 8
-- [ ] T045 [P] Verify `git diff main -- examples/` is empty
+- [X] T043 Run every check in [quickstart.md](quickstart.md), all nine, against the finished branch
+- [X] T044 [P] Verify `GLOSSARY.md` still has fifteen `###` entries and that § *aggregation*, § *selector* and § *metric* each record what was rejected — quickstart check 8
+- [X] T045 [P] Verify `git diff main -- examples/` is empty
 - [ ] T046 Confirm every pull request carries milestone **v0.6.0** and every issue is closed by the commit that landed its fix, per `scripts/check-linkage.sh`
 - [ ] T047 [P] File a new issue for `$defs/aggregation.description`, which defines `rate` over a `distribution` and a `ratio` — neither is a term this schema contains, and `GLOSSARY.md` already carries the correct wording. Out of scope here: out-of-scope improvements do not travel inside an issue commit
 - [ ] T048 Propose to the maintainer that the v0.6.0 milestone description be corrected. It says #62's answer *"also names the quantity a group path measures"* and that #52 *"adds its Selection row"*; neither is what is delivered, and under Principle IV a published artifact must not read as differently settled than the work. Editing the milestone is the maintainer's call, not this branch's
