@@ -11,8 +11,8 @@ check-linkage.sh — verify the issue <-> PR <-> milestone contract (see AGENTS.
 
 What each entity owes (this script enforces it):
   Issue      belongs to exactly one milestone; closed only when its fix is on main.
-  PR         carries its issue's milestone + a real closing link (Closes #<issue>);
-             the linked issue sits in the same milestone; one issue per PR.
+  PR         carries its milestone + a real closing link (Closes #<issue>) for every issue it
+             closes; every linked issue sits in that same milestone. A PR may close several.
   Milestone  one release (vX.Y.Z); tag only when every issue is closed and every PR merged.
 
 Usage:

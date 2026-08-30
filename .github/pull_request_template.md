@@ -1,13 +1,15 @@
 <!--
   scripts/check-linkage.sh gates this PR in CI. It fails unless the PR carries a
-  milestone AND closes an issue in that same milestone. See AGENTS.md > Milestones.
+  milestone AND closes at least one issue, with every issue it closes in that same
+  milestone. A PR may close several. See AGENTS.md > Milestones.
 -->
 
 Closes #
 
 ## What changes
 
-<!-- One concern per PR. A vocabulary change and a docs tidy-up are two PRs. -->
+<!-- One concern per PR. A vocabulary change and a docs tidy-up are two PRs.
+     A milestone is one concern: one commit per issue, all in this PR. -->
 
 ## Why
 
@@ -17,7 +19,7 @@ Closes #
 ## Checklist
 
 - [ ] Milestone assigned (CI fails without one)
-- [ ] `Closes #<issue>` above points at an issue in the same milestone
+- [ ] every `Closes #<issue>` above points at an issue in the same milestone
 - [ ] `bash scripts/verify.sh` passes locally
 - [ ] If a term changed: [GLOSSARY.md](../GLOSSARY.md) updated, including the
       *Rejected* note explaining what the old term got wrong

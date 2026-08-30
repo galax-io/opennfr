@@ -58,15 +58,15 @@ Every piece of work is tied to a milestone. No exceptions unless explicitly told
 
 - **Every PR** must be assigned to the active milestone before merging. No milestone = do not merge.
 - **Every issue** fixed by a PR must be closed when that PR lands on `main`. Do not leave completed issues open.
-- **Spec work** (`specs/NNN-*/`) belongs to the milestone that owns the spec. Link the spec PR to the milestone immediately when creating it.
+- **Spec work** (`specs/NNN-*/`) belongs to the milestone that owns the spec, and lands as the first commit of that milestone's PR.
 - **Active milestone** = the lowest-numbered open milestone that matches the current spec/plan. Check `gh api repos/galax-io/opennfr/milestones` if unsure.
 
 ## Commits & PRs
 
 - **Spec-first.** `specs/NNN-*/` artifacts → `docs(speckit): add NNN-<feature> spec/plan/tasks` commit BEFORE any `feat`/`fix`. Never folded into implementation.
-- **1 issue = 1 commit.** Each tracked GitHub issue maps to one semantic commit (`feat(scope): … (#NNN)`), green on its own (`bash scripts/verify.sh`). Docs, tweaks, and out-of-scope improvements go in separate PRs — never mixed with issue commits.
+- **1 issue = 1 commit.** Each tracked GitHub issue maps to one semantic commit (`feat(scope): … (#NNN)`). Work that is not one of the milestone's issues does not ride along: it gets its own issue, and its own PR unless it joins the milestone.
 - **Intent, not path.** No add-then-remove within a PR. Squash churn before review.
-- **1 concern per PR.** Feature ≠ docs/README. Stack dependent PRs; update with `--force-with-lease`.
+- **1 milestone = 1 PR.** A milestone is one argument and lands as one pull request: the spec commit, then one commit per issue, and a `Closes #NNN` line for each. `scripts/check-linkage.sh` reads every closing link a PR carries, and always did — the stack-of-PRs rule this replaces was never something the gate asked for. Update a pushed PR with `--force-with-lease`.
 - **Idiomatic code.** Follow the language's idioms and the conventions already in the codebase; no control-flow-by-exception, no dead/duplicated code.
 
 ## Release Process (MANDATORY)

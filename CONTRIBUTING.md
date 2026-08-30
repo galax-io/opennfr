@@ -35,7 +35,8 @@ downstream consumer breaks on.
 1. Open an issue and argue it. For a naming change, say what the current term gets wrong; for a
    new construct, say what case the format cannot express today.
 2. Branch from `main`. One concern per pull request — a change to the format and a tidy-up of the
-   prose are two.
+   prose are two. A milestone is one concern: its issues land as one pull request carrying one
+   commit each, not as a stack of pull requests.
 3. `bash scripts/verify.sh` must pass. It needs `python3` with `pyyaml` and `jsonschema`.
 4. Assign the pull request to a milestone and link the issue it closes. `scripts/check-linkage.sh`
    gates this in CI. If you cannot set a milestone from a fork, a maintainer does it in review.
