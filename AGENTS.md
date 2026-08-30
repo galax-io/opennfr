@@ -32,7 +32,7 @@ No code. One JSON Schema (`schema/opennfr.io/v1/requirementset.schema.json`), do
 
 ## Architecture
 
-The schema decides; `README.md` explains it, and is the only document that describes a field or states what a target can assert — a second target is a second section there, not a second file (argued in `specs/008-path-denotation/plan.md` § Complexity Tracking, against constitution Principle VI). `GLOSSARY.md` defines the terms the schema carries. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in a published example.
+The schema decides; `README.md` explains it, and is the only document that describes a field or states what a target can assert — a second target is a second section there, not a second file. `GLOSSARY.md` defines the terms the schema carries. Compatibility-sensitive: any OpenTelemetry semantic convention name borrowed by the format, and any field name that appears in a published example.
 
 ## Test Model
 

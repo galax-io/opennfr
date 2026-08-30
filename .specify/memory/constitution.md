@@ -1,54 +1,50 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 2.1.0 → 3.0.0
+Version change: 3.0.0 -> 4.0.0
 
-Bump rationale: MAJOR on two counts, each independently sufficient under this document's own
-policy — "a principle or a binding constraint is removed, or redefined in a way that permits
-what it previously forbade".
+Bump rationale: MAJOR. Principle VI's second bullet is "redefined in a way that permits what it
+previously forbade" — adding a target may now change one existing document, the one holding the
+target descriptions, where the previous wording forbade changing any.
 
-  1. Principle VII is REMOVED. It bound every change to name an architectural role and to amend
-     ARCHITECTURE.md first; that document is deleted by the work this amendment travels with.
-     Number VII stays withdrawn and is not reused.
-  2. "MUST NOT change without an ADR" is redefined. The decision records are deleted with
-     reference/, so the requirement becomes an argued issue plus a glossary entry recording what
-     was rejected. Both instruments already existed under Principle I; nothing new is introduced.
+Travelling with other work: no. This amendment IS the work. Milestone v0.7.0 exists to make this
+file stop contradicting the documents that follow it, and the pull request carrying it says so in
+its first paragraph, as the amendment procedure requires.
 
-     Four further clauses made an ADR mandatory and are redirected in the same amendment, because
-     leaving any of them would be the defect this amendment exists to remove, one file over:
-     Principle I's rename rule, Principle IV's ADR-status rule, Principle V's custom-decoding
-     justification, and the Development Workflow's contradict-an-ADR rule. A rule that cannot be
-     obeyed is not a rule.
-
-Travelling with other work, disclosed as the amendment procedure requires: this ships in the
-pull request that reduces the repository to a schema, examples and one field description. What
-breaks without it is not hypothetical — Principle VII would bind against a file that no longer
-exists, and the compatibility clause would require a record in a directory that no longer exists.
-That is the third time in three changes a rule has been left pointing at something deleted, which
-is the pattern this amendment stops rather than repeats.
+What breaks without it: v0.5.0 consolidated the Gatling correspondence into README.md on the
+argument of #68 — the tables existed twice and had drifted, with four issues closed a release
+earlier live again in the copy on the page most readers meet. AGENTS.md states that consolidation
+as settled architecture. Principle VI forbade it in terms, and Governance says that where the two
+disagree this document wins and the other is wrong and MUST be fixed. Left alone, the repository
+ships two normative documents that contradict each other, with the reconciliation filed in a
+feature plan under a directory AGENTS.md itself reads as history (#83). Every milestone after this
+one writes another target fact into the document Principle VI forbids changing.
 
 Sections materially changed:
-  - Principle III — trimmed to what exists. Its clauses on rendering, on target descriptions and
-    on declaring where a target passes on absent data described machinery no artifact in this
-    repository contains. The guarantee is unchanged; three obligations survive, and they are the
-    three anything here can actually break.
-  - Principle VII — removed.
-  - Principle VIII — reduced to `docs/`. The experimental area and its two grandfathered
-    artifacts are deleted by the same work, so the clause naming them goes with them.
-  - Compatibility Constraints — the target-description surface is removed, because nothing in
-    the repository describes a target. Two surfaces remain, and they change on an argued issue.
-  - Every path follows the move: the glossary is GLOSSARY.md at the repository root, and the
-    reference/ directory ceases to exist.
+  - Principle VI — the second bullet becomes two. A target's DESCRIPTION is defined as what a
+    renderer reads to turn a requirement document into that target's assertions; exactly one is
+    required per target; a description MAY be a section of an existing document; and a gate
+    implementing one is not a second one. Adding a target still may not change the format, the
+    schema or the published corpus. The amendment record is appended to the principle, and it
+    states that nothing checks the rule, because nothing does.
+  - Compatibility Constraints — "nothing in this repository describes a target" was made false by
+    v0.5.0 and is corrected. The list of compatibility-sensitive surfaces is unchanged at two
+    items; restoring the third, what a target's description may declare, is recorded there as the
+    rejected alternative rather than left undiscussed.
 
-Owed by 2.0.0 and now settled by deletion rather than by argument: ARCHITECTURE.md (issue #35)
-and the conformance ladder (issue #36). Both documents are gone; both issues are closed with a
-reason rather than left pointing at nothing.
+Owed and not settled here: nothing validates this file. Principle III's third clause — any artifact
+nothing validates MUST say so in its own text — is unmet by this document, and that is why the
+contradiction above stood through two releases. It is not one of milestone v0.7.0's issues and gets
+its own, because the honest fix is an argument about what such a check could decide, not a sentence.
+
+Numbers: no principle is removed. VII remains the only withdrawn number.
 
 Templates and docs reviewed:
-  ✅ .specify/templates/plan-template.md   — the VII gate deleted, III and Compatibility rewritten
+  ✅ .specify/templates/plan-template.md   — the VI gate and the version pointer follow
   ✅ .specify/templates/spec-template.md   — no change needed
   ✅ .specify/templates/tasks-template.md  — no change needed
   ✅ .specify/templates/checklist-template.md — no change needed
+  ✅ AGENTS.md § Architecture — the departure parenthetical is removed; its rule stands unchanged
 -->
 
 # OpenNFR Constitution
@@ -141,9 +137,14 @@ that stays free of targets.
 
 - A requirement document MUST NOT name a target: not in a field, a value, a metric name, or an
   example. It carries no per-target section, override or conditional.
-- The correspondence between the document's vocabulary and a target's own MUST live in that
-  target's description. Adding a target MUST NOT change the format, the schema, or any
-  existing document.
+- A target's **description** is what a renderer reads to turn a requirement document into that
+  target's assertions. The correspondence between the document's vocabulary and a target's own
+  MUST live there, and there MUST be exactly **one** description per target: a second copy is
+  what drift is made of. A description MAY be a section of an existing document. A gate that
+  implements a description is not a second description — it MAY name the reason a row gives,
+  and MUST NOT carry a second copy of the rows.
+- Adding a target MUST NOT change the format, the schema, or the published corpus, and MUST NOT
+  change any existing document other than the one holding the target descriptions.
 - A target's own statistic MAY decide the run. That is what an assertion-first format is: the
   target computes its percentile, asserts against it, and reports. This project does not
   recompute it. What the format MUST NOT do is imply that two targets asserting the same
@@ -173,6 +174,31 @@ cost of the change is stated rather than hidden: two targets asserting one crite
 necessarily produce the same number, and no rule here can make them. The most the format can
 honestly promise is that the *statement* is one statement, and that every place the targets
 disagree is written down where a reader will find it.
+
+4.0.0 split the second bullet in two and rewrote what it forbids. It read "Adding a target MUST NOT
+change the format, the schema, or any existing document", and by v0.5.0 the repository was doing the
+opposite on purpose: #68 found the Gatling correspondence stated in two places and drifted, with four
+issues closed a release earlier live again in the copy on the page most readers meet. One home was
+the fix, and `README.md` was chosen as that home — which made adding a second target a change to an
+existing document, which this bullet forbade in terms. The departure was declared in a feature plan,
+under a directory `AGENTS.md` reads as history and nowhere a contributor looks for rules, so the
+repository shipped two contradicting normative documents for two releases (#83).
+
+What was wrong was the unit, not the rule. The property a separate file bought was not separateness;
+it was that there is one place to look, and the drift #68 fixed was two copies disagreeing. The
+bullet now requires that property directly, and defines what has to be singular before requiring it.
+The definition earns its keep rather than decorating the rule: without it the clause would forbid
+every statement about a target outside a description, and this repository would violate it in four
+places, two of them deliberately — a sentence naming what three load generators each call a request,
+which is the argument for the field existing at all, and a gate comment giving the reason one of its
+own rows gives, which v0.6.0 required. A renderer reads neither, so neither is a description, and the
+rule reaches what it was written for. Nor does `specs/` count: it is read as history, not as
+documentation, and Principle VIII says so where that reading is enforced.
+
+Nothing checks any of this. `scripts/verify.sh` does not read this file, which is why the
+contradiction stood through two releases, and "is this sentence a target description" is not a
+question a script decides. The bullet is enforced in review or not at all, and says so here rather
+than reading as though a gate were watching — which is Principle IV pointed at this principle.
 
 ### VII. *(withdrawn in 3.0.0)*
 
@@ -222,8 +248,13 @@ and a `GLOSSARY.md` entry recording the alternative that was rejected:
 deleted with `reference/`, and a requirement to record a decision in a directory that does not
 exist is not a requirement. Both instruments that replace it already existed under Principle I:
 a naming disagreement is argued in an issue before files change, and every glossary entry carries
-a rejected alternative. The third surface, what a target's description may declare, is removed —
-nothing in this repository describes a target.
+a rejected alternative. The third surface, what a target's description may declare, was removed in
+3.0.0, when nothing in this repository described a target. One does now: `README.md` § *What any tool
+can actually run*, added in v0.5.0. The surface is **not** restored, and that is a decision rather
+than an oversight — restoring it would put an argued issue and a `GLOSSARY.md` entry recording a
+rejected alternative behind every edit to a reach row, and `GLOSSARY.md` is the vocabulary document,
+where a rejected table row does not belong. Reach rows change through the ordinary issue and
+milestone rules, as four of them did in v0.6.0.
 
 Binding constraints:
 
@@ -301,4 +332,4 @@ justified in writing in the plan's Complexity Tracking section.
 **Runtime guidance**: `AGENTS.md` for process, `GLOSSARY.md` for vocabulary, `README.md` for
 the format itself.
 
-**Version**: 3.0.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-23
+**Version**: 4.0.0 | **Ratified**: 2026-08-10 | **Last Amended**: 2026-08-30
