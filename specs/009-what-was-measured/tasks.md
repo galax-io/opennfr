@@ -73,12 +73,12 @@ that decides can evaluate the rule's trigger without opening another file.
 does `{loadtest.request.name: "*"}` trigger the anchoring rule, what positions does it range over,
 and what may each key's value be. All three must be answerable from that text.
 
-- [ ] T005 [US3] Add to `$defs/selector.description` in `schema/opennfr.io/v1/requirementset.schema.json`, immediately beside the anchoring rule, that `"*"` is not a name and therefore does not trigger it
-- [ ] T006 [US3] Correct the same description's closing sentence about value types so it is true of `loadtest.group.name`, whose only admissible value is an array — correct it, do not delete it: it is what justifies `additionalProperties: {type: [string, number, boolean]}`
-- [ ] T007 [US3] Verify `GLOSSARY.md` still contains **two** occurrences of `is not a name`. The first draft's deduplication is withdrawn (FR-010) — a `1` here means it was shipped anyway
-- [ ] T008 [US3] Run `bash scripts/verify.sh`; confirm `58 closures still reject` is unchanged, since no schema rule is added
-- [ ] T009 [US3] Run [quickstart.md](quickstart.md) checks 4 and 5; check 5 must now print `README.md: 1`, `GLOSSARY.md: 2`, schema `1` or more
-- [ ] T010 [US3] Commit `fix(schema): the schema says "*" is not a name (#78)`, closing #78
+- [X] T005 [US3] Add to `$defs/selector.description` in `schema/opennfr.io/v1/requirementset.schema.json`, immediately beside the anchoring rule, that `"*"` is not a name and therefore does not trigger it
+- [X] T006 [US3] Correct the same description's closing sentence about value types so it is true of `loadtest.group.name`, whose only admissible value is an array — correct it, do not delete it: it is what justifies `additionalProperties: {type: [string, number, boolean]}`
+- [X] T007 [US3] Verify `GLOSSARY.md` still contains **two** occurrences of `is not a name`. The first draft's deduplication is withdrawn (FR-010) — a `1` here means it was shipped anyway
+- [X] T008 [US3] Run `bash scripts/verify.sh`; confirm `58 closures still reject` is unchanged, since no schema rule is added
+- [X] T009 [US3] Run [quickstart.md](quickstart.md) checks 4 and 5; check 5 must now print `README.md: 1`, `GLOSSARY.md: 2`, schema `1` or more
+- [X] T010 [US3] Commit `fix(schema): the schema says "*" is not a name (#78)`, closing #78
 
 **Checkpoint**: `examples/every-request-is-fast.yaml` is decidable from the schema. Shippable alone.
 
