@@ -437,6 +437,24 @@ same run without glue, because both sides already agree on what an endpoint is c
 usually measures it as a server. The two numbers are not comparable, and letting one stand in for
 the other is the failure this format exists to prevent.
 
+**What these four names do not cover**, because the gap is a whole class of requirement rather than
+an edge case. A load generator records a duration for things that are not one HTTP client request,
+and the two cases are not the same case:
+
+- **An operation on another protocol** — a database call, a message, a remote call. Semantic
+  conventions name those, so the rule above already applies: borrow the name, and the document is
+  valid. It will not appear in [`examples/`](examples/), because no rendering of one has been
+  checked and dated and § *What any tool can actually run* lists only what has.
+- **A span an author bracketed** — a business transaction across several requests plus think time.
+  Nothing names it. `http.client.request.duration` is not that name: it is the duration of one HTTP
+  client request, and writing it for a transaction states something false about what was measured,
+  which is the substitution the paragraph above says this format exists to prevent.
+
+The second is a gap in the format and is recorded as one. **No name is minted here**: a name of our
+own is permitted only under `loadtest.*` and only where semconv has none, and a `loadtest.*` name
+nothing emits is a vocabulary of one — the debt this page already records, doubled. What it would
+take is argued under `docs/`, which this page does not link into.
+
 ### Selection attributes
 
 `http.request.method`, `http.route`, `url.template`, `server.address`, `server.port`,
@@ -611,7 +629,7 @@ one table down.
 |---|---|---|
 | `http.client.request.duration` | `responseTime` | **can** |
 | `http.client.request.body.size`, `http.client.response.body.size` | — | **cannot** — the assertion DSL reaches response time and request counts only |
-| any other | — | **cannot** |
+| any other | — | **cannot** — `http.client.request.duration` is the only metric here whose rendering has been checked and dated, and nothing else has been. Three different cases sit under this row and § *Names* separates them: a measurement taken at another vantage point, which the vantage-point rule refuses outright; a name a convention already carries for another protocol's operation, which is a valid document with no dated rendering; and a duration recorded for a span an author bracketed, which has no name at all |
 
 #### Aggregations
 
