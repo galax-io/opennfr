@@ -49,7 +49,7 @@ below — never left blank. See `.specify/memory/constitution.md` (v4.0.0).
 - [ ] **II. Borrow Names, Never Invent Them** — is every metric and attribute name taken from
       OpenTelemetry semconv where an equivalent exists? Is anything new confined to `loadtest.*`,
       and does the field description say so where the corpus depends on it? Are there aliases, or
-      derived quantities masquerading as metrics?
+      derived or composite quantities masquerading as metrics?
 - [ ] **III. No Silent Green** — does any check this adds skip rather than fail when it cannot
       run? Does any check report success having scanned nothing? Does any artifact this adds
       claim a validation that does not happen? If a check's input is being deleted, is the check

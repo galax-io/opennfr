@@ -79,7 +79,9 @@ without training, and `APDEX` is a literal key in the NFR-YAML documents this fo
 replace, so it gets asked for. Two constructs are missing and neither is small. A predicate carries
 one threshold, and a fraction — `bad` or `good` — splits a selection in two by attribute presence,
 so nothing here produces three bands or takes a second threshold. And no aggregation the format has
-— `p*`, `max`, `min`, `avg`, `stddev`, `count`, `rate` — takes a weighted sum of counts.
+— `p*`, `max`, `min`, `avg`, `stddev`, `count`, `rate`, `sum` — takes a weighted sum of counts. `sum`
+is the one that looks like it might: it adds up the values a metric carries, and nothing here sorts
+requests into bands or gives a band a weight, so there are no weighted counts for it to add.
 
 This is why apdex sits here and not beside throughput and an error rate. Those two are **derived**:
 each reduces to one construct the format already has, `aggregation: rate` and a `bad` fraction.
