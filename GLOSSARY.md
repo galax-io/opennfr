@@ -58,8 +58,10 @@ together.
 
 `loadtest.group.name` is the request's enclosing groups as an ordered list, outermost first, at any
 depth: `{loadtest.group.name: [Checkout, Payment], loadtest.request.name: GET /test/id}` is that
-request inside `Payment` inside `Checkout`. Each element is a literal recorded name, so a group
-actually called `Checkout / Payment` is one element and not two. The list is matched by equality
+request inside `Payment` inside `Checkout`. Each element is a literal recorded name — `"*"`
+excepted, which is presence there as everywhere: a group at that position with any name, never a
+group whose recorded name is `*` — so a group actually called `Checkout / Payment` is one element
+and not two. The list is matched by equality
 like every other value, which makes it the request's whole hierarchy and not a prefix of it.
 `"*"` means the attribute is present with any value — it is presence, not a glob. On a
 **requirement's** selector it also quantifies: the requirement is stated once of each **request
@@ -104,7 +106,14 @@ pooled the way
 `{}` is — what this entry said until #55 and #56: it settled that the attribute must be there and
 left the quantifier unstated, so the only honest reading of `{loadtest.request.name: "*"}` was one
 `{}` already had, and the value was a longer spelling of something else. "The average endpoint is
-fast" and "no endpoint is slow" are different requirements; the format now writes both.
+fast" and "no endpoint is slow" are different requirements; the format now writes both. Reading a
+`"*"` **element** literally, as a group whose recorded name is `*` — what this entry said until
+#77. It gave one valid document two published meanings, and it makes the token's meaning depend on
+arity: presence in a scalar value, a literal name in a list element, with one selector able to
+carry both at once. The argument for it is recorded because it is the strongest one and is what
+would revive the reading: an element of a list is not a value of the attribute. What the reading
+kept costs is stated where it falls — a group whose recorded name is literally `*` is unnameable,
+as a request of that name already is.
 
 ### metric
 

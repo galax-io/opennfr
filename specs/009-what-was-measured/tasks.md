@@ -93,12 +93,12 @@ withdrawn reading is recorded with the argument that would revive it.
 the schema, to `GLOSSARY.md` and to `README.md`. All three must answer *a group at that position with
 any name*, and none may also say *a group whose recorded name is `*`*.
 
-- [ ] T011 [US4] Add to `$defs/selector.description` in `schema/opennfr.io/v1/requirementset.schema.json` that a `"*"` element of `loadtest.group.name` is presence — a group at that position with any name — and never a group recorded under the name `*`
-- [ ] T012 [P] [US4] Carry the same exception onto the literal-element sentence in `GLOSSARY.md` § *selector*, and add to its *Rejected* line the literal reading in its strongest form: an element of a list is not a value of the attribute
-- [ ] T013 [P] [US4] Rewrite the `loadtest.group.name` cell in `README.md` § `selector` so it states one reading, and remove from it the clause `and no scope carries a wildcard path part` — a target fact belongs in the reach row, where it already is
-- [ ] T014 [US4] Verify the document above still **validates** against the published schema — the format is not narrowed — and that `scripts/verify.sh` still refuses it with the `QUANTIFIED` reason, with `10` and `5` selection probe counts unchanged
-- [ ] T015 [US4] Run [quickstart.md](quickstart.md) check 5, including its second snippet: the target fact must be `False` in the field description and `True` in the reach row
-- [ ] T016 [US4] Commit `fix(schema): a "*" in a hierarchy element is presence (#77)`, closing #77
+- [X] T011 [US4] Add to `$defs/selector.description` in `schema/opennfr.io/v1/requirementset.schema.json` that a `"*"` element of `loadtest.group.name` is presence — a group at that position with any name — and never a group recorded under the name `*`
+- [X] T012 [P] [US4] Carry the same exception onto the literal-element sentence in `GLOSSARY.md` § *selector*, and add to its *Rejected* line the literal reading in its strongest form: an element of a list is not a value of the attribute
+- [X] T013 [P] [US4] Rewrite the `loadtest.group.name` cell in `README.md` § `selector` so it states one reading, and remove from it the clause `and no scope carries a wildcard path part` — a target fact belongs in the reach row, where it already is
+- [X] T014 [US4] Verify the document above still **validates** against the published schema — the format is not narrowed — and that `scripts/verify.sh` still refuses it with the `QUANTIFIED` reason, with `10` and `5` selection probe counts unchanged
+- [X] T015 [US4] Run [quickstart.md](quickstart.md) check 5, including its second snippet: the target fact must be `False` in the field description and `True` in the reach row
+- [X] T016 [US4] Commit `fix(schema): a "*" in a hierarchy element is presence (#77)`, closing #77
 
 **Checkpoint**: one valid document, one published meaning. Nothing in the gate moved.
 
