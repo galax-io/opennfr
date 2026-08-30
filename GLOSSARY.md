@@ -123,7 +123,14 @@ enumerating them would make every new metric a change to the format.
 
 *Rejected*: an `indicator` object holding the metric and its own selection — it forced a
 requirement about one endpoint being fast *and* reliable to become two requirements with the same
-selector written twice.
+selector written twice. A name for **a span an author bracketed** — a business transaction across
+several requests, which no semantic convention names. Declined in v0.6.0 rather than minted: a name
+of our own is permitted only under `loadtest.*` and only where semconv has none, and a `loadtest.*`
+name nothing emits is a vocabulary of one. The bar it did not clear is the durable part — **a name is minted only where something
+outside this repository already records the quantity under one**, and one target's feature is never
+sufficient grounds. A name for **what a group scope measures**, a cumulated response time, declined
+for the same reason and for a second one: it would not make the shape renderable, because no scope
+denotes the requests a path encloses.
 
 ### bad / good
 

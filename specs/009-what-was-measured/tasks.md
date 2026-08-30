@@ -113,14 +113,14 @@ separates the half the format cannot spell from the half where the obstacle is m
 not one HTTP client request. It must answer for each half, and must assert nothing about an external
 tool that the repository has not already dated.
 
-- [ ] T017 [US5] In `README.md` § *Names* § *Metrics*, state the boundary the format genuinely cannot spell: a duration recorded for a span an author bracketed across several requests, for which `http.client.request.duration` is false
-- [ ] T018 [US5] In the same section, state the other half differently — where semantic conventions name the operation, the general Names rule applies and such a document is valid today. Do **not** claim no name exists, and do **not** name a specific convention: this branch cannot check and date one (FR-016)
-- [ ] T019 [US5] Amend the existing `any other` row of `README.md`'s Gatling Metrics table with its reason. Add no row: the left column holds metric names, and a prose class can never be matched in a table whose law is "matches a row exactly"
-- [ ] T020 [P] [US5] Add to `GLOSSARY.md` § *metric*'s *Rejected* line the name this milestone declined to mint, and why — the minting bar, which is this milestone's durable decision
-- [ ] T021 [P] [US5] Add one clause naming the composite-span case to the **existing** `loadtest.*` registry entry in `docs/ideas.md`. Add no entry: the isolation gate requires the count of `^**…**` entries to equal the count of `*Would need*` lines
-- [ ] T022 [US5] Run `bash scripts/verify.sh` and confirm the `docs/ is isolated` section still passes with equal counts; run `git rm -r docs && bash scripts/verify.sh` in a scratch clone to confirm it stays green, then discard
-- [ ] T023 [US5] Run [quickstart.md](quickstart.md) check 9: no added line may assert a new property of `responseTime`, of `logResponse` or of any scope without a source and a date added in the same change
-- [ ] T024 [US5] Commit `fix(contract): the metric axis says what it does not name (#62)`, closing #62
+- [X] T017 [US5] In `README.md` § *Names* § *Metrics*, state the boundary the format genuinely cannot spell: a duration recorded for a span an author bracketed across several requests, for which `http.client.request.duration` is false
+- [X] T018 [US5] In the same section, state the other half differently — where semantic conventions name the operation, the general Names rule applies and such a document is valid today. Do **not** claim no name exists, and do **not** name a specific convention: this branch cannot check and date one (FR-016)
+- [X] T019 [US5] Amend the existing `any other` row of `README.md`'s Gatling Metrics table with its reason. Add no row: the left column holds metric names, and a prose class can never be matched in a table whose law is "matches a row exactly"
+- [X] T020 [P] [US5] Add to `GLOSSARY.md` § *metric*'s *Rejected* line the name this milestone declined to mint, and why — the minting bar, which is this milestone's durable decision
+- [X] T021 [P] [US5] Add one clause naming the composite-span case to the **existing** `loadtest.*` registry entry in `docs/ideas.md`. Add no entry: the isolation gate requires the count of `^**…**` entries to equal the count of `*Would need*` lines
+- [X] T022 [US5] Run `bash scripts/verify.sh` and confirm the `docs/ is isolated` section still passes with equal counts; run `git rm -r docs && bash scripts/verify.sh` in a scratch clone to confirm it stays green, then discard
+- [X] T023 [US5] Run [quickstart.md](quickstart.md) check 9: no added line may assert a new property of `responseTime`, of `logResponse` or of any scope without a source and a date added in the same change
+- [X] T024 [US5] Commit `fix(contract): the metric axis says what it does not name (#62)`, closing #62
 
 **Checkpoint**: the case appears with its reason, and no name was minted.
 

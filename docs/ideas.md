@@ -165,7 +165,10 @@ Attributes: `loadtest.phase`, `loadtest.scenario.name`, `loadtest.tool.name` / `
 Deliberately absent from it: `loadtest.throughput` (derived — `aggregation: rate`),
 `loadtest.error_rate` (derived — a `bad` fraction), `loadtest.response_time` (a duplicate of
 `http.client.request.duration`), `loadtest.apdex` (composite), `loadtest.run.id`
-(`cicd.pipeline.run.id` already exists).
+(`cicd.pipeline.run.id` already exists). And, since v0.6.0, a name for **a span an author
+bracketed** — a business transaction across several requests, which no semantic convention names.
+It is the one duration a load test measures that the format cannot spell, and it is absent for the
+reason the rest of this registry is: a name nothing emits is a vocabulary of one.
 
 **The rest of the registry** stays an idea. two names from this registry — `loadtest.request.name` and `loadtest.group.name` — are **not** ideas
 any more. Every published example depends on them, and `README.md` defines them and records the debt.
