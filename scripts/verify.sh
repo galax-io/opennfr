@@ -168,7 +168,7 @@ for f in files:
         # The identity rule, and why the schema cannot carry it, live in scripts/identity.py.
         for r in (doc.get("spec") or {}).get("requirements", []) or []:
             for section, cid in identity.collisions(r, identity_lists):
-                print(f"  FAIL  {f}: {r.get('name')}/{section}: duplicate criterionId {cid!r}")
+                print(f"  FAIL  {f}: {r.get('name')}/{section}: duplicate predicateId {cid!r}")
                 errs = errs or [1]
                 rc = 1
         if errs:
@@ -355,7 +355,7 @@ for where, node in slots:
             rc = 1
 
 # The root's examples are whole documents, so they answer to what the corpus answers to.
-# The schema cannot express criterionId uniqueness — that is why examples/ is checked for it
+# The schema cannot express predicateId uniqueness — that is why examples/ is checked for it
 # by hand above — and the one document an editor offers first was the one nothing checked.
 # The rule itself lives in scripts/identity.py, shared with that section so the two cannot
 # drift into disagreeing about it.
@@ -367,7 +367,7 @@ for i, ex in enumerate(schema.get("examples", [])):
     for r in (ex.get("spec") or {}).get("requirements", []) or []:
         for part, cid in identity.collisions(r, root_identity_lists):
             print(f"  FAIL  {path}: root example {i}: {r.get('name')}/{part}: "
-                  f"duplicate criterionId {cid!r}")
+                  f"duplicate predicateId {cid!r}")
             rc = 1
 
 # As above: a deleted call reads as a clean scan, so the count is floored too.
