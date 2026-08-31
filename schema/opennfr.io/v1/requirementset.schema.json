@@ -127,7 +127,7 @@
       "properties": {
         "name": {
           "$ref": "#/$defs/name",
-          "description": "Optional. Identifies this predicate in a report; without it the aggregation is the identifier, so two predicates in one requirement may not then share an aggregation.",
+          "description": "Optional. Distinguishes this predicate from the others beside it; without it the aggregation is the identifier. What the identity must be unique within is in README.md; JSON Schema cannot express the fallback, so scripts/verify.sh checks it.",
           "examples": [
             "reached-target-rate"
           ]

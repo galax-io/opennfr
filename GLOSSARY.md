@@ -199,12 +199,15 @@ they break whenever the file is edited.
 
 ### criterionId
 
-The identity of a predicate within one requirement: its `name` if set, otherwise its `aggregation`.
-Two predicates in the same list may not share one. JSON Schema cannot express that fallback, so the
-gate checks it.
+The identity of a predicate: its `name` if set, otherwise its `aggregation`. What it must be unique
+within is stated in [README.md](README.md) § *A predicate*; JSON Schema cannot express that
+fallback, so the gate checks it.
 
 *Rejected*: requiring `name` on every predicate — a name is noise where `p99` and `max` already
-distinguish two statements.
+distinguish two statements. *Rejected*: scoping uniqueness to the whole requirement rather than to
+one list — `rate` over the requests and `rate` over a fraction are different quantities sharing a
+word, the predicate's own shape already tells them apart, and the wider scope would force a name
+onto a collision that is only lexical, which is the same noise the first rejection refuses.
 
 ### annotations
 
