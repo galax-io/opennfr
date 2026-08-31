@@ -23,8 +23,8 @@ spec:
         loadtest.group.name: [Checkout]             # a group, and one request inside it
         loadtest.request.name: POST /checkout
       criteria:
-        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
-        - {displayName: Median,          metric: http.client.request.duration, aggregation: p50, op: lte, threshold: 200, unit: ms}
-        - {displayName: Slowest,         metric: http.client.request.duration, aggregation: max, op: lte, threshold: 1000, unit: ms}
+        - {displayName: 99th percentile, metric: loadtest.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
+        - {displayName: Median,          metric: loadtest.request.duration, aggregation: p50, op: lte, threshold: 200, unit: ms}
+        - {displayName: Slowest,         metric: loadtest.request.duration, aggregation: max, op: lte, threshold: 1000, unit: ms}
         - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate,  op: lte, threshold: 5,  unit: "%"}
         - {displayName: Failed count,    bad: {error.type: "*"}, aggregation: count, op: lte, threshold: 20, unit: "{request}"}

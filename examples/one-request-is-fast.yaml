@@ -15,7 +15,7 @@ spec:
       selector:
         loadtest.request.name: POST /checkout      # the name the tool records for this call
       criteria:
-        - metric: http.client.request.duration     # an OpenTelemetry name, not ours
+        - metric: loadtest.request.duration     # ours: no convention names this quantity
           aggregation: p95
           op: lte
           threshold: 500

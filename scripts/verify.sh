@@ -179,7 +179,7 @@ for f in files:
 # A check that scanned nothing reads exactly like one that passed, and a probe cannot catch a
 # deleted CALL — the probes above call the module directly and would stay green. This count can,
 # because `collisions` is a generator that appends only while it is being consumed: drop the loop
-# and the count drops with it. Counting through a second function would NOT do that.
+# and the count drops with it. Counting through a second function did NOT do that.
 IDENTITY_LISTS = 5
 if len(identity_lists) < IDENTITY_LISTS:
     print(f"  FAIL  the identity check read {len(identity_lists)} lists, expected at least "
@@ -594,7 +594,12 @@ REQUEST = "loadtest.request.name"
 # pair is that request at whatever depth the list spells. {HIERARCHY} alone is absent on
 # purpose, and settled rather than pending: it has a meaning, the requests whose hierarchy is
 # exactly those groups, and no Gatling scope denotes the requests a path encloses.
-SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
+SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}, {HIERARCHY}]
+
+# Of those, the one that resolves to a GROUP rather than a request. `details(...)` on a
+# group's path resolves to the group, whose statistics are its own, so this selection
+# reaches exactly one quantity and every other selection reaches everything but it.
+GROUP_ONLY = {HIERARCHY}
 
 # Of those, the ones a quantifier has a scope for. `"*"` renders as forAll(), which takes no
 # path, so a quantified selection carrying one has no correspondence. It is admitted only as
@@ -603,8 +608,12 @@ SELECTIONS = [set(), {REQUEST}, {HIERARCHY, REQUEST}]
 # rejecting it.
 QUANTIFIABLE = [{REQUEST}]
 
-# responseTime is the only addressable metric family.
-METRIC = "http.client.request.duration"
+# Two addressable metrics, one per statistic on AssertionStatsRepository. `http.client.
+# request.duration` was the only one until v0.8.0 and is retired, not aliased (#89): it is
+# absent from METRICS, so a document carrying it is refused by the row that names it.
+METRIC = "loadtest.request.duration"
+GROUP_METRIC = "loadtest.group.duration"
+METRICS = (METRIC, GROUP_METRIC)
 
 # `bad` maps to failedRequests, which counts KO and nothing else, so the only numerator
 # with an exact correspondence is "an error happened". A narrower filter — a status code,
@@ -624,13 +633,19 @@ COUNT = {"{request}": Fraction(1)}
 PERSEC = {"{request}/s": Fraction(1)}
 def percentile(a): return a.startswith("p") and a[1:].replace(".", "", 1).isdigit()
 
+# The statistic each addressable metric resolves to. One `Stats` type serves both, so the units
+# and the integer target are shared and only the name differs — but the name belongs to the METRIC,
+# and the metric rows below carry a `{}` for it. Deriving it by rewriting the other name was a
+# silent no-op the moment a native stopped containing "responseTime", and nothing probed it.
+NATIVE = {METRIC: "responseTime", GROUP_METRIC: "groupCumulatedResponseTime"}
+
 TABLE = {
     "metric": {
-        "PERCENTILE": ("responseTime.percentile", TIME, True),
-        "max":        ("responseTime.max",        TIME, True),
-        "min":        ("responseTime.min",        TIME, True),
-        "avg":        ("responseTime.mean",       TIME, True),
-        "stddev":     ("responseTime.stdDev",     TIME, True),
+        "PERCENTILE": ("{}.percentile", TIME, True),
+        "max":        ("{}.max",        TIME, True),
+        "min":        ("{}.min",        TIME, True),
+        "avg":        ("{}.mean",       TIME, True),
+        "stddev":     ("{}.stdDev",     TIME, True),
     },
     "fraction": {
         "rate":  ("failedRequests.percent", SHARE, False),
@@ -698,7 +713,7 @@ def predicate_why(p):
     # two copies would be free to disagree. It was inline until v0.6.0, which is part of why the
     # predicate axes went unprobed — there was nothing a probe could call.
     why = []
-    if p.get("metric", METRIC) != METRIC:
+    if p.get("metric", METRIC) not in METRICS:
         why.append(f"metric {p['metric']} is not addressable")
 
     shape = shape_of(p, why)
@@ -715,6 +730,8 @@ def predicate_why(p):
 
     if row:
         native, units, integral = row
+        # A no-op on the fraction and requests rows, which carry no placeholder.
+        native = native.format(NATIVE.get(p.get("metric", METRIC), METRIC))
         factor = units.get(p.get("unit"))
         if factor is None:
             why.append(f"unit {p.get('unit')} is not a unit of {native}")
@@ -731,6 +748,13 @@ def predicate_why(p):
     return why
 
 def shape_of(p, why):
+    if ("bad" in p or "good" in p) and "metric" in p:
+        # `bad`/`good` count requests, so the shape below reads no metric at all. Discarding a
+        # key without a message is the #57 failure class, and it let a group metric ride a
+        # fraction into a group scope asserting failedRequests.
+        why.append(f"metric {p['metric']} is discarded by a fraction: `bad`/`good` counts "
+                   f"requests, not a metric's observations")
+        return None
     if "good" in p:
         # successfulRequests exists, but a selector matches presence and never absence,
         # so no OpenNFR fraction corresponds to it. See README > Names.
@@ -747,9 +771,63 @@ def shape_of(p, why):
 # documents that validate and are assertable. Each probe is a selector this contract says
 # cannot be rendered, paired with the reason its row gives. A probe that stops being
 # rejected FAILs the section instead of passing quietly.
+def pairing_why(sel, p):
+    # The one place two axes decide together, and README > How these tables are applied says so.
+    # A hierarchy with no request name resolves to a group, and a group's only assertable
+    # statistic is its cumulated response time — so that selection admits GROUP_METRIC and
+    # nothing else, and every other selection admits everything but it. Two `can` rows that do
+    # not compose is exactly the thing a renderer cannot discover from the tables alone.
+    group_sel = set(sel) == GROUP_ONLY
+    group_metric = p.get("metric") == GROUP_METRIC
+    if group_sel and not group_metric:
+        return [f"a hierarchy with no request name resolves to a group, whose only assertable "
+                f"statistic is {GROUP_METRIC}"]
+    if group_metric and not group_sel:
+        return [f"{GROUP_METRIC} is a group's own statistic, and this selection does not "
+                f"resolve to a group"]
+    return []
+
+def render_why(sel, p):
+    # Every rule the corpus is judged by, in one place. PAIRING_PROBES and PAIRING_RENDERS go
+    # through this and not through pairing_why alone, so dropping a rule from the composite
+    # reddens them — which is the only thing that can catch a rule deleted from the CALL rather
+    # than from its own body.
+    return selection_why(sel) + predicate_why(p) + pairing_why(sel, p)
+
+# Each entry is a (selector, predicate) pair the joint rule must REJECT, and the reason its row
+# gives. Neither axis alone can catch these: every one of them is built from a selection the
+# Selection axis accepts and a predicate the Metrics axis accepts.
+PAIRING_PROBES = [
+    ({HIERARCHY: ["Checkout"]}, {"metric": METRIC, "aggregation": "p95", "op": "lte",
+                                 "threshold": 500, "unit": "ms"},
+     f"a hierarchy with no request name resolves to a group, whose only assertable statistic "
+     f"is {GROUP_METRIC}"),
+    ({HIERARCHY: ["Checkout"]}, {"aggregation": "count", "op": "lte", "threshold": 20,
+                                 "unit": "{request}"},
+     f"a hierarchy with no request name resolves to a group, whose only assertable statistic "
+     f"is {GROUP_METRIC}"),
+    ({REQUEST: "POST /checkout"}, {"metric": GROUP_METRIC, "aggregation": "p95", "op": "lte",
+                                   "threshold": 500, "unit": "ms"},
+     f"{GROUP_METRIC} is a group's own statistic, and this selection does not resolve to a group"),
+    ({}, {"metric": GROUP_METRIC, "aggregation": "max", "op": "lte", "threshold": 500,
+          "unit": "ms"},
+     f"{GROUP_METRIC} is a group's own statistic, and this selection does not resolve to a group"),
+]
+
+# And the other direction. A rejection probe cannot show that the pair still RENDERS, and the
+# corpus cannot either: nothing published selects a group.
+PAIRING_RENDERS = [
+    ({HIERARCHY: ["Checkout"]}, {"metric": GROUP_METRIC, "aggregation": "p95", "op": "lte",
+                                 "threshold": 500, "unit": "ms"}),
+    ({HIERARCHY: ["Checkout", "Payment"]}, {"metric": GROUP_METRIC, "aggregation": "max",
+                                            "op": "lte", "threshold": 1, "unit": "s"}),
+    ({}, {"metric": METRIC, "aggregation": "p99", "op": "lte", "threshold": 500, "unit": "ms"}),
+    ({REQUEST: "POST /checkout"}, {"metric": METRIC, "aggregation": "avg", "op": "lte",
+                                   "threshold": 500, "unit": "ms"}),
+]
+
 SELECTION_PROBES = [
     ({"http.route": "/api/v1/checkout"}, NOT_A_PATH.format(["http.route"])),
-    ({HIERARCHY: ["Checkout"]}, NOT_A_PATH.format([HIERARCHY])),
     ({HIERARCHY: "Checkout", REQUEST: "POST /checkout"}, NOT_A_LIST),
     ({HIERARCHY: "*", REQUEST: "POST /checkout"}, NOT_A_LIST),
     ({HIERARCHY: [], REQUEST: "POST /checkout"}, NO_GROUPS),
@@ -765,6 +843,10 @@ SELECTION_PROBES = [
 # above would leave every check here green. These must produce no reason at all.
 SELECTION_RENDERS = [
     {},
+    # Was a REJECTION probe until v0.8.0, when #89 minted the name the old refusal was waiting
+    # on. It is not deleted, it changed direction — which is why the rejection floor below drops
+    # by one and this one rises by one, rather than either being quietly relaxed.
+    {HIERARCHY: ["Checkout"]},
     {REQUEST: "POST /checkout"},
     {REQUEST: "*"},
     {HIERARCHY: ["Checkout"], REQUEST: "POST /checkout"},
@@ -790,6 +872,21 @@ PREDICATE_PROBES = [
      "aggregation sum over a metric has no equivalent"),
     ({**RENDERABLE, "metric": "http.client.response.body.size"},
      "metric http.client.response.body.size is not addressable"),
+    # The retired name (#89). Its `cannot` row is the only published row whose rule is an
+    # ABSENCE — it is refused by not being in METRICS — so nothing else would notice it being
+    # let back in, and a mutation adding it survived every other probe here.
+    ({**RENDERABLE, "metric": "http.client.request.duration"},
+     "metric http.client.request.duration is not addressable"),
+    # The only probe that reads a group statistic's NAME. Without it the metric-to-native
+    # mapping could be wrong or absent and every other probe stayed green, because the group
+    # metric appeared solely in rendering probes, which assert no message at all.
+    ({**RENDERABLE, "metric": GROUP_METRIC, "unit": "%"},
+     "unit % is not a unit of groupCumulatedResponseTime.percentile"),
+    # And a fraction may not smuggle a metric past the shape, which discards it.
+    ({"metric": GROUP_METRIC, "bad": BAD, "aggregation": "rate", "op": "lte",
+      "threshold": 5, "unit": "%"},
+     f"metric {GROUP_METRIC} is discarded by a fraction: `bad`/`good` counts requests, "
+     f"not a metric's observations"),
     ({**RENDERABLE, "op": "neq"},
      "op neq has no equivalent"),
     ({**RENDERABLE, "unit": "%"},
@@ -823,6 +920,7 @@ PREDICATE_PROBES = [
 PREDICATE_RENDERS = [
     RENDERABLE,
     {**RENDERABLE, "name": "p95-latency"},
+    {"metric": GROUP_METRIC, "aggregation": "p95", "op": "lte", "threshold": 500, "unit": "ms"},
     {**RENDERABLE, "aggregation": "max"},
     {**RENDERABLE, "aggregation": "min"},
     {**RENDERABLE, "aggregation": "avg"},
@@ -838,7 +936,19 @@ PREDICATE_RENDERS = [
     {"bad": {"error.type": "*"}, "aggregation": "count", "op": "lte", "threshold": 20, "unit": "{request}"},
 ]
 
+# The gate's metric names must be the names README publishes. `METRIC` is anchored by the
+# corpus, which carries its literal; `GROUP_METRIC` is carried by no document, so renaming it
+# left the gate green while it rejected the published name as "not addressable".
 rc, checked = 0, 0
+_reach = open("README.md", encoding="utf-8").read().split("## What any tool can actually run", 1)
+if len(_reach) != 2:
+    print("  FAIL  README.md has no section 'What any tool can actually run' to implement")
+    sys.exit(1)
+for _name in (METRIC, GROUP_METRIC):
+    if f"`{_name}`" not in _reach[1]:
+        print(f"  FAIL  {_name} is not a metric README publishes — the gate and the page "
+              f"disagree about the name")
+        rc = 1
 
 # A pruned probe table reports no failures and reads exactly like a sound one. ALL FOUR floors are
 # EXACT, and that is deliberate — the closure floor above sits just under its count because its
@@ -858,8 +968,9 @@ rc, checked = 0, 0
 # of them share the aggregation-row lookup while catching three distinct regressions. Each RENDERING
 # probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
 # no corpus document can show.
-FLOORS = [("rejection", SELECTION_PROBES, 10), ("rendering", SELECTION_RENDERS, 5),
-          ("predicate rejection", PREDICATE_PROBES, 10), ("predicate rendering", PREDICATE_RENDERS, 15)]
+FLOORS = [("rejection", SELECTION_PROBES, 9), ("rendering", SELECTION_RENDERS, 6),
+          ("predicate rejection", PREDICATE_PROBES, 13), ("predicate rendering", PREDICATE_RENDERS, 16),
+          ("pairing rejection", PAIRING_PROBES, 4), ("pairing rendering", PAIRING_RENDERS, 4)]
 for _label, _probes, _floor in FLOORS:
     if len(_probes) < _floor:
         print(f"  FAIL  {len(_probes)} {_label} probes, expected at least {_floor} — "
@@ -879,6 +990,17 @@ for probe, expected in PREDICATE_PROBES:
     got = predicate_why(probe)
     if expected not in got:
         print(f"  FAIL  probe {probe}: expected rejection {expected!r}, got {got or 'accepted'}")
+        rc = 1
+for sel, pred, expected in PAIRING_PROBES:
+    got = render_why(sel, pred)
+    if expected not in got:
+        print(f"  FAIL  pairing probe {sel} x {pred.get('metric')}: expected {expected!r}, "
+              f"got {got or 'accepted'}")
+        rc = 1
+for sel, pred in PAIRING_RENDERS:
+    got = render_why(sel, pred)
+    if got:
+        print(f"  FAIL  pairing render {sel} x {pred.get('metric')}: rejected — {got}")
         rc = 1
 for probe in PREDICATE_RENDERS:
     got = predicate_why(probe)
@@ -904,7 +1026,7 @@ for f in files:
             for section in ("guards", "criteria"):
                 for p in r.get(section) or []:
                     checked += 1
-                    why = selection_why(sel) + predicate_why(p)
+                    why = render_why(sel, p)
 
                     if why:
                         cid = identity.predicate_id(p)
@@ -919,7 +1041,9 @@ if rc == 0:
           f"{len(SELECTION_PROBES)} selection probes still rejected, "
           f"{len(SELECTION_RENDERS)} still rendered, "
           f"{len(PREDICATE_PROBES)} predicate probes still rejected, "
-          f"{len(PREDICATE_RENDERS)} still rendered")
+          f"{len(PREDICATE_RENDERS)} still rendered, "
+          f"{len(PAIRING_PROBES)} pairing probes still rejected, "
+          f"{len(PAIRING_RENDERS)} still rendered")
 sys.exit(rc)
 GATLING
 fi

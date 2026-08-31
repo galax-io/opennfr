@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opennfr.io/schema/v1/requirementset.schema.json",
   "title": "RequirementSet",
-  "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry rather than defined here, so measuring something new never means changing the format.",
+  "description": "The container a performance requirement is written into. Deliberately minimal: it fixes the shape and nothing else. Metric and attribute names are plain strings, borrowed from OpenTelemetry wherever it has an equivalent quantity and minted under loadtest.* where it does not, so measuring something new never means changing the format.",
   "examples": [
     {
       "apiVersion": "opennfr.io/v1",
@@ -19,7 +19,7 @@
             },
             "criteria": [
               {
-                "metric": "http.client.request.duration",
+                "metric": "loadtest.request.duration",
                 "aggregation": "p95",
                 "op": "lte",
                 "threshold": 500,
@@ -101,7 +101,7 @@
               },
               "criteria": [
                 {
-                  "metric": "http.client.request.duration",
+                  "metric": "loadtest.request.duration",
                   "aggregation": "p95",
                   "op": "lte",
                   "threshold": 500,
@@ -153,7 +153,7 @@
         "metric": {
           "type": "string",
           "minLength": 1,
-          "description": "What to measure of the selected requests. A name borrowed from OpenTelemetry semantic conventions where one exists; this schema does not enumerate metric names and never will. Omit it to reduce the requests themselves rather than a quantity they carry — a count, a rate, or a fraction with `bad`/`good`."
+          "description": "What to measure of the selected requests. A name borrowed from OpenTelemetry semantic conventions wherever one names this quantity, and minted under loadtest.* where none does — see README.md § Names; this schema does not enumerate metric names and never will. Omit it to reduce the requests themselves rather than a quantity they carry — a count, a rate, or a fraction with `bad`/`good`."
         },
         "bad": {
           "$ref": "#/$defs/selector",
@@ -166,7 +166,7 @@
       },
       "examples": [
         {
-          "metric": "http.client.request.duration",
+          "metric": "loadtest.request.duration",
           "aggregation": "p99",
           "op": "lte",
           "threshold": 500,
@@ -341,7 +341,7 @@
           ],
           "criteria": [
             {
-              "metric": "http.client.request.duration",
+              "metric": "loadtest.request.duration",
               "aggregation": "p99",
               "op": "lte",
               "threshold": 500,

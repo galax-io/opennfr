@@ -118,8 +118,10 @@ as a request of that name already is.
 ### metric
 
 The name of what to measure of the selected requests. Borrowed from OpenTelemetry wherever an
-equivalent exists; never invented. The schema does not enumerate metric names and never will —
-enumerating them would make every new metric a change to the format.
+equivalent exists, and **equivalent means the quantity, not the string**: where a convention's name
+would import a producer this format is not, a name of our own under `loadtest.*` is required rather
+than merely permitted. The schema does not enumerate metric names and never will — enumerating them
+would make every new metric a change to the format.
 
 *Rejected*: an `indicator` object holding the metric and its own selection — it forced a
 requirement about one endpoint being fast *and* reliable to become two requirements with the same
@@ -129,8 +131,55 @@ of our own is permitted only under `loadtest.*` and only where semconv has none,
 name nothing emits is a vocabulary of one. The bar it did not clear is the durable part — **a name is minted only where something
 outside this repository already records the quantity under one**, and one target's feature is never
 sufficient grounds. A name for **what a group scope measures**, a cumulated response time, declined
-for the same reason and for a second one: it would not make the shape renderable, because no scope
-denotes the requests a path encloses.
+in v0.6.0 for the same reason and for a second one — that it would not make the shape renderable,
+because no scope denotes the requests a path encloses.
+
+**Both of those declines were reversed in v0.8.0, and the second was simply wrong.**
+`AssertionStatsRepository` carries `groupCumulatedResponseTimeGeneralStats`, and always did: the
+quantity was assertable while the entry said it was not (read with `javap` from
+`gatling-charts` 3.13.5 and `gatling-shared-model` 0.0.11, 2026-08-31). The first decline stands as
+a bar and is cleared rather than waived — the quantity is recorded outside this repository by
+Gatling, whose statistic for each is named, sourced and dated in `README.md` § *What any tool can
+actually run*. No second tool is claimed here: none has been checked and dated, and Principle IV
+does not allow one to be asserted from memory. The bar therefore rests on one target so far, which
+the Compatibility Constraints call necessary and not sufficient, and that is recorded as open. See § *loadtest.request.duration* and § *loadtest.group.duration*.
+
+### loadtest.request.duration
+
+The duration of one recorded operation, measured by the load generator's own clock. The protocol is
+an attribute of the operation, not part of the measurement: a generator does not measure "an HTTP
+request duration" as a quantity distinct from "a Kafka operation duration" — it measures the elapsed
+time of one thing it recorded. The unit under it is the addressable one, and `loadtest.request.name`
+is what selects it.
+
+*Rejected*: `http.client.request.duration`, which this replaces. It welds three independent things
+into one string — the vantage, the protocol and the granularity — and only the first is fixed by a
+load generator. Worse, it is published today by production instrumentation and by any OpenTelemetry
+HTTP client, where `client` means the instrumented calling service and not the generator. A
+requirement document and a production dashboard could carry one string for two measurements, with
+nothing in either to tell them apart — which is the substitution § *metric* and `README.md` § *Names*
+exist to forbid. `loadtest.*` has no such ambiguity by construction: the prefix **is** the vantage
+statement.
+
+*Rejected*: `loadtest.operation.duration`. `operation` would be a second word for what
+`loadtest.request.name` already addresses, and the format would carry two vocabularies for one
+concept. One word with a faint protocol flavour, used consistently, is the cheaper wart.
+
+### loadtest.group.duration
+
+The duration of one traversal of a group. Two quantities can answer to that — the sum of the enclosed
+operations' durations, and wall clock from entry to exit including any pause — and the format does
+not adjudicate between them: it names the requirement, and each target's description states which
+one that target computes. `README.md` § *Gatling* records that a Gatling run computes the first.
+
+*Rejected*: `aggregation: sum` over `loadtest.request.duration`. The quantity is a percentile
+across traversals of a sum across the operations each traversal encloses — two nested aggregations,
+and `aggregation` states one. It is a distinct measured quantity, so it takes a distinct name.
+
+*Rejected*: naming the wall-clock quantity instead, or as well. It is computed by Gatling
+(`groupDurationGeneralStats`) and is **not** on `AssertionStatsRepository`, so no assertion can read
+it and no configuration makes it assertable — a name for it would be a construct no surveyed target
+can assert, which the Compatibility Constraints forbid.
 
 ### bad / good
 
