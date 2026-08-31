@@ -815,8 +815,14 @@ PREDICATE_PROBES = [
 # The first entry is the base every probe above mutates. Without it the whole table can pass on a
 # broken baseline: drop `lte` from OPS and all the rejection probes still fire their own reason
 # alongside the new one, because the check is membership and not equality.
+#
+# The `name` entry is the Identity axis's only probe, and it is a rendering one because that axis
+# rejects nothing: predicate_why never reads the key, and nothing else in the repository carries
+# one — not a corpus document, not a probe. A rejection added on `name` would be caught by nothing
+# at all (#82).
 PREDICATE_RENDERS = [
     RENDERABLE,
+    {**RENDERABLE, "name": "p95-latency"},
     {**RENDERABLE, "aggregation": "max"},
     {**RENDERABLE, "aggregation": "min"},
     {**RENDERABLE, "aggregation": "avg"},
@@ -853,7 +859,7 @@ rc, checked = 0, 0
 # probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
 # no corpus document can show.
 FLOORS = [("rejection", SELECTION_PROBES, 10), ("rendering", SELECTION_RENDERS, 5),
-          ("predicate rejection", PREDICATE_PROBES, 10), ("predicate rendering", PREDICATE_RENDERS, 14)]
+          ("predicate rejection", PREDICATE_PROBES, 10), ("predicate rendering", PREDICATE_RENDERS, 15)]
 for _label, _probes, _floor in FLOORS:
     if len(_probes) < _floor:
         print(f"  FAIL  {len(_probes)} {_label} probes, expected at least {_floor} — "

@@ -714,6 +714,30 @@ number.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` 
 fine. Rounding is not an option: it moves the bar the author wrote, so the document states one
 limit and the run enforces another, and the report names neither.
 
+#### Identity
+
+A predicate's identity — its `name`, or the `aggregation` standing in where no `name` is set — is
+what tells it from the other predicates in its list. This axis is the one that decides nothing:
+every predicate below is assertable, and the verdict says what becomes of the key when the predicate
+is rendered, not whether the statement runs.
+
+| OpenNFR | Gatling | |
+|---|---|---|
+| `name`, and the `aggregation` that stands in for it | — | **not carried** — `Assertion` is `(path, target, condition)`, and no field of it holds a label. The predicate renders; the key does not travel with it, and two requirements that select the same requests and state the same criterion render to equal `Assertion` values |
+| `displayName` | — | **not carried**, and nothing is lost by it: the key is inert. Nothing selected, measured or compared depends on it, so a target that drops it drops nothing the format claims |
+
+**not carried** is a third verdict and says what neither of the others can: the predicate renders,
+and the key does not travel into what it renders to. It is not **cannot** — a predicate carrying a
+`name` is assertable, and a renderer refusing one would be narrowing the format to what a target
+happens to carry.
+
+**Sourced** to `io.gatling.commons.stats.assertion.Assertion`, read with `javap` from
+`gatling-shared-model` 0.0.11 — the release Gatling **3.13.5** pins. **Checked 2026-08-31.** That is
+a different version from the **3.15.1** the four sources above were read at, and it is named rather
+than rounded to match them: 3.15.1 was not available where this was checked. `Assertion` is
+byte-identical in the release Gatling 3.11.5 pins, so the shape held across two minors — which is
+what is known, and is not a claim about a third.
+
 #### Two things Gatling cannot do at all
 
 - **Abort a run on a violated assertion.** Assertions are evaluated after the run.
@@ -729,7 +753,12 @@ limit and the run enforces another, and the report names neither.
 #### How these tables are applied
 
 **The tables partition each axis.** A predicate is assertable only if it matches a row exactly;
-anything unlisted is rejected. That direction is load-bearing. The first implementation was
+anything unlisted is rejected. All nine of a predicate's keys have a row: seven decide whether it is
+assertable — `metric`, `aggregation`, `op`, `threshold`, `unit`, `bad`, `good` — and the two on the
+Identity axis do not, which is why their verdict is **not carried** rather than **can** or
+**cannot**. The gate implements no rejection from that axis, and the one thing there is to check
+about it is that it rejects nothing: `PREDICATE_RENDERS` carries a predicate with a `name`, and it
+renders. That direction is load-bearing. The first implementation was
 written as a denylist — reject `sum`, reject `neq`, accept the rest — and defaulting to *allow*
 is what let four unrenderable shapes through: a filtered `bad`, an empty `bad`, a percentile in
 percent, and a fractional millisecond. A gap in these tables must fail the corpus, not pass it.
