@@ -197,17 +197,26 @@ downstream — a report line, a CI annotation, a URL fragment — has to be able
 *Rejected*: free-form strings — nothing could point at one reliably. Indices (`criterion: 0`) —
 they break whenever the file is edited.
 
-### criterionId
+### predicateId
 
 The identity of a predicate: its `name` if set, otherwise its `aggregation`. What it must be unique
 within is stated in [README.md](README.md) § *A predicate*; JSON Schema cannot express that
 fallback, so the gate checks it.
 
+*Rejected*: `criterionId`, which this term replaces — it named the identity of a predicate after one
+of the two lists that hold predicates, and `criteria` and `guards` hold the same shape. The mismatch
+became load-bearing rather than untidy when uniqueness was scoped to the list: a guard carries an
+identity on the same terms a criterion does, and the gate's own failure message said `criterionId`
+of a guard. *Rejected*: `identity` — it collides with `README.md`'s Identity axis, which is about
+what a target does with the key, not what the key is.
+
 *Rejected*: requiring `name` on every predicate — a name is noise where `p99` and `max` already
 distinguish two statements. *Rejected*: scoping uniqueness to the whole requirement rather than to
-one list — `rate` over the requests and `rate` over a fraction are different quantities sharing a
-word, the predicate's own shape already tells them apart, and the wider scope would force a name
-onto a collision that is only lexical, which is the same noise the first rejection refuses.
+one list. A guard and a criterion are statements about different things — whether the run happened,
+and whether the system held — and a report separates them for that reason, so two `rate` predicates
+one on each side are never mistaken for one statement. Inside a single list there is no such
+separation, which is why the rule bites there and only there. The wider scope would force a name on
+the guard/criterion pair alone, buying nothing the split has already bought.
 
 ### annotations
 
