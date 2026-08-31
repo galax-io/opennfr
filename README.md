@@ -354,17 +354,22 @@ the requirement's own selection, so it is never written twice.
 - {bad: {error.type: "*"}, aggregation: rate, op: lte, threshold: 5, unit: "%"}
 ```
 
-**`name`.** Needed only when two predicates of one requirement would otherwise be
-indistinguishable. Identity is the `name` if set, and the `aggregation` otherwise:
+**`name`.** Needed only when two predicates of one list would otherwise be indistinguishable.
+Identity is the `name` if set, and the `aggregation` otherwise, and it must be unique
+**within one list** — `criteria` and `guards` are counted apart:
 
 ```yaml
-guards:   [{aggregation: rate, op: gte, threshold: 200, unit: "{request}/s"}]
-criteria: [{aggregation: rate, op: lte, threshold: 400, unit: "{request}/s"}]
-# both identities are "rate" — one of them must be named
+criteria:
+  - {bad: {error.type: "*"}, aggregation: rate, op: lte, threshold: 5,   unit: "%"}
+  - {name: request-rate,     aggregation: rate, op: lte, threshold: 400, unit: "{request}/s"}
+# both identities would be "rate" — one is named, and either one could have been
 ```
 
-JSON Schema cannot express that fallback, so uniqueness is checked by `scripts/verify.sh`.
-`criteria` and `guards` are checked separately: a guard and a criterion may both be `rate`.
+A guard and a criterion may share an identity, because they are two lists.
+`examples/the-run-held-up.yaml` states an unnamed `rate` guard beside an unnamed `rate` criterion
+and is correct: one says the run reached the load it assumed, the other says what share of it
+failed, and the shape of each is what tells them apart. JSON Schema cannot express the fallback, so
+uniqueness is checked by `scripts/verify.sh`.
 
 ### `displayName` — optional, and inert
 
