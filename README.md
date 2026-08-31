@@ -54,7 +54,7 @@ side of a release.
 One fact is worth knowing before designing anything on OpenTelemetry, and it is negative. **No
 load generator publishes semantic convention names.** OTLP output is common — k6, Locust,
 Artillery, Gatling Enterprise all have it — but it is a transport, not a vocabulary: k6 emits
-`k6_http_req_duration` in milliseconds where the convention wants `http.client.request.duration`
+`k6_http_req_duration` in milliseconds where another tool names the same quantity something else
 in seconds. "The tool speaks OTel" does not mean "the tool is compatible". *(Checked against each
 tool's documentation, August 2026.)*
 
@@ -76,7 +76,7 @@ spec:
       selector:
         loadtest.request.name: POST /checkout
       criteria:
-        - metric: http.client.request.duration
+        - metric: loadtest.request.duration
           aggregation: p95
           op: lte
           threshold: 500
@@ -104,7 +104,7 @@ RequirementSet          the document — an envelope and a list
 Everything under `criteria` and `guards` is the same shape, a **predicate**:
 
 ```yaml
-metric: http.client.request.duration   # optional — what to measure, if anything
+metric: loadtest.request.duration   # optional — what to measure, if anything
 aggregation: p95                       # how to reduce many numbers to one
 op: lte                                # how to compare it
 threshold: 500                         # to what
@@ -129,7 +129,7 @@ Every criterion and every guard beneath it is about those requests.
   selector:
     loadtest.request.name: POST /checkout      # said once
   criteria:
-    - {metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
+    - {metric: loadtest.request.duration, aggregation: p99, op: lte, threshold: 500, unit: ms}
     - {bad: {error.type: "*"},               aggregation: rate, op: lte, threshold: 5,   unit: "%"}
 ```
 
@@ -290,7 +290,7 @@ Structurally identical. The difference is entirely in what a violation means:
 guards:
   - {name: reached-target-rate, aggregation: rate, op: gte, threshold: 200, unit: "{request}/s"}
 criteria:
-  - {metric: http.client.request.duration, aggregation: p95, op: lte, threshold: 500, unit: ms}
+  - {metric: loadtest.request.duration, aggregation: p95, op: lte, threshold: 500, unit: ms}
 ```
 
 > **Why guards are a construct and not a comment.** The most common lie in load testing reports is
@@ -418,7 +418,7 @@ no separate dictionary of abbreviations.
 **A limitation, recorded rather than implied**: the schema does **not** check that a unit fits the
 aggregation. An error share written in `ms`, or a p95 of a duration in `{vu}`, validates. Part of
 that is reachable — the schema knows which of the three shapes a predicate is — and part is not,
-because the schema deliberately does not know that `http.client.request.duration` is a time.
+because the schema deliberately does not know that `loadtest.request.duration` is a time.
 
 ---
 
@@ -436,7 +436,8 @@ same run without glue, because both sides already agree on what an endpoint is c
 
 | Name | Unit | Role |
 |---|---|---|
-| `http.client.request.duration` | `s` | the primary latency metric. A load generator **is** an HTTP client, so the client-side metric is the correct one — not `http.server.*`, and not the tool's own `http_req_duration` |
+| `loadtest.request.duration` | `s` | the primary latency metric: the duration of one recorded operation, by the generator's own clock. The protocol is an attribute of the operation, not part of the measurement |
+| `loadtest.group.duration` | `s` | the duration of one traversal of a group. Two quantities answer to that and tools compute different ones — see § *What any tool can actually run* for which one a given target computes |
 | `http.client.request.body.size` | `By` | volume sent |
 | `http.client.response.body.size` | `By` | volume received |
 | `http.server.request.duration` | `s` | when a requirement is stated over the system's own data rather than the generator's |
@@ -444,6 +445,26 @@ same run without glue, because both sides already agree on what an endpoint is c
 **Vantage point is not a detail.** A load generator measures latency as a client; a production stack
 usually measures it as a server. The two numbers are not comparable, and letting one stand in for
 the other is the failure this format exists to prevent.
+
+**Which is why the first two names are ours.** The rule is to borrow from semantic conventions
+wherever an equivalent exists — and **equivalent means the quantity, not the string**. semconv has a
+string for an HTTP client request duration; it has no name for *the duration of any recorded
+operation, whatever produced it, by the generator's own clock*, which is the quantity a load
+generator actually measures. Worse, `http.client.request.duration` is published today by production
+instrumentation and by any OpenTelemetry HTTP client, where `client` means the instrumented calling
+service. Borrowing it would let a requirement document and a production dashboard carry one string
+for two measurements — the substitution the paragraph above says this format exists to prevent,
+committed by the naming rule meant to prevent it. Where a convention's name would import a producer this format is not,
+semconv has no equivalent for what is being measured, so the rule already permits a `loadtest.*`
+name: the prefix is the vantage statement. That is a reading of *equivalent*, not a second rule —
+what may be minted is still exactly what `.specify/memory/constitution.md` Principle II permits.
+
+`http.client.request.duration` was that name until v0.8.0 and is **retired**, not aliased. Aliasing
+would make it definitionally mean "any recorded operation", so a document reading
+`metric: http.client.request.duration` over a Kafka run would be conformant and false — the defect
+enshrined rather than closed. The three names that remain keep theirs: the body sizes are volumes,
+and `http.server.request.duration` is the one name here whose whole point is a **different** vantage,
+so nothing about it is borrowed under a false pretence.
 
 **What these four names do not cover**, because the gap is a whole class of requirement rather than
 an edge case. A load generator records a duration for things that are not one HTTP client request,
@@ -454,14 +475,22 @@ and the two cases are not the same case:
   valid. It will not appear in [`examples/`](examples/), because no rendering of one has been
   checked and dated and § *What any tool can actually run* lists only what has.
 - **A span an author bracketed** — a business transaction across several requests plus think time.
-  Nothing names it. `http.client.request.duration` is not that name: it is the duration of one HTTP
-  client request, and writing it for a transaction states something false about what was measured,
-  which is the substitution the paragraph above says this format exists to prevent.
+  Where a target records that span as a **group**, `loadtest.group.duration` names it. Where it does
+  not, nothing does, and `loadtest.request.duration` is not that name: it is the duration of one
+  recorded operation, and writing it for a transaction states something false about what was
+  measured.
 
-The second is a gap in the format and is recorded as one. **No name is minted here**: a name of our
-own is permitted only under `loadtest.*` and only where semconv has none, and a `loadtest.*` name
-nothing emits is a vocabulary of one — the debt this page already records, doubled. What it would
-take is argued under `docs/`, which this page does not link into.
+The second is narrowed rather than closed, and what remains is recorded as a gap. **The bar for
+minting stayed where it was** — a name is minted only where something outside this repository
+already records the quantity under one, and one target's feature is never sufficient grounds. Both
+both names above clear it against Gatling, whose statistics for each are named,
+sourced and dated in § *What any tool can actually run*. Whether a second tool records either
+quantity is **not recorded here**: no such claim has been checked against that tool and dated, and
+Principle IV does not allow one to be made on memory. Until one is, the bar rests on one target,
+which the Compatibility Constraints call necessary and not sufficient — so the case for these two
+names is open on that point and is written down as open. A span no tool brackets for you is still a
+vocabulary of one, and what it would take is argued under `docs/`, which this page
+does not link into.
 
 ### Selection attributes
 
@@ -594,17 +623,20 @@ them apart.
 | `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: X}`, every part a string other than `"*"` | `details("G₁" / … / "Gₙ" / "X")` | **can** — **the request named `X` whose hierarchy is exactly `G₁…Gₙ`**, at any depth |
 | `{loadtest.request.name: "*"}` | `forAll()` | **can** — one statement per **request position** the run records, at any depth, not one number over all of them. `allRequestPaths()` `collect`s only the request keys of a map, so groups are discarded and each (hierarchy, name) pair appears exactly once |
 | `{loadtest.group.name: [G₁, …, Gₙ], loadtest.request.name: "*"}` | — | **cannot** — no scope both quantifies and carries a path, so "every request inside one group" has no correspondence |
-| `{loadtest.group.name: [..., "*", ...], loadtest.request.name: X}` | — | **cannot** — a group at that position with any name, and no scope carries a wildcard path part |
+| `{loadtest.group.name: [..., "*", ...]}`, with or without a request name | — | **cannot** — a group at that position with any name, and no scope carries a wildcard path part |
 | `loadtest.group.name` as a string, or `[]` | — | rejected by the **schema** before this table is reached: a hierarchy has one spelling, and "no enclosing group" is said by omitting the key. The gate carries the same two rejections, so each is probed |
-| `{loadtest.group.name: [G₁, …, Gₙ]}`, no request name | — | **cannot** — it denotes the requests whose hierarchy is exactly those groups, and **no scope denotes the requests a path encloses**: the scopes are `Global`, `ForAll` and `Details(parts)`, nothing else is addressable, and `details(...)` on a group's path resolves to the group, whose statistics are its own. So neither a duration of the enclosed requests nor a count of them is reachable — the refusal holds for a predicate carrying a `metric` and for one carrying none. What the group scope does compute is that group's *cumulated* response time, which no name in § *Names* is true of |
+| `{loadtest.group.name: [G₁, …, Gₙ]}`, no request name, every part a string other than `"*"` | `details("G₁" / … / "Gₙ")`, resolving to a **group** | **can**, and **only** paired with `loadtest.group.duration` — v0.8.0 minted the name the old refusal was waiting on. `details(...)` on a group's path resolves to the group, whose statistics are its own, so what is reachable here is the group's cumulated response time and nothing else: neither a duration of the enclosed requests individually nor a count of them. A predicate carrying `loadtest.request.duration`, any other metric, or no metric at all is still refused under this selection |
 | any path value that is not a string | — | **cannot** — a path is `AssertionPathParts(parts: List[String])`. `{loadtest.request.name: 200}` and `{loadtest.request.name: "200"}` are different documents and only the second is renderable |
 | `{http.route: ...}` | — | **cannot** |
 | `{http.request.method: ...}` | — | **cannot** |
 | `{http.response.status_code: ...}` | — | **cannot** |
 | any other attribute | — | **cannot** |
 
-**The two `details(...)` rows carry a precondition: the rendered path must not also be the full
-hierarchy of a recorded group.** Where it is, Gatling's own resolution is unspecified.
+**The three `details(...)` rows carry a precondition: the rendered path must not name both a
+request and a group.** For the two request rows that means the path must not also be the full
+hierarchy of a recorded group; for the group row it runs the other way — the path must not also be
+the full path of a recorded request, or a document asserting `loadtest.group.duration` can measure
+that request's response time instead. Where either holds, Gatling's own resolution is unspecified.
 `LogFileData.findPathByParts` is a single `collectFirst` over the keys of a `mutable.HashMap`
 holding request paths and group paths together, so which one matches depends on hash order — and
 where the group wins, the assertion measures that group's **cumulated** response time rather than
@@ -635,9 +667,26 @@ one table down.
 
 | OpenNFR `metric` | Gatling | |
 |---|---|---|
-| `http.client.request.duration` | `responseTime` | **can** |
+| `loadtest.request.duration` | `responseTime` | **can** — under any selection the Selection axis admits **except** a hierarchy with no request name, which resolves to a group and has no request statistics of its own |
+| `loadtest.group.duration` | `groupCumulatedResponseTimeGeneralStats` | **can** — and **only** under `{loadtest.group.name: [G₁, …, Gₙ]}` with no request name. Gatling computes the **sum of the durations of the operations the group encloses**, not the elapsed time of the traversal, so a run that pauses inside a group is not counted for the pause |
+| `http.client.request.duration` | — | **cannot** — **retired in v0.8.0** and not aliased. It named the vantage, the protocol and the granularity in one string when a load generator fixes only the first, and it is published by producers this format is not, so one string could carry two measurements. § *Names* has the argument |
 | `http.client.request.body.size`, `http.client.response.body.size` | — | **cannot** — the assertion DSL reaches response time and request counts only |
-| any other | — | **cannot** — `http.client.request.duration` is the only metric here whose rendering has been checked and dated, and nothing else has been. Three different cases sit under this row and § *Names* separates them: a measurement taken at another vantage point, which the vantage-point rule refuses outright; a name a convention already carries for another protocol's operation, which is a valid document with no dated rendering; and a duration recorded for a span an author bracketed, which has no name at all |
+| any other | — | **cannot** — the two `loadtest.*` names are the only metrics here whose rendering has been checked and dated, and nothing else has been. Three different cases sit under this row and § *Names* separates them: a measurement taken at another vantage point, which the vantage-point rule refuses outright; a name a convention already carries for another protocol's operation, which is a valid document with no dated rendering; and a duration recorded for a span an author bracketed, which has no name at all |
+
+**Sourced** for the two rows above to `io.gatling.shared.model.assertion.AssertionStatsRepository`,
+read with `javap` from `gatling-shared-model` 0.0.11 and `gatling-charts` 3.13.5 — the release
+Gatling **3.13.5** pins. **Checked 2026-08-31.** The interface carries four methods and two of them
+are statistics: `requestGeneralStats` and `groupCumulatedResponseTimeGeneralStats`. The wall-clock
+quantity is computed — `LogFileData.groupDurationGeneralStats` — and is **absent from the
+interface**, so no assertion can reach it and no configuration makes it assertable. Both statistics
+return one `Stats(min: Int, max: Int, count: Long, mean: Int, stdDev: Int, percentile, …)`, which is
+why a group admits the same aggregations, units and integer-threshold rule as a request.
+
+*Carried from [#89](https://github.com/galax-io/opennfr/issues/89) and not re-read here*:
+`gatling.charting.useGroupDurationMetric` (default `false`) reaches the report generator only, never
+the assertion path, so a run with it set shows wall clock in its charts while its assertions judged
+cumulated response time. It is consistent with what was read — the flag cannot change an assertion
+that has no access to the quantity it selects — but it is that issue's reading, dated to it.
 
 #### Aggregations
 
@@ -649,6 +698,14 @@ Over a metric:
 | `max`, `min` | `responseTime.max` / `.min` | **can** |
 | `avg` | `responseTime.mean` | **can** |
 | `stddev` | `responseTime.stdDev` | **can** |
+
+The statistic named is the one `loadtest.request.duration` resolves to. `loadtest.group.duration`
+takes the **same four rows** with `groupCumulatedResponseTime` in place of `responseTime` —
+`groupCumulatedResponseTime.percentile(n)`, `.max`, `.min`, `.mean`, `.stdDev` — because both
+resolve to one `Stats(min: Int, max: Int, count: Long, mean: Int, stdDev: Int, percentile, …)`, so
+the aggregations, the units and the integer target are shared and only the name differs. The rows
+are not repeated: one type, one set of rows, two names for the statistic. `scripts/verify.sh` holds
+the pair in `NATIVE` and the rows carry a placeholder for it.
 | `sum` | — | **cannot** — `responseTime` offers no sum and no arithmetic that would produce one |
 | `count` | — | **cannot** — none of the rows above is a count, and `allRequests.count` is the row *below*: it counts requests, not what a metric carries, and the two differ wherever a metric is not recorded for every request |
 | `rate` | — | **cannot** — the same, one row down: `requestsPerSec` is a rate of requests, and no row here is a rate of a metric's own observations |
@@ -700,6 +757,7 @@ for another. A percentile in `%` is not a Gatling assertion.
 | Statistic | Accepts | Native | Target |
 |---|---|---|---|
 | `responseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
+| `groupCumulatedResponseTime.*` | `ms`, `s` | milliseconds | **`Int`** | 
 | `failedRequests.percent` | `%`, `1` | percent, 0..100 | `Double` |
 | `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Int`** |
 | `requestsPerSec` | `{request}/s` | per second | `Double` |
@@ -758,7 +816,11 @@ assertable — `metric`, `aggregation`, `op`, `threshold`, `unit`, `bad`, `good`
 Identity axis do not, which is why their verdict is **not carried** rather than **can** or
 **cannot**. The gate implements no rejection from that axis, and the one thing there is to check
 about it is that it rejects nothing: `PREDICATE_RENDERS` carries a predicate with a `name`, and it
-renders. That direction is load-bearing. The first implementation was
+renders. **One pair is judged jointly, and it is the only one.** A hierarchy with no request name and the
+metric `loadtest.group.duration` admit each other and nothing else: the selection resolves to a
+group, and a group's only assertable statistic is its cumulated response time. Every other axis
+decides alone, and this one says so rather than leaving a renderer to discover that two **can** rows
+do not compose. That direction is load-bearing. The first implementation was
 written as a denylist — reject `sum`, reject `neq`, accept the rest — and defaulting to *allow*
 is what let four unrenderable shapes through: a filtered `bad`, an empty `bad`, a percentile in
 percent, and a fractional millisecond. A gap in these tables must fail the corpus, not pass it.

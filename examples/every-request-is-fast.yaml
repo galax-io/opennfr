@@ -36,7 +36,7 @@ spec:
         loadtest.request.name: "*"                 # each recorded position, separately — not pooled
       criteria:
         - displayName: 95th percentile
-          metric: http.client.request.duration
+          metric: loadtest.request.duration
           aggregation: p95
           op: lte
           threshold: 3

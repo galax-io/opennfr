@@ -27,8 +27,9 @@ substance survives, split between the requirement's `selector` and the predicate
 `bad`. What killed it: holding the selection inside the shape forced a requirement about one
 endpoint being fast *and* reliable to become two requirements with the same selector written twice.
 A `ratio` also had to name a metric it did not measure — an error-rate requirement read
-`metric: http.client.request.duration`, because a histogram's count is the request count and
-OpenTelemetry defines no HTTP client request counter.
+`metric: http.client.request.duration`, the name the format carried before v0.8.0 retired it,
+because a histogram's count is the request count and OpenTelemetry defines no HTTP client request
+counter.
 
 *Would need*: an OpenTelemetry request counter, so a fraction stops having to name a metric it does not measure — and a reason to reverse ADR-0003's split, which none has appeared.
 
@@ -166,14 +167,17 @@ Attributes: `loadtest.phase`, `loadtest.scenario.name`, `loadtest.tool.name` / `
 
 Deliberately absent from it: `loadtest.throughput` (derived — `aggregation: rate`),
 `loadtest.error_rate` (derived — a `bad` fraction), `loadtest.response_time` (a duplicate of
-`http.client.request.duration`), `loadtest.apdex` (composite), `loadtest.run.id`
-(`cicd.pipeline.run.id` already exists). And, since v0.6.0, a name for **a span an author
-bracketed** — a business transaction across several requests, which no semantic convention names.
-It is the one duration a load test measures that the format cannot spell, and it is absent for the
-reason the rest of this registry is: a name nothing emits is a vocabulary of one.
+`loadtest.request.duration`, which the format now has), `loadtest.apdex` (composite),
+`loadtest.run.id` (`cicd.pipeline.run.id` already exists). A name for **a span an author bracketed**
+was absent here from v0.6.0 until v0.8.0 and is now **narrowed rather than absent**: where a target
+records the span as a group, `loadtest.group.duration` names it. What is left absent is a span no
+target brackets for you, and it is absent for the reason the rest of this registry is: a name
+nothing emits is a vocabulary of one.
 
-**The rest of the registry** stays an idea. two names from this registry — `loadtest.request.name` and `loadtest.group.name` — are **not** ideas
-any more. Every published example depends on them, and `README.md` defines them and records the debt.
+**The rest of the registry** stays an idea. Four of its names are not ideas any more:
+`loadtest.request.name` and `loadtest.group.name`, which every published example depends on, and
+since v0.8.0 `loadtest.request.duration` and `loadtest.group.duration`. `README.md` defines all four
+and records the debt.
 
 *Would need*: submission upstream, and something that emits the names. A namespace nobody has
 claimed and nothing publishes is a vocabulary of one, which is what the debt in `README.md` says.

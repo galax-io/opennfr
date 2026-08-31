@@ -28,5 +28,5 @@ spec:
           threshold: 200
           unit: "{request}/s"
       criteria:
-        - {displayName: 99th percentile, metric: http.client.request.duration, aggregation: p99, op: lte, threshold: 1000, unit: ms}
+        - {displayName: 99th percentile, metric: loadtest.request.duration, aggregation: p99, op: lte, threshold: 1000, unit: ms}
         - {displayName: Failed share,    bad: {error.type: "*"}, aggregation: rate, op: lte, threshold: 5, unit: "%"}
