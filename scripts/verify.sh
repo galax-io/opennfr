@@ -124,10 +124,23 @@ except ImportError as e:
     # A gate that skips itself reads exactly like a passing one.
     print(f"  FAIL  {e.name} not installed (pip install jsonschema pyyaml)")
     sys.exit(1)
+sys.path.insert(0, "scripts")
+import identity
+
+# The identity rule is held to its own probes before either section trusts it. Both branches
+# that checked it could be replaced with `if False:` and this gate still printed PASS, and the
+# `name` arm of the fallback had never been observed at all — issue #72.
+wrong = identity.selftest()
+for m in wrong:
+    print(f"  FAIL  the identity rule is wrong: {m}")
+if wrong:
+    sys.exit(1)
+
 schema = json.load(open("schema/opennfr.io/v1/requirementset.schema.json", encoding="utf-8"))
 Draft202012Validator.check_schema(schema)
 v = Draft202012Validator(schema)
 rc = 0
+identity_lists = []
 files = sorted(glob.glob("examples/*.yaml"))
 if not files:
     print("  FAIL  examples/ holds no document to validate")
@@ -152,22 +165,29 @@ for f in files:
         for e in errs:
             where = "/".join(map(str, e.path)) or "(root)"
             print(f"  FAIL  {f}: {where}: {e.message}")
-        # criterionId is the name if set, otherwise the aggregation. The schema
-        # cannot express that fallback, so uniqueness is checked here.
-        for r in doc.get("spec", {}).get("requirements", []) or []:
-            for section in ("criteria", "guards"):
-                seen = set()
-                for p in r.get(section, []) or []:
-                    cid = p.get("name") or p.get("aggregation")
-                    if cid in seen:
-                        print(f"  FAIL  {f}: {r.get('name')}/{section}: duplicate criterionId {cid!r}")
-                        errs = errs or [1]
-                        rc = 1
-                    seen.add(cid)
+        # The identity rule, and why the schema cannot carry it, live in scripts/identity.py.
+        for r in (doc.get("spec") or {}).get("requirements", []) or []:
+            for section, cid in identity.collisions(r, identity_lists):
+                print(f"  FAIL  {f}: {r.get('name')}/{section}: duplicate criterionId {cid!r}")
+                errs = errs or [1]
+                rc = 1
         if errs:
             rc = 1
         else:
             print(f"  ok    {f}  [{kind}]")
+
+# A check that scanned nothing reads exactly like one that passed, and a probe cannot catch a
+# deleted CALL — the probes above call the module directly and would stay green. This count can,
+# because `collisions` is a generator that appends only while it is being consumed: drop the loop
+# and the count drops with it. Counting through a second function would NOT do that.
+IDENTITY_LISTS = 5
+if len(identity_lists) < IDENTITY_LISTS:
+    print(f"  FAIL  the identity check read {len(identity_lists)} lists, expected at least "
+          f"{IDENTITY_LISTS} — a check that scanned nothing reads exactly like one that passed")
+    rc = 1
+else:
+    print(f"  ok    identity: {len(identity.PROBES)} probes still hold, "
+          f"{len(identity_lists)} lists read")
 sys.exit(rc)
 SCHEMA
 fi
@@ -337,17 +357,25 @@ for where, node in slots:
 # The root's examples are whole documents, so they answer to what the corpus answers to.
 # The schema cannot express criterionId uniqueness — that is why examples/ is checked for it
 # by hand above — and the one document an editor offers first was the one nothing checked.
+# The rule itself lives in scripts/identity.py, shared with that section so the two cannot
+# drift into disagreeing about it.
+sys.path.insert(0, "scripts")
+import identity
+
+root_identity_lists = []
 for i, ex in enumerate(schema.get("examples", [])):
-    for r in (ex.get("spec", {}) or {}).get("requirements", []) or []:
-        for part in ("criteria", "guards"):
-            seen_ids = set()
-            for p in r.get(part, []) or []:
-                cid = p.get("name") or p.get("aggregation")
-                if cid in seen_ids:
-                    print(f"  FAIL  {path}: root example {i}: {r.get('name')}/{part}: "
-                          f"duplicate criterionId {cid!r}")
-                    rc = 1
-                seen_ids.add(cid)
+    for r in (ex.get("spec") or {}).get("requirements", []) or []:
+        for part, cid in identity.collisions(r, root_identity_lists):
+            print(f"  FAIL  {path}: root example {i}: {r.get('name')}/{part}: "
+                  f"duplicate criterionId {cid!r}")
+            rc = 1
+
+# As above: a deleted call reads as a clean scan, so the count is floored too.
+ROOT_IDENTITY_LISTS = 1
+if len(root_identity_lists) < ROOT_IDENTITY_LISTS:
+    print(f"  FAIL  {path}: the identity check read {len(root_identity_lists)} lists of the "
+          f"schema's own examples, expected at least {ROOT_IDENTITY_LISTS}")
+    rc = 1
 
 EXAMPLES = 20
 if checked < EXAMPLES:
@@ -544,6 +572,8 @@ else
   python3 - <<'GATLING' || fail=1
 import glob, sys
 from fractions import Fraction
+sys.path.insert(0, "scripts")
+import identity
 try:
     import yaml
 except ImportError as e:
@@ -871,7 +901,7 @@ for f in files:
                     why = selection_why(sel) + predicate_why(p)
 
                     if why:
-                        cid = p.get("name") or p.get("aggregation")
+                        cid = identity.predicate_id(p)
                         print(f"  FAIL  {f}: {r.get('name')}/{section}/{cid}: " + "; ".join(why))
                         rc = 1
 # A scan that checked nothing reads exactly like a scan that passed.
