@@ -191,11 +191,17 @@ is wanted.
 
 ### name
 
-The machine identifier: lowercase letters, digits and hyphens. Restricted because something
-downstream — a report line, a CI annotation, a URL fragment — has to be able to point at it.
+The machine identifier: lowercase letters, digits and hyphens. Restricted for two reasons this
+repository can check. An identity is compared for **equality** — `scripts/verify.sh` decides
+uniqueness by comparing one to another — so a closed character set is what makes two identities
+that look alike to a reader be alike to the check; `Peak` and `peak ` would otherwise read as one
+collision and compare as two. And `$defs/name` is a single spelling rule shared by `metadata.name`,
+a requirement's `name` and a predicate's `name`, so a reader learns it once and applies it in three
+places.
 
-*Rejected*: free-form strings — nothing could point at one reliably. Indices (`criterion: 0`) —
-they break whenever the file is edited.
+*Rejected*: free-form strings — two identities differing only in case or trailing space would read
+as one and compare as two, and a document a reader calls ambiguous would pass the uniqueness check.
+Indices (`criterion: 0`) — they break whenever the file is edited.
 
 ### predicateId
 
