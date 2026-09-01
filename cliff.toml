@@ -2,14 +2,17 @@
 # AGENTS.md names git-cliff as the release-notes tool; this is its config.
 #
 # The commit groups below are ordered for a design repo: what the format now says
-# comes before how the notes are organised. Once there is an implementation,
-# revisit the ordering — "feat" will start meaning code rather than vocabulary.
+# comes before how the notes are organised. The order is the `<!-- N -->` prefix on
+# each group and NOT the order of the parsers — Tera's group_by sorts by key, so for
+# eight releases these notes came out alphabetical while this comment claimed
+# otherwise. Once there is an implementation, revisit it: "feat" will start meaning
+# code rather than vocabulary.
 
 [changelog]
 header = ""
 body = """
 {% for group, commits in commits | group_by(attribute="group") %}
-### {{ group | upper_first }}
+### {{ group | striptags | trim | upper_first }}
 {% for commit in commits %}
 - {{ commit.message | split(pat="\n") | first | trim | upper_first }}
 {%- endfor %}
@@ -34,20 +37,27 @@ protect_breaking_commits = true
 sort_commits = "oldest"
 
 commit_parsers = [
+  # Vocabulary first, whatever type carries it. A term is the one thing every
+  # document is written against, so a rename or a redefinition outranks the
+  # change that motivated it — which is what the note below this list asks for
+  # and what nothing here used to do. Without this line `refactor(vocabulary)`
+  # falls through to Housekeeping and `docs(vocabulary)` to Notes; v0.8.0
+  # shipped a renamed term filed under housekeeping for exactly that reason.
+  { message = "^[a-z]+\\((vocabulary|glossary)\\)!?:", group = "<!-- 1 -->Vocabulary" },
   # A design repo's headline change is a change to what the format says.
-  { message = "^feat", group = "Format changes" },
-  { message = "^docs\\(adr\\)", group = "Decisions revisited" },
-  { message = "^docs\\(speckit\\)", group = "Specs" },
-  { message = "^docs", group = "Notes" },
-  { message = "^fix", group = "Corrections" },
-  { message = "^refactor", group = "Housekeeping" },
+  { message = "^feat", group = "<!-- 2 -->Format changes" },
+  { message = "^docs\\(adr\\)", group = "<!-- 5 -->Decisions revisited" },
+  { message = "^docs\\(speckit\\)", group = "<!-- 6 -->Specs" },
+  { message = "^docs", group = "<!-- 4 -->Notes" },
+  { message = "^fix", group = "<!-- 3 -->Corrections" },
+  { message = "^refactor", group = "<!-- 7 -->Housekeeping" },
   { message = "^chore\\(release\\)", skip = true },
-  { message = "^chore", group = "Housekeeping" },
-  { message = "^ci", group = "Housekeeping" },
-  { body = ".*security", group = "Security" },
+  { message = "^chore", group = "<!-- 7 -->Housekeeping" },
+  { message = "^ci", group = "<!-- 7 -->Housekeeping" },
+  { body = ".*security", group = "<!-- 0 -->Security" },
   # Catch-all. Without it, a commit that is not conventional gets no group and
   # silently vanishes from the notes — which is how you ship an empty release.
-  { message = ".*", group = "Other" },
+  { message = ".*", group = "<!-- 8 -->Other" },
 ]
 
 # Vocabulary changes are breaking by nature — a renamed term invalidates every
