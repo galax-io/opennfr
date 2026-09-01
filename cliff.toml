@@ -37,6 +37,12 @@ protect_breaking_commits = true
 sort_commits = "oldest"
 
 commit_parsers = [
+  # Security first, whatever type carries it, and ahead of the generic rules for the
+  # same reason the vocabulary rule is: the first matching parser wins, so a rule
+  # placed after `^fix` and `^chore` is a rule no conventional commit can reach.
+  # It was placed last and matched the BODY, which most commits here do not have, so
+  # the group ordered first in the notes could never appear (#104).
+  { message = "^[a-z]+\\(security\\)!?:", group = "<!-- 0 -->Security" },
   # Vocabulary first, whatever type carries it. A term is the one thing every
   # document is written against, so a rename or a redefinition outranks the
   # change that motivated it — which is what the note below this list asks for
@@ -54,6 +60,8 @@ commit_parsers = [
   { message = "^chore\\(release\\)", skip = true },
   { message = "^chore", group = "<!-- 7 -->Housekeeping" },
   { message = "^ci", group = "<!-- 7 -->Housekeeping" },
+  # Not the security rule — that one is at the top. This is the last-resort catch for a
+  # NON-conventional commit, which is all that reaches this far down the list.
   { body = ".*security", group = "<!-- 0 -->Security" },
   # Catch-all. Without it, a commit that is not conventional gets no group and
   # silently vanishes from the notes — which is how you ship an empty release.
