@@ -134,15 +134,23 @@ sufficient grounds. A name for **what a group scope measures**, a cumulated resp
 in v0.6.0 for the same reason and for a second one — that it would not make the shape renderable,
 because no scope denotes the requests a path encloses.
 
-**Both of those declines were reversed in v0.8.0, and the second was simply wrong.**
-`AssertionStatsRepository` carries `groupCumulatedResponseTimeGeneralStats`, and always did: the
-quantity was assertable while the entry said it was not (read with `javap` from
-`gatling-charts` 3.13.5 and `gatling-shared-model` 0.0.11, 2026-08-31). The first decline stands as
-a bar and is cleared rather than waived — the quantity is recorded outside this repository by
-Gatling, whose statistic for each is named, sourced and dated in `README.md` § *What any tool can
-actually run*. No second tool is claimed here: none has been checked and dated, and Principle IV
-does not allow one to be asserted from memory. The bar therefore rests on one target so far, which
-the Compatibility Constraints call necessary and not sufficient, and that is recorded as open. See § *loadtest.request.duration* and § *loadtest.group.duration*.
+**v0.8.0 reversed the second decline and narrowed the first. They did not move together.**
+
+The **group** decline was simply wrong. `AssertionStatsRepository` carries
+`groupCumulatedResponseTimeGeneralStats`, and always did: the quantity was assertable while the
+entry said it was not (read with `javap` from `gatling-charts` 3.13.5 and `gatling-shared-model`
+0.0.11, 2026-08-31). `loadtest.group.duration` is the name it was refused.
+
+The **bracketed-span** decline stands, narrowed. Where a target records the span as a group,
+`loadtest.group.duration` names it; where it does not, nothing does, and no name was minted for it —
+see `README.md` § *Names*. What the entry said about the bar is unchanged by either.
+
+The bar itself is cleared rather than waived for the one name that was minted: the quantity is
+recorded outside this repository by Gatling, whose statistic for each is named, sourced and dated in
+`README.md` § *What any tool can actually run*. No second tool is claimed here: none has been
+checked and dated, and Principle IV does not allow one to be asserted from memory. The bar therefore
+rests on one target so far, which the Compatibility Constraints call necessary and not sufficient,
+and that is recorded as open. See § *loadtest.request.duration* and § *loadtest.group.duration*.
 
 ### loadtest.request.duration
 
