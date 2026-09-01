@@ -677,7 +677,8 @@ INT, LONG = 2**31 - 1, 2**63 - 1
 # All six duration units, every factor exact, so no conversion rounds at the point it is computed.
 # `ns`/`us`/`min`/`h` were refused as unreachable until v0.9.0 -- true of the seven units still in
 # the last Units row, never of these four, which responseTime reaches by this same arithmetic (#74).
-TIME = {"ms": Fraction(1), "s": Fraction(1000)}          # -> native milliseconds
+TIME = {"ns": Fraction(1, 1000000), "us": Fraction(1, 1000), "ms": Fraction(1),
+        "s":  Fraction(1000),       "min": Fraction(60000),  "h":  Fraction(3600000)}  # -> native ms
 SHARE = {"%": Fraction(1), "1": Fraction(100)}           # -> native percent
 COUNT = {"{request}": Fraction(1)}
 PERSEC = {"{request}/s": Fraction(1)}
@@ -972,6 +973,11 @@ PREDICATE_PROBES = [
      "unit % is not a unit of responseTime.percentile"),
     ({**RENDERABLE, "threshold": 0.1},
      "threshold 0.1 ms is 1/10 for responseTime.percentile, whose target is an integer"),
+    # A sub-millisecond value in a unit #74 makes reachable. The expected reason is the whole-number
+    # rule's and NOT `unit ns is not a unit of ...`: the four units are reachable first and governed
+    # second, and a probe asserting the old refusal would pass on a table that never gained them.
+    ({**RENDERABLE, "threshold": 1500, "unit": "ns"},
+     "threshold 1500 ns is 3/2000 for responseTime.percentile, whose target is an integer"),
     # Whole, and still outside what the target carries. One probe per bound: INT and LONG are two
     # constants, and a single probe would leave the other deletable with this section green.
     ({**RENDERABLE, "threshold": 2149200, "unit": "s"},
@@ -1036,8 +1042,14 @@ PREDICATE_RENDERS = [
     # exact conversion above becomes a double multiplication. Two keys and no more: `threshold`
     # and `unit` move together because the subject is the conversion, and nothing else moves.
     {**RENDERABLE, "threshold": 1.001, "unit": "s"},
+    # One per unit #74 makes reachable, and one per unit deliberately: a single probe would leave
+    # three factors deletable green. Each value converts to a whole number of milliseconds exactly.
     # The largest value the target holds. Without it `<= bound` could become `< bound` green.
     {**RENDERABLE, "threshold": 2147483647, "unit": "ms"},
+    {**RENDERABLE, "threshold": 2000000, "unit": "ns"},
+    {**RENDERABLE, "threshold": 1500000, "unit": "us"},
+    {**RENDERABLE, "threshold": 2,       "unit": "min"},
+    {**RENDERABLE, "threshold": 1,       "unit": "h"},
     {**RENDERABLE, "op": "lt"},
     {**RENDERABLE, "op": "gt"},
     {**RENDERABLE, "op": "gte"},
@@ -1081,7 +1093,7 @@ for _name in (METRIC, GROUP_METRIC):
 # probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
 # no corpus document can show.
 FLOORS = [("rejection", SELECTION_PROBES, 9), ("rendering", SELECTION_RENDERS, 6),
-          ("predicate rejection", PREDICATE_PROBES, 21), ("predicate rendering", PREDICATE_RENDERS, 18),
+          ("predicate rejection", PREDICATE_PROBES, 22), ("predicate rendering", PREDICATE_RENDERS, 22),
           ("pairing rejection", PAIRING_PROBES, 4), ("pairing rendering", PAIRING_RENDERS, 4)]
 for _label, _probes, _floor in FLOORS:
     if len(_probes) < _floor:
