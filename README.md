@@ -534,18 +534,19 @@ It needs `python3` with `pyyaml` and `jsonschema`. The schema is an ordinary Dra
 any validator in any language will do, and an editor with YAML schema support will complete the
 fields as you type — every definition carries `examples` for exactly that.
 
-To validate one document without the repository:
+To validate one document with nothing but a copy of the schema file — no checkout, no working
+directory it has to be run from. Both paths are arguments, in that order:
 
 ```bash
 python3 -c "
 import json, sys, yaml
 from jsonschema import Draft202012Validator as V
-schema = json.load(open('schema/opennfr.io/v1/requirementset.schema.json'))
-errors = sorted(V(schema).iter_errors(yaml.safe_load(open(sys.argv[1]))), key=lambda e: list(e.path))
+schema = json.load(open(sys.argv[1]))
+errors = sorted(V(schema).iter_errors(yaml.safe_load(open(sys.argv[2]))), key=lambda e: list(e.path))
 for e in errors:
     print('/'.join(map(str, e.path)) or '(root)', ':', e.message)
 sys.exit(1 if errors else 0)
-" my-requirements.yaml
+" requirementset.schema.json my-requirements.yaml
 ```
 
 It exits non-zero when the document is invalid, so `… && deploy` does what you expect. A
