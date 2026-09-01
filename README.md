@@ -186,8 +186,10 @@ spec: {...}                   # required
 Borrowed from Kubernetes. `apiVersion` is how a v2 is told apart from a v1 by a consumer that has to
 read both, and the shape is one every ops reader already recognises.
 
-Unknown fields are rejected here and at every level below. The single exception is `selector`, whose
-keys are attribute names and cannot be enumerated in advance.
+Unknown fields are rejected here and at every level below. Two objects are open, on different terms
+and for different reasons: `selector`, whose keys are attribute names the format reads and cannot
+enumerate in advance, and `annotations`, whose keys are opaque and which nothing in the format reads
+at all.
 
 > **Why an unknown field is an error.** Under lenient parsing a misspelled `agregation:` silently
 > disables a criterion and turns the run green. That is the same silent lie as reporting success on
