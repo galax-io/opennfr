@@ -570,7 +570,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the Gatling reach gate cannot run"
 else
   python3 - <<'GATLING' || fail=1
-import glob, sys
+import glob, re, sys
 from fractions import Fraction
 sys.path.insert(0, "scripts")
 import identity
@@ -631,7 +631,16 @@ TIME = {"ms": Fraction(1), "s": Fraction(1000)}          # -> native millisecond
 SHARE = {"%": Fraction(1), "1": Fraction(100)}           # -> native percent
 COUNT = {"{request}": Fraction(1)}
 PERSEC = {"{request}/s": Fraction(1)}
-def percentile(a): return a.startswith("p") and a[1:].replace(".", "", 1).isdigit()
+# The row this implements, verbatim: README > Gatling > Aggregations quotes it from the schema's
+# $defs/aggregation, and the three copies are one string so a reader can compare them by eye. The
+# anchors are redundant under fullmatch and kept for exactly that.
+#
+# fullmatch and NOT match: Python's `$` also matches before a trailing newline, and ECMA-262's --
+# the dialect a JSON Schema `pattern` is written in -- does not. Under `match` this would admit
+# "p95\n", which the row and the schema both reject: #73's own defect, one input smaller, put back
+# by the commit that closes it. The three percentile probes in PREDICATE_PROBES are what notice.
+PERCENTILE = r"^p\d{1,2}(\.\d+)?$"
+def percentile(a): return re.fullmatch(PERCENTILE, a) is not None
 
 # The statistic each addressable metric resolves to. One `Stats` type serves both, so the units
 # and the integer target are shared and only the name differs — but the name belongs to the METRIC,
@@ -870,6 +879,17 @@ PREDICATE_PROBES = [
      "aggregation rate over a metric has no equivalent"),
     ({**RENDERABLE, "aggregation": "sum"},
      "aggregation sum over a metric has no equivalent"),
+    # Three shapes the helper this replaced called assertable and the row rejects (#73). They are
+    # schema-invalid too, so no document reaches them — what they guard is the gate agreeing with
+    # the row it implements, which is a property no corpus document can show. Each catches one
+    # regression and no other: `p999` a widened integer part (or the old isdigit() helper coming
+    # back), `p.5` an integer part made optional, and "p95\n" `fullmatch` swapped for `match`.
+    ({**RENDERABLE, "aggregation": "p999"},
+     "aggregation p999 over a metric has no equivalent"),
+    ({**RENDERABLE, "aggregation": "p.5"},
+     "aggregation p.5 over a metric has no equivalent"),
+    ({**RENDERABLE, "aggregation": "p95\n"},
+     "aggregation p95\n over a metric has no equivalent"),
     ({**RENDERABLE, "metric": "http.client.response.body.size"},
      "metric http.client.response.body.size is not addressable"),
     # The retired name (#89). Its `cannot` row is the only published row whose rule is an
@@ -969,7 +989,7 @@ for _name in (METRIC, GROUP_METRIC):
 # probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
 # no corpus document can show.
 FLOORS = [("rejection", SELECTION_PROBES, 9), ("rendering", SELECTION_RENDERS, 6),
-          ("predicate rejection", PREDICATE_PROBES, 13), ("predicate rendering", PREDICATE_RENDERS, 16),
+          ("predicate rejection", PREDICATE_PROBES, 16), ("predicate rendering", PREDICATE_RENDERS, 16),
           ("pairing rejection", PAIRING_PROBES, 4), ("pairing rendering", PAIRING_RENDERS, 4)]
 for _label, _probes, _floor in FLOORS:
     if len(_probes) < _floor:
