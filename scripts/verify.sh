@@ -718,7 +718,8 @@ def predicate_why(p):
     # two copies would be free to disagree. It was inline until v0.6.0, which is part of why the
     # predicate axes went unprobed — there was nothing a probe could call.
     why = []
-    if p.get("metric", METRIC) not in METRICS:
+    addressable = p.get("metric", METRIC) in METRICS
+    if not addressable:
         why.append(f"metric {p['metric']} is not addressable")
 
     shape = shape_of(p, why)
@@ -733,10 +734,15 @@ def predicate_why(p):
     if p.get("op") not in OPS:
         why.append(f"op {p.get('op')} has no equivalent")
 
-    if row:
+    if row and addressable:
+        # Only where the metric IS addressable, so NATIVE always carries it. It used to be
+        # read with a .get() defaulting to METRIC, and an unaddressable metric then produced a
+        # second reason naming `loadtest.request.duration.percentile` — an OpenNFR metric name
+        # in the slot a Gatling statistic occupies, for a statistic that does not exist (#102).
+        # A refused metric has no statistic, so there is no unit or threshold of one to judge.
         native, units, integral = row
         # A no-op on the fraction and requests rows, which carry no placeholder.
-        native = native.format(NATIVE.get(p.get("metric", METRIC), METRIC))
+        native = native.format(NATIVE[p.get("metric", METRIC)])
         factor = units.get(p.get("unit"))
         if factor is None:
             why.append(f"unit {p.get('unit')} is not a unit of {native}")
@@ -996,6 +1002,19 @@ for probe, expected in PREDICATE_PROBES:
     if expected not in got:
         print(f"  FAIL  probe {probe}: expected rejection {expected!r}, got {got or 'accepted'}")
         rc = 1
+
+# Every probe above asserts a reason is PRESENT, so none of them can catch a second reason that
+# should not be there. A refused metric has no statistic, so the unit and threshold rows have
+# nothing to judge and must stay silent — the shape that used to name a statistic Gatling does
+# not have (#102). This is the one place a reason list is asserted whole.
+_only = {"metric": "http.client.response.body.size", "aggregation": "p95", "op": "lte",
+         "threshold": 0.1, "unit": "%"}
+_want = ["metric http.client.response.body.size is not addressable"]
+if predicate_why(_only) != _want:
+    print(f"  FAIL  an unaddressable metric must give exactly one reason: expected {_want}, "
+          f"got {predicate_why(_only)}")
+    rc = 1
+
 for sel, pred, expected in PAIRING_PROBES:
     got = render_why(sel, pred)
     if expected not in got:
