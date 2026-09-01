@@ -1082,7 +1082,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   bad "python3 not found — the link-resolution gate cannot run"
 else
   python3 - <<'LINKS' || fail=1
-import os, sys
+import os, subprocess, sys
 sys.path.insert(0, "scripts")
 import mdlinks
 
@@ -1095,14 +1095,21 @@ if wrong:
     sys.exit(1)
 
 def md_files():
-    # Same population the previous grep pipeline scanned: every *.md file, except those under a
-    # top-level dot-directory (.git/, .github/, .specify/, .claude/) or a dot-prefixed root file.
-    for root, dirs, files in os.walk("."):
-        if root == ".":
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
-        for f in sorted(files):
-            if f.endswith(".md") and not (root == "." and f.startswith(".")):
-                yield os.path.join(root, f)
+    # The same population the isolation section below reads, and for the reason mdlinks.py
+    # exists: two gates reading one definition of a link must also read one set of files.
+    # This used to walk the tree and prune every top-level dot-directory, so
+    # .github/pull_request_template.md was scanned for links INTO docs/ and never checked for
+    # whether its own link resolved — rename GLOSSARY.md and it dangled with the gate green
+    # (#103). git also keeps ignored paths out, which os.walk did not: .claude/worktrees/
+    # holds entire checkouts of other branches.
+    out = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
+                          "--", "*.md"], capture_output=True, check=True).stdout
+    # .specify/extensions/ is VENDORED — installed by `chore: install spec-kit extensions` and
+    # overwritten by the next install, so a link that dangles there is upstream's to fix and an
+    # edit here would not survive. It is the one exclusion, and it is about authorship, not
+    # about dot-directories: .github/, .claude/ and .specify/memory/ are all scanned.
+    return sorted(f for f in out.decode("utf-8").split("\0")
+                  if f and not f.startswith(".specify/extensions/"))
 
 root = os.getcwd()
 missing = 0
@@ -1177,15 +1184,28 @@ for f in strays:
 ideas = "docs/ideas.md"
 if os.path.exists(ideas):
     text = open(ideas, encoding="utf-8").read()
-    entries = re.findall(r"^\*\*(.+?)\*\*", text, re.M)
-    needs = text.count("*Would need*")
+    entries = list(re.finditer(r"^\*\*(.+?)\*\*", text, re.M))
     if not entries:
         print(f"  FAIL  {ideas}: no idea found — the entry scan is broken")
         rc = 1
-    elif needs != len(entries):
-        print(f"  FAIL  {ideas}: {len(entries)} ideas, {needs} say what would have to "
-              f"become true — Principle VIII requires one each")
-        rc = 1
+    else:
+        # Per ENTRY, not per file. This compared two file-wide totals — how many ideas, how many
+        # `*Would need*` — and an idea that lost its condition passed whenever another had gained
+        # a second one. Principle VIII requires EACH idea to state its condition, which two equal
+        # integers cannot show (#103). An idea's span runs to the next line-initial bold.
+        bounds = [m.start() for m in entries] + [len(text)]
+        for i, m in enumerate(entries):
+            says = text[bounds[i]:bounds[i + 1]].count("*Would need*")
+            if says != 1:
+                print(f"  FAIL  {ideas}: {m.group(1)!r} says what would have to become true "
+                      f"{says} times — Principle VIII requires exactly one")
+                rc = 1
+        # Anything before the first entry is preamble and belongs to no idea. The old totals
+        # counted such a line towards the balance; now it belongs to nobody and says so.
+        loose = text[:bounds[0]].count("*Would need*")
+        if loose:
+            print(f"  FAIL  {ideas}: {loose} *Would need* before the first idea, belonging to none")
+            rc = 1
 
 # --- nothing outside docs/ links into it --------------------------------------------
 # The same definition of a link the resolution section uses. Held apart, the two disagreed:
@@ -1248,8 +1268,16 @@ import re, subprocess, sys
 # would accept. Ignored paths stay out — .claude/worktrees/ holds entire checkouts of
 # other branches — and an unstaged draft stays in, which is where the Cyrillic that
 # exposed this check being broken was sitting.
+#
+# EVERY file, with no pathspec. It was `*.md` and `*.yaml`, which reached neither the
+# schema — the published artifact, and the one carrying the most English prose after
+# README.md — nor any `*.yml`, so a reader-facing issue-form label sat outside the gate,
+# nor any script (#103). A widened list of extensions would have been the same hole one
+# extension along, and it also has to decide what to do with LICENSE, which has none.
+# There is no list now: what is not decodable as UTF-8 is not a text file, and the loop
+# below already FAILs on that rather than passing over it.
 def git(*flags):
-    out = subprocess.run(["git", "ls-files", "-z", *flags, "--", "*.md", "*.yaml"],
+    out = subprocess.run(["git", "ls-files", "-z", *flags],
                          capture_output=True, check=True).stdout
     return {f for f in out.decode("utf-8").split("\0") if f}
 
@@ -1265,7 +1293,7 @@ except (OSError, subprocess.CalledProcessError) as e:
 
 files = sorted(listed)
 if not files:
-    print("  FAIL  no .md or .yaml file found to scan")
+    print("  FAIL  no file found to scan")
     sys.exit(1)
 
 cyrillic = re.compile(r"[\u0400-\u04FF]")   # the Cyrillic block, as the grep matched
