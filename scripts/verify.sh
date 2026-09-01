@@ -555,8 +555,13 @@ section "Examples are assertable by Gatling"
 # An example nothing can run teaches a shape nobody can use. Gatling is the only target
 # with a waiting counterparty, so the published corpus is held to what its assertion DSL
 # can express — see README.md > "What any tool can actually run", which is the source
-# these rows implement and the only place the tables are stated. Sourced to Gatling
-# v3.15.1 and checked 2026-08-20.
+# these rows implement and the only place the tables are stated.
+#
+# Provenance is per row and lives there, not here: the section does not answer to one
+# date. The selection rows were read from Gatling v3.15.1 on 2026-08-20; the group
+# statistic in TABLE and NATIVE was read from gatling-shared-model 0.0.11 and
+# gatling-charts 3.13.5 on 2026-08-31, for a name that did not exist in the format on
+# the earlier date. One date for the section dated rows it had not read.
 #
 # Capabilities PARTITION each axis: a predicate is assertable only if it matches a row
 # below exactly. Anything unlisted is rejected, never allowed by default — a denylist
