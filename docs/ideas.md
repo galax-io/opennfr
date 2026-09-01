@@ -31,7 +31,7 @@ A `ratio` also had to name a metric it did not measure — an error-rate require
 because a histogram's count is the request count and OpenTelemetry defines no HTTP client request
 counter.
 
-*Would need*: an OpenTelemetry request counter, so a fraction stops having to name a metric it does not measure — and a reason to reverse ADR-0003's split, which none has appeared.
+*Would need*: an OpenTelemetry request counter, so a fraction stops having to name a metric it does not measure — and a reason to reverse the split that replaced `indicator`, whose argument is the *Rejected* line under `GLOSSARY.md` § *metric*. None has appeared.
 
 **`window`** — measure only the steady phase, excluding ramp-up and ramp-down. Blocked on a
 `loadtest.phase` attribute that nothing emits. A construct whose only meaning comes from an
@@ -64,7 +64,7 @@ happens when a requirement overrides one key of an inherited map, and does a rea
 checking. The duplication it was meant to remove is largely gone anyway, since the selector is now
 written once per requirement.
 
-*Would need*: a document where the duplication actually hurts after ADR-0003, plus merge semantics stated so precisely that two consumers cannot implement them differently. The second is the hard half.
+*Would need*: a document where the duplication actually hurts now that the selector is written once per requirement, plus merge semantics stated so precisely that two consumers cannot implement them differently. The second is the hard half.
 
 **The load profile** — stages, arrival rate, duration. *Not a "yet".* The tools do not agree on what
 an open or a closed workload model does under degradation, so borrowing the construct would import
@@ -111,13 +111,6 @@ produce one. The distinction it protected survives as a `guard`.
 declared per target; and whatever it says about missing data being producible by a real target.
 
 ## Reaching a tool
-
-**Assertion** — the projection of a criterion into one target's own form. The word stays out of the
-document: an assertion is a generated artifact, not a source of truth, and the moment it enters the
-format the format is nailed to one tool's semantics. The strongest constraint these notes have
-produced, and the one that has survived every change of direction.
-
-*Would need*: nothing. This one is settled, and it is recorded here so the next person does not reopen it.
 
 **Adapter** — renames metrics to canonical names, converts units, renames the tool's labelling into
 attributes, and renders criteria into native assertions. Always required, including for tools with
