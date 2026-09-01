@@ -468,7 +468,7 @@ enshrined rather than closed. The three names that remain keep theirs: the body 
 and `http.server.request.duration` is the one name here whose whole point is a **different** vantage,
 so nothing about it is borrowed under a false pretence.
 
-**What these four names do not cover**, because the gap is a whole class of requirement rather than
+**What these five names do not cover**, because the gap is a whole class of requirement rather than
 an edge case. A load generator records a duration for things that are not one HTTP client request,
 and the two cases are not the same case:
 
@@ -485,7 +485,7 @@ and the two cases are not the same case:
 The second is narrowed rather than closed, and what remains is recorded as a gap. **The bar for
 minting stayed where it was** — a name is minted only where something outside this repository
 already records the quantity under one, and one target's feature is never sufficient grounds. Both
-both names above clear it against Gatling, whose statistics for each are named,
+names above clear it against Gatling, whose statistics for each are named,
 sourced and dated in § *What any tool can actually run*. Whether a second tool records either
 quantity is **not recorded here**: no such claim has been checked against that tool and dated, and
 Principle IV does not allow one to be made on memory. Until one is, the bar rests on one target,
