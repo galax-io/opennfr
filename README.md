@@ -51,6 +51,19 @@ contracts, not runs. What OpenNFR borrows from OpenSLO is deliberate — the Kub
 envelope, the `op` values, the indicator/objective split — so that the two read alike on either
 side of a release.
 
+**Which of the above was checked, and when.** Principle IV asks that a claim about an external tool
+carry the date it was checked, and this survey does not answer to one date. Two claims were
+re-read at their source on **2026-09-01**: k6's threshold syntax, at
+[the k6 thresholds documentation](https://grafana.com/docs/k6/latest/using-k6/thresholds/), which is
+where the snippet above comes from; and gatling-picatinny's `assertionFromYaml`, at
+[`docs/assertions.md`](https://github.com/galax-io/gatling-picatinny/blob/main/docs/assertions.md),
+where it is **deprecated since v1.18.0** with removal slated for 2.0.0+ — so "tool-internal by
+construction" is still true of it and its tense is not. The claims about OpenSLO, Keptn, Taurus and
+SLA4OAI, and the Taurus and Keptn snippets above, are **carried from the original survey and are not
+dated** — they are the weakest thing on this page, and are marked rather than dressed up. § *What
+any tool can actually run* is the part that names file, version and date for every row, and nothing
+here should be read as having that standing.
+
 One fact is worth knowing before designing anything on OpenTelemetry, and it is negative. **No
 load generator publishes semantic convention names.** OTLP output is common — k6, Locust,
 Artillery, Gatling Enterprise all have it — but it is a transport, not a vocabulary: k6 emits
@@ -512,7 +525,9 @@ does not have one either.
 
 `http.route` is the better answer and almost nothing emits it. `loadtest.request.name` — k6's `name`
 tag, Gatling's request name, JMeter's sampler label — is the honest fallback, at the cost that such
-a document does not travel between tools unchanged.
+a document does not travel between tools unchanged. The three rows above are **carried from the
+survey and are not dated**, on the terms § *The problem* sets out: they are what three tools were
+observed to emit, not a claim checked against three sets of documentation on one day.
 
 **`loadtest.request.name` and `loadtest.group.name` are not OpenTelemetry names.** They belong to a
 proposed `loadtest.*` namespace that has been submitted nowhere and that nothing emits under that
