@@ -52,40 +52,20 @@ struck in constitution 2.0.0 for the reason above.
 
 ### selector
 
-Selects requests by attribute; a map where every entry must match, by equality. Written once per
-requirement. `{}` is every request, said explicitly, and reads as one statement about all of them
-together.
+Which requests a requirement is about: a map of attribute to expected value, written once per
+requirement and binding every criterion and guard beneath it.
 
-`loadtest.group.name` is the request's enclosing groups as an ordered list, outermost first, at any
-depth: `{loadtest.group.name: [Checkout, Payment], loadtest.request.name: GET /test/id}` is that
-request inside `Payment` inside `Checkout`. Each element is a literal recorded name — `"*"`
-excepted, which is presence there as everywhere: a group at that position with any name, never a
-group whose recorded name is `*` — so a group actually called `Checkout / Payment` is one element
-and not two. The list is matched by equality
-like every other value, which makes it the request's whole hierarchy and not a prefix of it.
-`"*"` means the attribute is present with any value — it is presence, not a glob. On a
-**requirement's** selector it also quantifies: the requirement is stated once of each **request
-position** the selector admits — a position being a request's enclosing groups, in order, then its
-name, as the run records it. Not once per distinct value, and not once per occurrence: one name
-recorded under two different hierarchies is two positions and two statements — while that same
-name nested inside `[Checkout, Payment]` is one position however deep it sits — and one position
-hit a thousand times is one. So `{loadtest.request.name: "*"}` is one statement per recorded position where `{}`
-is one statement over all of them, and because `"*"` is not a name, no hierarchy is claimed and the
-quantifier reaches every position at any depth. Inside `bad` or `good` it does not quantify — those
-narrow a numerator, and a numerator is one number.
+**What a selector does is in [README.md](README.md) § `selector`, and is not restated here** — the
+four rules it carries are the equality match, the hierarchy as a whole path, `"*"` as presence and
+as a quantifier, and what an absent hierarchy means beside a named request. This entry had a second
+copy of all four until #105. Two sources for one rule drift, which is the failure this format exists
+to prevent, applied to the repository that defines it; what belongs here is what the word means and
+what it displaced.
 
-One rule governs an absent hierarchy, and it is the only rule a selector has beyond equality:
-**where a selector names a request, an absent `loadtest.group.name` means the empty hierarchy** —
-the request has no enclosing group. So `{loadtest.request.name: POST /checkout}` is that request at
-the root, and the request of the same name inside `Checkout` is a different request, written
-`{loadtest.group.name: [Checkout], loadtest.request.name: POST /checkout}`. The rule fires only
-where a request is named: `{}` names none, and `"*"` is not a name. Everything here reads the same
-inside `bad` and `good`, and reads inertly: the only numerator any surveyed target renders is
-`{error.type: "*"}`, which names no request.
-
-A selector otherwise matches presence, never absence. That is why `bad` can be written and its
-mirror image cannot; the hierarchy is the exception because it is not a filter but a position, and
-a position is complete or it is not one.
+Two properties of the term are what the *Rejected* lines below are about, so they are named rather
+than argued: a selector matches **presence, never absence** — which is why `bad` can be written and
+its mirror image cannot — and the hierarchy is not a filter but a **position**, which is complete or
+is not one.
 
 *Rejected*: a **scalar** `loadtest.group.name` — what this entry carried until #53. It stopped at
 one group, so a request nested deeper was unwritable, and the spelling reached for instead,
