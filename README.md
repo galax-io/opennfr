@@ -756,28 +756,33 @@ for another. A percentile in `%` is not a Gatling assertion.
 
 | Statistic | Accepts | Native | Target |
 |---|---|---|---|
-| `responseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
-| `groupCumulatedResponseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
+| `responseTime.*` | `ns`, `us`, `ms`, `s`, `min`, `h` | milliseconds | **`Int`** |
+| `groupCumulatedResponseTime.*` | `ns`, `us`, `ms`, `s`, `min`, `h` | milliseconds | **`Int`** |
 | `failedRequests.percent` | `%`, `1` | percent, 0..100 | `Double` |
 | `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Long`** |
 | `requestsPerSec` | `{request}/s` | per second | `Double` |
-| — | `ns`, `us`, `min`, `h`, `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
+| — | `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
 
 The last row is **derived**: it is the enumeration in § *Units* above minus every unit a statistic
 here reaches. Add a unit to the format and it belongs in that enumeration; whether it appears here
-follows, and is not a second decision.
+follows, and is not a second decision. Seventeen units, ten reached, seven left — and the reason
+the last row gives is true of all seven: no assertable statistic carries bytes, and nothing counts
+iterations or virtual users.
+
+**The four finer durations are not an exception to the whole-number rule; they are newly subject to
+it.** `responseTime.*` is a duration statistic whose native unit is milliseconds, and the same
+exact arithmetic that converts `s` converts the other four: `2000000 ns` is 2 ms, `1500000 us` is
+1500 ms, `2 min` is 120000 ms, `1 h` is 3600000 ms — no rounding, nothing approximated. Where the
+conversion is not whole the rule below refuses it, and refuses it for that reason rather than for
+the unit: `1500 ns` is 3/2000 ms and `1 us` is 1/1000 ms, both unrenderable. Until v0.9.0 all four
+were refused as unreachable, which was true of the seven above them and never of these.
 
 **`Target` is the type of the DSL entry point that reaches the statistic, not a property of the
 statistic itself** — a distinction the column did not draw and one of its cells got wrong.
 `AssertionWithPathAndTimeMetric.{min,max,mean,stdDev,percentile}` return
 `AssertionWithPathAndTarget[Int]`; `AssertionWithPathAndCountMetric.count` returns
 `AssertionWithPathAndTarget[`**`Long`**`]`, not `Int`; `.percent` and `AssertionWithPath.requestsPerSec`
-return `[Double]`. The type is consumed at the boundary — `lt(threshold: T)` calls
-`numeric.toDouble(threshold)` — and the `Assertion` produced carries a `double` in every
-`Condition`, so a renderer that constructs the assertion model itself never passes through the
-typed builder. **The rule below is not relaxed for it.** Reach is a property of the target, not of
-how a renderer happens to be built, and a table that said otherwise would describe implementations
-rather than Gatling.
+return `[Double]`.
 
 **`groupCumulatedResponseTime.*` has no entry point of its own, and its row is sourced through the
 one that does.** `AssertionWithPath` carries exactly `responseTime`, `allRequests`,
@@ -794,6 +799,7 @@ than fussy. The type is consumed at the boundary — `lt(threshold: T)` calls
 typed builder. **The rule below is not relaxed for it.** Reach is a property of the target, not of
 how a renderer happens to be built, and a table that said otherwise would describe implementations
 rather than Gatling.
+
 **Sourced** to `AssertionBuilders.scala` from `gatling-core` **3.13.5**, to
 `io.gatling.javaapi.core.Assertion$WithPathAndTimeMetric` from `gatling-core-java` **3.13.5**
 (`max()` returns `WithPathAndTarget<Integer>`, so the Java DSL is Int-typed too), and to
@@ -811,11 +817,11 @@ significant digits, which is far more precision than a threshold carries. **Reta
 document's source text is not required**, and must not be: JSON and YAML parsers discard it.
 
 **Where the target is integral, the threshold converted to the native unit must be a whole
-number, and must be one the target holds.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
-fine; `aggregation: count, threshold: 20.5` is unrenderable for the same reason — the rule is about
-the target holding no fraction, and `Int` and `Long` both qualify. Rounding is not an option: it
-moves the bar the author wrote, so the document states one limit and the run enforces another, and
-the report names neither.
+number, and must be one the target holds.** `threshold: 0.5, unit: ms` is unrenderable;
+`threshold: 0.5, unit: s` is 500 ms and is fine; `aggregation: count, threshold: 20.5` is
+unrenderable for the same reason — the rule is about the target holding no fraction, and `Int` and
+`Long` both qualify. Rounding is not an option: it moves the bar the author wrote, so the document
+states one limit and the run enforces another, and the report names neither.
 
 **The range is part of it and not a separate rule.** A converted threshold can be a whole number
 and still be one no target carries: `threshold: 2149200, unit: s` is exactly 2 149 200 000 ms, and
@@ -824,6 +830,7 @@ milliseconds against `Int`, counts against `Long`. It is stated here rather than
 to discover at the point it overflows — and the four finer duration units make it ordinary rather
 than exotic, since `597 h` and `35820 min` are the same quantity spelled in units a soak run
 actually uses.
+
 #### Identity
 
 A predicate's identity — its `name`, or the `aggregation` standing in where no `name` is set — is
