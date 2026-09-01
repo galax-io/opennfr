@@ -579,6 +579,48 @@ try:
 except ImportError as e:
     print(f"  FAIL  {e.name} not installed (pip install pyyaml)"); sys.exit(1)
 
+# PyYAML hands back a double, and a double cannot carry a decimal literal of more than 15
+# significant digits: `1.0000000000000001` arrives as `1.0`. The rule this section implements is
+# about the value the literal DENOTES -- README > Gatling > Units -- so the literal is what has to
+# reach it. Without this the gate converts that threshold to a whole 1000 ms and renders a document
+# the rule it claims to implement refuses, which is #73's two-answers-in-one-run defect one field
+# over. `threshold` is a bare `number` with no precision bound and deliberately stays one (#59).
+class ExactFloat(float):
+    def __new__(cls, literal):
+        self = super().__new__(cls, literal)
+        self.literal = literal
+        return self
+
+class ExactLoader(yaml.SafeLoader):
+    pass
+
+def _exact_float(loader, node):
+    try:
+        return ExactFloat(node.value.replace("_", ""))
+    except ValueError:
+        # `.inf`, `.nan` and YAML 1.1 sexagesimals: PyYAML resolves them as floats and float()
+        # does not. The JSON-mapping section rejects them already; here they keep their old
+        # handling rather than crashing the scan.
+        return yaml.SafeLoader.construct_yaml_float(loader, node)
+
+ExactLoader.add_constructor("tag:yaml.org,2002:float", _exact_float)
+
+def threshold_literal(t):
+    # The decimal the document carries. `str(float)` is the shortest decimal that round-trips,
+    # which IS the literal at 15 significant digits or fewer and is NOT it beyond that.
+    return t.literal if isinstance(t, ExactFloat) else str(t)
+
+# Named once, and read by both the corpus scan below and the check under it. No published document
+# carries a threshold of more than four significant digits, so a probe cannot reach this wiring:
+# swap the loader and every probe above still passes while real documents are judged on the double
+# again. The check is what notices, and it lives beside the thing it checks.
+LOADER = ExactLoader
+if threshold_literal(list(yaml.load_all("t: 1.0000000000000001\n", LOADER))[0]["t"]) \
+        != "1.0000000000000001":
+    print("  FAIL  the loader no longer carries a threshold's decimal literal — a document past "
+          "15 significant digits would be judged on the double it parsed to")
+    sys.exit(1)
+
 # The two keys that spell a request's recorded position. Written once: they appear in the key
 # sets, in the value rules and in the flattener below, and four literals of one attribute name
 # are four chances to fix three of them.
@@ -624,9 +666,17 @@ BAD = {"error.type": "*"}
 # there is no negation, so `neq` has no equivalent.
 OPS = {"lt": "lt", "lte": "lte", "gt": "gt", "gte": "gte", "eq": "is"}
 
-# The partition. (shape, aggregation) -> what Gatling asserts, in which units, and
-# whether the target is an Int — a fractional value against an Int target is
-# unrenderable rather than roundable, and rounding would move the bar silently.
+# The largest value each integral target holds. The rule is a RANGE and not only a divisibility:
+# a converted threshold can be a whole number and still be one no target can carry, and `h`/`min`
+# make that ordinary to write -- a soak bound of a few hundred hours overflows Int (#74).
+INT, LONG = 2**31 - 1, 2**63 - 1
+
+# The partition. (shape, aggregation) -> what Gatling asserts, in which units, and the largest
+# value its target holds, or None where the target is a Double — a fractional value against an
+# integral target is unrenderable rather than roundable, and rounding would move the bar silently.
+# All six duration units, every factor exact, so no conversion rounds at the point it is computed.
+# `ns`/`us`/`min`/`h` were refused as unreachable until v0.9.0 -- true of the seven units still in
+# the last Units row, never of these four, which responseTime reaches by this same arithmetic (#74).
 TIME = {"ms": Fraction(1), "s": Fraction(1000)}          # -> native milliseconds
 SHARE = {"%": Fraction(1), "1": Fraction(100)}           # -> native percent
 COUNT = {"{request}": Fraction(1)}
@@ -650,19 +700,19 @@ NATIVE = {METRIC: "responseTime", GROUP_METRIC: "groupCumulatedResponseTime"}
 
 TABLE = {
     "metric": {
-        "PERCENTILE": ("{}.percentile", TIME, True),
-        "max":        ("{}.max",        TIME, True),
-        "min":        ("{}.min",        TIME, True),
-        "avg":        ("{}.mean",       TIME, True),
-        "stddev":     ("{}.stdDev",     TIME, True),
+        "PERCENTILE": ("{}.percentile", TIME, INT),
+        "max":        ("{}.max",        TIME, INT),
+        "min":        ("{}.min",        TIME, INT),
+        "avg":        ("{}.mean",       TIME, INT),
+        "stddev":     ("{}.stdDev",     TIME, INT),
     },
     "fraction": {
-        "rate":  ("failedRequests.percent", SHARE, False),
-        "count": ("failedRequests.count",   COUNT, True),
+        "rate":  ("failedRequests.percent", SHARE, None),
+        "count": ("failedRequests.count",   COUNT, LONG),
     },
     "requests": {
-        "count": ("allRequests.count", COUNT, True),
-        "rate":  ("requestsPerSec",    PERSEC, False),
+        "count": ("allRequests.count", COUNT, LONG),
+        "rate":  ("requestsPerSec",    PERSEC, None),
     },
 }
 
@@ -738,22 +788,31 @@ def predicate_why(p):
         why.append(f"op {p.get('op')} has no equivalent")
 
     if row:
-        native, units, integral = row
+        native, units, bound = row
         # A no-op on the fraction and requests rows, which carry no placeholder.
         native = native.format(NATIVE.get(p.get("metric", METRIC), METRIC))
         factor = units.get(p.get("unit"))
         if factor is None:
             why.append(f"unit {p.get('unit')} is not a unit of {native}")
-        elif integral and "threshold" not in p:
+        elif bound and "threshold" not in p:
             # The one key the old inline block read without .get(). A predicate missing it is
             # schema-invalid, but this section reads examples/ and never the schema, so it has to
             # say so rather than abort the scan and leave the rest of the corpus unread.
             why.append(f"threshold is absent, and {native} takes one")
-        elif integral:
-            value = Fraction(str(p["threshold"])) * factor
+        elif bound:
+            # Exact decimal arithmetic on the value the threshold denotes -- README > Gatling >
+            # Units states the rule, and these two lines are that rule rather than an accident.
+            # A plain `p["threshold"] * factor` would compute 1000.9999999999999 for `1.001 s` and
+            # refuse a document the rule admits (#59); `threshold_literal` is why a literal past
+            # 15 significant digits is not silently rounded into one the rule admits either.
+            literal = threshold_literal(p["threshold"])
+            value = Fraction(literal) * factor
             if value.denominator != 1:
-                why.append(f"threshold {p['threshold']} {p['unit']} is {value} for {native}, "
+                why.append(f"threshold {literal} {p['unit']} is {value} for {native}, "
                            f"whose target is an integer")
+            elif not -bound - 1 <= value <= bound:
+                why.append(f"threshold {literal} {p['unit']} is {value} for {native}, "
+                           f"which is outside the range its target holds")
     return why
 
 def shape_of(p, why):
@@ -913,6 +972,33 @@ PREDICATE_PROBES = [
      "unit % is not a unit of responseTime.percentile"),
     ({**RENDERABLE, "threshold": 0.1},
      "threshold 0.1 ms is 1/10 for responseTime.percentile, whose target is an integer"),
+    # Whole, and still outside what the target carries. One probe per bound: INT and LONG are two
+    # constants, and a single probe would leave the other deletable with this section green.
+    ({**RENDERABLE, "threshold": 2149200, "unit": "s"},
+     "threshold 2149200 s is 2149200000 for responseTime.percentile, "
+     "which is outside the range its target holds"),
+    ({"aggregation": "count", "op": "lte", "threshold": 1e19, "unit": "{request}"},
+     "threshold 1e+19 {request} is 10000000000000000000 for allRequests.count, "
+     "which is outside the range its target holds"),
+    # The literal a double cannot carry. Written as an ExactFloat because that is what ExactLoader
+    # hands the corpus; passed as a plain float it would arrive here as 1.0 and render, which is
+    # the defect. Its exact value is not a whole number of milliseconds, so the rule refuses it.
+    ({**RENDERABLE, "threshold": ExactFloat("1.0000000000000001"), "unit": "s"},
+     "threshold 1.0000000000000001 s is 10000000000000001/10000000000000 for "
+     "responseTime.percentile, whose target is an integer"),
+    # The whole-number rule reaches the count rows too, and until #59 nothing said so and nothing
+    # checked it: both carried `True` in TABLE and either could be flipped to `False` with this
+    # section still green. The message is the one the rule already gave -- `Long` is an integer,
+    # so correcting the page's `Int` to `Long` changed no string here.
+    #
+    # TWO probes and not one: the count rows live in different shapes -- `allRequests.count` under
+    # `requests`, `failedRequests.count` under `fraction` -- so one probe reaches one row and the
+    # other stays exactly as unguarded as it was. Written as one probe first, and the revert set
+    # caught it.
+    ({"aggregation": "count", "op": "lte", "threshold": 20.5, "unit": "{request}"},
+     "threshold 20.5 {request} is 41/2 for allRequests.count, whose target is an integer"),
+    ({"bad": BAD, "aggregation": "count", "op": "lte", "threshold": 20.5, "unit": "{request}"},
+     "threshold 20.5 {request} is 41/2 for failedRequests.count, whose target is an integer"),
     ({k: v for k, v in RENDERABLE.items() if k != "threshold"},
      "threshold is absent, and responseTime.percentile takes one"),
     ({"good": {"error.type": "*"}, "aggregation": "rate", "op": "lte", "threshold": 5, "unit": "%"},
@@ -946,6 +1032,12 @@ PREDICATE_RENDERS = [
     {**RENDERABLE, "aggregation": "avg"},
     {**RENDERABLE, "aggregation": "stddev"},
     {**RENDERABLE, "aggregation": "p99.9", "unit": "s", "threshold": 1},
+    # The one document the two arithmetics disagree about, and the only probe that fails if the
+    # exact conversion above becomes a double multiplication. Two keys and no more: `threshold`
+    # and `unit` move together because the subject is the conversion, and nothing else moves.
+    {**RENDERABLE, "threshold": 1.001, "unit": "s"},
+    # The largest value the target holds. Without it `<= bound` could become `< bound` green.
+    {**RENDERABLE, "threshold": 2147483647, "unit": "ms"},
     {**RENDERABLE, "op": "lt"},
     {**RENDERABLE, "op": "gt"},
     {**RENDERABLE, "op": "gte"},
@@ -989,7 +1081,7 @@ for _name in (METRIC, GROUP_METRIC):
 # probe is the sole catcher of one published `can` row being deleted, which no rejection probe and
 # no corpus document can show.
 FLOORS = [("rejection", SELECTION_PROBES, 9), ("rendering", SELECTION_RENDERS, 6),
-          ("predicate rejection", PREDICATE_PROBES, 16), ("predicate rendering", PREDICATE_RENDERS, 16),
+          ("predicate rejection", PREDICATE_PROBES, 21), ("predicate rendering", PREDICATE_RENDERS, 18),
           ("pairing rejection", PAIRING_PROBES, 4), ("pairing rendering", PAIRING_RENDERS, 4)]
 for _label, _probes, _floor in FLOORS:
     if len(_probes) < _floor:
@@ -1034,7 +1126,7 @@ if not files:
     sys.exit(1)
 for f in files:
     with open(f, encoding="utf-8") as fh:
-        docs = list(yaml.safe_load_all(fh))
+        docs = list(yaml.load_all(fh, LOADER))
     for doc in docs:
         if not isinstance(doc, dict):
             continue

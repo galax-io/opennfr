@@ -757,9 +757,9 @@ for another. A percentile in `%` is not a Gatling assertion.
 | Statistic | Accepts | Native | Target |
 |---|---|---|---|
 | `responseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
-| `groupCumulatedResponseTime.*` | `ms`, `s` | milliseconds | **`Int`** | 
+| `groupCumulatedResponseTime.*` | `ms`, `s` | milliseconds | **`Int`** |
 | `failedRequests.percent` | `%`, `1` | percent, 0..100 | `Double` |
-| `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Int`** |
+| `allRequests.count`, `failedRequests.count` | `{request}` | count | **`Long`** |
 | `requestsPerSec` | `{request}/s` | per second | `Double` |
 | — | `ns`, `us`, `min`, `h`, `By`, `KiBy`, `MiBy`, `GiBy`, `{iteration}`, `{iteration}/s`, `{vu}` | — | not reachable through any assertable statistic |
 
@@ -767,11 +767,63 @@ The last row is **derived**: it is the enumeration in § *Units* above minus eve
 here reaches. Add a unit to the format and it belongs in that enumeration; whether it appears here
 follows, and is not a second decision.
 
-**Where the target is an `Int`, the threshold converted to the native unit must be a whole
-number.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
-fine. Rounding is not an option: it moves the bar the author wrote, so the document states one
-limit and the run enforces another, and the report names neither.
+**`Target` is the type of the DSL entry point that reaches the statistic, not a property of the
+statistic itself** — a distinction the column did not draw and one of its cells got wrong.
+`AssertionWithPathAndTimeMetric.{min,max,mean,stdDev,percentile}` return
+`AssertionWithPathAndTarget[Int]`; `AssertionWithPathAndCountMetric.count` returns
+`AssertionWithPathAndTarget[`**`Long`**`]`, not `Int`; `.percent` and `AssertionWithPath.requestsPerSec`
+return `[Double]`. The type is consumed at the boundary — `lt(threshold: T)` calls
+`numeric.toDouble(threshold)` — and the `Assertion` produced carries a `double` in every
+`Condition`, so a renderer that constructs the assertion model itself never passes through the
+typed builder. **The rule below is not relaxed for it.** Reach is a property of the target, not of
+how a renderer happens to be built, and a table that said otherwise would describe implementations
+rather than Gatling.
 
+**`groupCumulatedResponseTime.*` has no entry point of its own, and its row is sourced through the
+one that does.** `AssertionWithPath` carries exactly `responseTime`, `allRequests`,
+`failedRequests`, `successfulRequests` and `requestsPerSec`, and `TimeMetric` has exactly one
+variant, `ResponseTime` — so nothing in the builder names the group statistic. What selects it is
+the **path**: `AssertionValidator` resolves a path that matches a recorded group to
+`StatsPath.Group` and reads `groupCumulatedResponseTimeGeneralStats`, where a request path reads
+`requestGeneralStats`. The row's `Int` is therefore `responseTime`'s, reached by
+`AssertionWithPathAndTimeMetric` and redirected by resolution — which is also why § *Selection*'s
+precondition that a rendered path must not name both a request and a group is load-bearing rather
+than fussy. The type is consumed at the boundary — `lt(threshold: T)` calls
+`numeric.toDouble(threshold)` — and the `Assertion` produced carries a `double` in every
+`Condition`, so a renderer that constructs the assertion model itself never passes through the
+typed builder. **The rule below is not relaxed for it.** Reach is a property of the target, not of
+how a renderer happens to be built, and a table that said otherwise would describe implementations
+rather than Gatling.
+**Sourced** to `AssertionBuilders.scala` from `gatling-core` **3.13.5**, to
+`io.gatling.javaapi.core.Assertion$WithPathAndTimeMetric` from `gatling-core-java` **3.13.5**
+(`max()` returns `WithPathAndTarget<Integer>`, so the Java DSL is Int-typed too), and to
+`Condition$Lt` / `Condition$Between` from `gatling-shared-model_2.13` **0.0.11** — the release
+Gatling 3.13.5 pins. **Checked 2026-09-01.** That is a different version from the **3.15.1** this
+section's header carries, and it is named rather than rounded to match it.
+
+**The conversion is exact decimal arithmetic on the value the threshold denotes**, never binary
+floating-point multiplication. `threshold: 1.001, unit: s` is 1001 ms and renders; a renderer that
+multiplies the parsed double computes 1000.9999999999999 and refuses, and the two disagree on every
+sub-millisecond budget written in seconds. A renderer that has already parsed the threshold into a
+binary float conforms by recovering the shortest decimal that round-trips that float and computing
+exactly from there — that decimal is the literal's value for any threshold of at most fifteen
+significant digits, which is far more precision than a threshold carries. **Retaining the
+document's source text is not required**, and must not be: JSON and YAML parsers discard it.
+
+**Where the target is integral, the threshold converted to the native unit must be a whole
+number, and must be one the target holds.** `threshold: 0.5, unit: ms` is unrenderable; `threshold: 0.5, unit: s` is 500 ms and is
+fine; `aggregation: count, threshold: 20.5` is unrenderable for the same reason — the rule is about
+the target holding no fraction, and `Int` and `Long` both qualify. Rounding is not an option: it
+moves the bar the author wrote, so the document states one limit and the run enforces another, and
+the report names neither.
+
+**The range is part of it and not a separate rule.** A converted threshold can be a whole number
+and still be one no target carries: `threshold: 2149200, unit: s` is exactly 2 149 200 000 ms, and
+the `Int` above tops out at 2 147 483 647, so it is unrenderable. The bound follows the row:
+milliseconds against `Int`, counts against `Long`. It is stated here rather than left to a renderer
+to discover at the point it overflows — and the four finer duration units make it ordinary rather
+than exotic, since `597 h` and `35820 min` are the same quantity spelled in units a soak run
+actually uses.
 #### Identity
 
 A predicate's identity — its `name`, or the `aggregation` standing in where no `name` is set — is

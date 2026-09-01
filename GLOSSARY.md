@@ -227,7 +227,19 @@ drawn from a closed enumeration. A mandatory unit settles "is 0.1 a fraction or 
 which OpenSLO answers with two fields and this format answers with one.
 
 *Rejected*: full UCUM — a grammar parser for seventeen units is the string-DSL mistake in a
-different hat. `threshold: "500ms"` — that is string parsing.
+different hat. `threshold: "500ms"` — that is string parsing. A **precision bound on `threshold`**
+(`multipleOf`, or a stated significant-digit limit) — proposed as the way to settle whether a
+converted threshold is a whole number, and refused on two independent grounds. It narrows the
+schema to one target's reach, which § *aggregation* already refused in these words when #57
+proposed it for `count` and `rate`; and it does not work, because JSON Schema 2020-12 says only
+that "division by this keyword's value results in an integer" and prescribes no arithmetic for it,
+so an implementation is free to do that division in binary floating point — and the one this
+repository validates with does. `multipleOf: 0.001` rejects `1.001`, `1.003` and `1.005` under
+`jsonschema` **4.26.0**, **checked 2026-09-01**: the very values the bound was proposed to admit. What settles the question instead is an arithmetic, stated
+in `README.md` § *What any tool can actually run*: the conversion is exact decimal arithmetic on
+the value the threshold denotes.
+What would reverse it: a JSON Schema numeric constraint defined over decimal values rather than
+binary floats, and a reason to bound the format that does not come from one target's target type.
 
 ### displayName
 
