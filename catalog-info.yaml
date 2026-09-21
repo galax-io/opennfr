@@ -1,0 +1,11 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: opennfr
+  description: Tool-agnostic JSON Schema format for load testing requirements, consumed by load-test adapters and CI backends
+  annotations:
+    github.com/project-slug: galax-io/opennfr
+spec:
+  type: library
+  lifecycle: production
+  owner: galaxio
