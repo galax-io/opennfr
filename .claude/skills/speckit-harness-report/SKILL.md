@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: harness:commands/speckit.harness.report.md
+model: sonnet
 ---
 
 # Research Report — Harness → Spec Kit Artifacts

@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: bug:commands/speckit.bug.assess.md
+model: opus
 ---
 
 # Assess Bug

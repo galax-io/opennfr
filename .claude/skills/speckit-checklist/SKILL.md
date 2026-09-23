@@ -8,6 +8,7 @@ metadata:
   source: preset:claude-ask-questions
 user-invocable: true
 disable-model-invocation: false
+model: opus
 ---
 
 # Speckit Checklist Skill

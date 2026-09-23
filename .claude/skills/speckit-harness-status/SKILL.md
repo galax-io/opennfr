@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: harness:commands/speckit.harness.status.md
+model: sonnet
 ---
 
 # Harness Status — Budget-Aware Context Rendering

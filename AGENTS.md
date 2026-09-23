@@ -69,6 +69,20 @@ Every piece of work is tied to a milestone. No exceptions unless explicitly told
 - **1 milestone = 1 PR.** A milestone is one argument and lands as one pull request: the spec commit, then one commit per issue, and a `Closes #NNN` line for each. `scripts/check-linkage.sh` reads every closing link a PR carries, and always did — the stack-of-PRs rule this replaces was never something the gate asked for. Update a pushed PR with `--force-with-lease`.
 - **Idiomatic code.** Follow the language's idioms and the conventions already in the codebase; no control-flow-by-exception, no dead/duplicated code.
 
+## Agents & Models (ALWAYS)
+
+Route work by the reasoning it needs, not by habit; run independent work in parallel.
+
+| Tier | Claude | Codex | Work |
+|---|---|---|---|
+| deep | `opus` | `gpt-6-sol` | research, root-cause analysis, specs/plans, architecture, review, verification |
+| light | `sonnet` | `gpt-6-luna` | task/issue generation, mechanical infra (CI config, version pins, renames, doc fixes), bookkeeping |
+
+- **Research is adversarial.** Deep research gets a second opinion from the other vendor (`deep-researcher` does this via `codex exec --sandbox read-only`). A claim only one model supports is unverified, not a fact.
+- **Every task carries its tier.** `tasks.md` lines add `[tier:deep]` or `[tier:light]` next to `[P]`; when unsure, it is deep.
+- **Parallelize what is independent.** `[P]` tasks touching disjoint files run as parallel sub-agents — `infra-worker` for `[tier:light]`, `deep-researcher` or the main session for `[tier:deep]`. Dependent tasks stay sequential.
+- **Pinned, not remembered.** `setup-speckit.sh` pins spec-kit skills to their tier (override with `SPECKIT_DEEP_MODEL` / `SPECKIT_LIGHT_MODEL`); `.claude/agents/` defines the tiered sub-agents.
+
 ## Release Process (MANDATORY)
 
 Trunk-based with release branches. Trunk is `main`; `release/*` branches are cut from `main` for stabilization. Pushing a `vX.Y.Z` tag on `main` or a `release/*` branch triggers the release workflow (GitHub Release only — nothing is published to a registry yet) and creates a GitHub Release (git-cliff).

@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: git:commands/speckit.git.initialize.md
+model: sonnet
 ---
 
 # Initialize Git Repository
