@@ -8,6 +8,7 @@ metadata:
   source: "templates/commands/tasks.md"
 user-invocable: true
 disable-model-invocation: false
+model: sonnet
 ---
 
 

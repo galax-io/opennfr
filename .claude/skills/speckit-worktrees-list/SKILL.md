@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: worktrees:commands/speckit.worktrees.list.md
+model: sonnet
 ---
 
 # List Worktrees

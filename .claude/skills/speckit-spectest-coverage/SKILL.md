@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: spectest:commands/speckit.spectest.coverage.md
+model: sonnet
 ---
 
 # Spec Requirement Coverage

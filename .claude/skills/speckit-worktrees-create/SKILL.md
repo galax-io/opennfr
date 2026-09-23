@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: worktrees:commands/speckit.worktrees.create.md
+model: sonnet
 ---
 
 # Create Worktree

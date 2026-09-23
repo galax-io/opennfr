@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: agent-context:commands/speckit.agent-context.update.md
+model: sonnet
 ---
 
 # Update Coding Agent Context

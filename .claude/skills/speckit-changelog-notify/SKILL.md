@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: changelog:commands/speckit.changelog.notify.md
+model: sonnet
 ---
 
 # Changelog Notify

@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: worktrees:commands/speckit.worktrees.clean.md
+model: sonnet
 ---
 
 # Clean Worktrees

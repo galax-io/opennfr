@@ -6,6 +6,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: harness:commands/speckit.harness.verify.md
+model: opus
 ---
 
 # Claim Verification

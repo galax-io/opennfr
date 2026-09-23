@@ -5,6 +5,7 @@ compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: changelog:commands/speckit.changelog.release.md
+model: sonnet
 ---
 
 # Changelog Release
