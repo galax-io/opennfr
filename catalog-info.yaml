@@ -5,6 +5,7 @@ metadata:
   description: Tool-agnostic JSON Schema format for load testing requirements, consumed by load-test adapters and CI backends
   annotations:
     github.com/project-slug: galax-io/opennfr
+    galaxio.io/uses.spec-kit-galaxio-bootstrap: "process: created from the template, takes process updates via copier update"
 spec:
   type: library
   lifecycle: production
