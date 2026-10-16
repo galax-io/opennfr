@@ -1389,6 +1389,15 @@ ENGLISH
 fi
 
 # ---------------------------------------------------------------------------
+section "Linkage gate"
+if bash scripts/check-linkage_test.sh >/tmp/linkage-test.$$ 2>&1; then
+  ok "scripts/check-linkage_test.sh: $(tail -n1 /tmp/linkage-test.$$)"
+else
+  bad "scripts/check-linkage_test.sh failed"; grep -F '✗' /tmp/linkage-test.$$ | head -5
+fi
+rm -f /tmp/linkage-test.$$
+
+# ---------------------------------------------------------------------------
 printf '\n'
 if [ "$fail" -ne 0 ]; then
   printf 'FAIL\n'
