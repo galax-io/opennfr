@@ -14,6 +14,9 @@ What each entity owes (this script enforces it):
   PR         carries its milestone + a real closing link (Closes #<issue>) for every issue it
              closes; every linked issue sits in that same milestone. A PR may close several.
   Milestone  one release (vX.Y.Z); tag only when every issue is closed and every PR merged.
+  Feature    an issue in the backlog repository whose milestone says "Release: business" on a
+             line of its own. A PR writes "Part of owner/repo#N" for it; the same-milestone
+             rule is skipped for that link. The PR still carries its own version milestone.
 
 Usage:
   scripts/check-linkage.sh --pr <N>          # GATE one PR: milestone + Closes #issue + same milestone
@@ -23,7 +26,9 @@ Usage:
   scripts/check-linkage.sh --help
 
 Env:
-  REPO=owner/name   # override repo (default: gh repo view of the current checkout)
+  REPO=owner/name          # override repo (default: gh repo view of the current checkout)
+  BACKLOG_REPO=owner/name  # the repository whose business milestones hold features
+                           # (default: galax-io/galaxio-sdlc-backlog)
 
 Exit: 0 all rules hold | 1 at least one violation | 2 usage/prereq error.
 EOF
@@ -35,6 +40,8 @@ done
 
 REPO="${REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)}"
 [ -n "$REPO" ] || { echo "error: cannot determine repo — run inside a GitHub checkout or set REPO=owner/name" >&2; exit 2; }
+
+BACKLOG_REPO="${BACKLOG_REPO:-galax-io/galaxio-sdlc-backlog}"
 
 TAG_MODE=0
 MS=""
@@ -54,11 +61,29 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# "Part of owner/repo#N" at the start of a line: the link a PR writes for a feature of the backlog.
+feature_ms() { # owner/repo#N -> the business milestone's title when the issue is a feature of the backlog
+  [ "${1%#*}" = "$BACKLOG_REPO" ] || return 0
+  gh issue view "${1##*#}" --repo "${1%#*}" --json milestone -q '
+    select(.milestone != null and ((.milestone.description // "")
+      | test("(^|\n)[ \t]*Release:[ \t]*business[ \t]*\r?(\n|$)"; "i"))) | .milestone.title' 2>/dev/null || true
+}
+part_of_refs() { # pr-json -> owner/repo#N of every "Part of" line that names a repository
+  jq -r '.body // ""' <<<"$1" \
+    | grep -iE '^[[:space:]]*part of +[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' \
+    | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' || true
+}
+has_feature_link() { # pr-json -> succeeds when it links a feature of the backlog
+  local r
+  for r in $(part_of_refs "$1"); do [ -z "$(feature_ms "$r")" ] || return 0; done
+  return 1
+}
+
 # Gate one PR (the merge gate). Fails if the PR is missing a milestone, closes no
 # issue, or closes an issue in a different milestone. Strict: requires a registered
 # GitHub closing link (no body-text fallback — that lenient path is audit-mode only).
 if [ -n "$PR_NUM" ]; then
-  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences) \
+  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body) \
     || { echo "error: PR #$PR_NUM not found in $REPO" >&2; exit 2; }
   p_title=$(jq -r '.title' <<<"$pj")
   p_ms=$(jq -r '.milestone.title // ""' <<<"$pj")
@@ -67,7 +92,13 @@ if [ -n "$PR_NUM" ]; then
   printf 'PR #%s  %s\n' "$PR_NUM" "$p_title"
   if [ -z "$p_ms" ]; then printf '  ✗ no milestone — assign one (gh pr edit %s --milestone "…")\n' "$PR_NUM"; e=1
   else printf '  ✓ milestone: %s\n' "$p_ms"; fi
-  if [ -z "$p_closes" ]; then
+  f_linked=0
+  for r in $(part_of_refs "$pj"); do
+    f=$(feature_ms "$r")
+    [ -z "$f" ] || { printf '  ✓ links %s (feature of business milestone "%s")\n' "$r" "$f"; f_linked=1; }
+  done
+  if [ -z "$p_closes" ] && [ "$f_linked" = 1 ]; then :
+  elif [ -z "$p_closes" ]; then
     printf '  ✗ closes no issue — add "Closes #<issue>" to the PR body\n'; e=1
   else
     for i in $p_closes; do
@@ -135,6 +166,15 @@ for pr in $pr_numbers; do
       | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
       | grep -oE '[0-9]+' || true)
     [ -n "$ref_nums" ] && warn "PR #$pr links via body text only (not a registered GitHub closing link): $pr_title"
+  fi
+
+  if [ -z "$ref_nums" ] && has_feature_link "$pr_json"; then
+    if [ "$TAG_MODE" = 1 ] && [ "$pr_state" != "MERGED" ]; then
+      err "PR #$pr is $pr_state — must be MERGED before tagging: $pr_title"
+    else
+      ok "PR #$pr ($pr_state) → links a backlog feature"
+    fi
+    continue
   fi
 
   if [ -z "$ref_nums" ]; then
