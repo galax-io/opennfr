@@ -14,6 +14,11 @@ What each entity owes (this script enforces it):
   PR         carries its milestone + a real closing link (Closes #<issue>) for every issue it
              closes; every linked issue sits in that same milestone. A PR may close several.
   Milestone  one release (vX.Y.Z); tag only when every issue is closed and every PR merged.
+  Every PR   of a product repository links a feature of the backlog: "Part of <backlog>#N" (or a
+             closing link) to an issue whose milestone says "Release: business". A bot's PR (bot
+             author, or a dependabot/ or update/ branch) and the backlog's own PRs are exempt.
+             Maintenance with no feature of its own links the standing feature of the active
+             business milestone, the issue with the label standing.
   Feature    an issue in the backlog repository whose milestone says "Release: business" on a
              line of its own. A PR writes "Part of owner/repo#N" for it; the same-milestone
              rule is skipped for that link. The PR still carries its own version milestone.
@@ -29,6 +34,8 @@ Env:
   REPO=owner/name          # override repo (default: gh repo view of the current checkout)
   BACKLOG_REPO=owner/name  # the repository whose business milestones hold features
                            # (default: galax-io/galaxio-sdlc-backlog)
+  FEATURE_LINK=required|optional   # required (default): a PR without a feature of the backlog fails
+                           # the gate and warns in the audit. optional only for a repository not yet on the rule.
 
 Exit: 0 all rules hold | 1 at least one violation | 2 usage/prereq error.
 EOF
@@ -42,6 +49,8 @@ REPO="${REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null 
 [ -n "$REPO" ] || { echo "error: cannot determine repo — run inside a GitHub checkout or set REPO=owner/name" >&2; exit 2; }
 
 BACKLOG_REPO="${BACKLOG_REPO:-galax-io/galaxio-sdlc-backlog}"
+FEATURE_LINK="${FEATURE_LINK:-required}"
+case "$FEATURE_LINK" in required|optional) ;; *) echo "error: FEATURE_LINK must be required or optional, not '$FEATURE_LINK'" >&2; exit 2 ;; esac
 
 TAG_MODE=0
 MS=""
@@ -73,6 +82,20 @@ part_of_refs() { # pr-json -> owner/repo#N of every "Part of" line that names a 
     | grep -iE '^[[:space:]]*part of +[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' \
     | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' || true
 }
+closes_refs() { # pr-json -> owner/repo#N of every closing keyword that names a repository
+  jq -r '.body // ""' <<<"$1" \
+    | grep -oiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?):? +[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' \
+    | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' || true
+}
+is_bot_pr() { # pr-json -> succeeds when a bot opened it: a bot author, or Dependabot's or Scala Steward's branch
+  jq -e '(.author.is_bot == true) or ((.author.login // "") | test("\\[bot\\]$|^app/")) or ((.headRefName // "") | test("^(dependabot|update)/"))' <<<"$1" >/dev/null 2>&1
+}
+feature_refs() { # pr-json -> every Part of / closing link that is a feature of the backlog
+  local r
+  { part_of_refs "$1"; closes_refs "$1"; } | awk 'NF && !seen[$0]++' | while read -r r; do
+    [ -z "$(feature_ms "$r")" ] || echo "$r"
+  done
+}
 has_feature_link() { # pr-json -> succeeds when it links a feature of the backlog
   local r
   for r in $(part_of_refs "$1"); do [ -z "$(feature_ms "$r")" ] || return 0; done
@@ -83,7 +106,7 @@ has_feature_link() { # pr-json -> succeeds when it links a feature of the backlo
 # issue, or closes an issue in a different milestone. Strict: requires a registered
 # GitHub closing link (no body-text fallback — that lenient path is audit-mode only).
 if [ -n "$PR_NUM" ]; then
-  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body) \
+  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body,author,headRefName) \
     || { echo "error: PR #$PR_NUM not found in $REPO" >&2; exit 2; }
   p_title=$(jq -r '.title' <<<"$pj")
   p_ms=$(jq -r '.milestone.title // ""' <<<"$pj")
@@ -93,10 +116,17 @@ if [ -n "$PR_NUM" ]; then
   if [ -z "$p_ms" ]; then printf '  ✗ no milestone — assign one (gh pr edit %s --milestone "…")\n' "$PR_NUM"; e=1
   else printf '  ✓ milestone: %s\n' "$p_ms"; fi
   f_linked=0
-  for r in $(part_of_refs "$pj"); do
+  for r in $(feature_refs "$pj"); do
     f=$(feature_ms "$r")
     [ -z "$f" ] || { printf '  ✓ links %s (feature of business milestone "%s")\n' "$r" "$f"; f_linked=1; }
   done
+  # Every PR belongs to a feature of the backlog; the backlog's own PRs and bots' are exempt.
+  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && [ "$f_linked" = 0 ]; then
+    if is_bot_pr "$pj"; then printf '  ✓ a bot'"'"'s PR needs no feature of the backlog\n'
+    else
+      printf '  ✗ links no feature of the backlog — add "Part of %s#<feature>" (maintenance with no feature of its own: the standing feature of the active business milestone, the issue with the label standing)\n' "$BACKLOG_REPO"; e=1
+    fi
+  fi
   if [ -z "$p_closes" ] && [ "$f_linked" = 1 ]; then :
   elif [ -z "$p_closes" ]; then
     printf '  ✗ closes no issue — add "Closes #<issue>" to the PR body\n'; e=1
@@ -155,7 +185,7 @@ if [ -z "$pr_numbers" ]; then
   warn "no PRs carry milestone #$MS yet"
 fi
 for pr in $pr_numbers; do
-  pr_json=$(gh pr view "$pr" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body)
+  pr_json=$(gh pr view "$pr" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body,author,headRefName)
   pr_state=$(jq -r '.state' <<<"$pr_json")
   pr_title=$(jq -r '.title' <<<"$pr_json")
 
@@ -166,6 +196,11 @@ for pr in $pr_numbers; do
       | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
       | grep -oE '[0-9]+' || true)
     [ -n "$ref_nums" ] && warn "PR #$pr links via body text only (not a registered GitHub closing link): $pr_title"
+  fi
+
+  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && ! is_bot_pr "$pr_json" \
+     && [ -z "$(feature_refs "$pr_json")" ]; then
+    warn "PR #$pr links no feature of the backlog (Part of $BACKLOG_REPO#N): $pr_title"
   fi
 
   if [ -z "$ref_nums" ] && has_feature_link "$pr_json"; then

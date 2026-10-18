@@ -74,9 +74,11 @@ issue_in() { # owner/repo, number, milestone title, [milestone description]
     > "$fx/issue-${1//\//_}-$2.json"
 }
 add_issue() { printf '{"number":%s,"state":"%s"}\n' "$1" "$2" >> "$fx/items.ndjson"; issue_in "$REPO" "$1" v0.8.0; }
-pr_json() { # number, state, closing number or "", body, milestone title or ""
-  jq -nc --argjson n "$1" --arg state "$2" --arg link "$3" --arg body "$4" --arg ms "$5" '{
+pr_json() { # number, state, closing number or "", body, milestone title or "", [author login], [head ref], [is_bot]
+  jq -nc --argjson n "$1" --arg state "$2" --arg link "$3" --arg body "$4" --arg ms "$5" \
+    --arg login "${6:-someone}" --arg head "${7:-feat/x}" --argjson bot "${8:-false}" '{
     number: $n, title: "PR \($n)", state: $state, body: $body, baseRefName: "main",
+    author: {login: $login, is_bot: $bot}, headRefName: $head,
     milestone: (if $ms == "" then null else {title: $ms} end),
     closingIssuesReferences: [$link | select(. != "") | {number: tonumber}]
   }' > "$fx/pr-$1.json"
@@ -86,9 +88,13 @@ add_pr() { # number, state, closing number or "", [body] — a PR in v0.8.0
   printf '{"number":%s,"state":"%s","pull_request":{}}\n' "$1" "$rest" >> "$fx/items.ndjson"
   pr_json "$1" "$2" "$3" "${4:-}" v0.8.0
 }
-run() {
+run() { # the older cases do not test the feature rule
+  out="$(PATH="$bin:$PATH" REPO="$REPO" BACKLOG_REPO="$BACKLOG" FEATURE_LINK=optional FIXTURES="$fx" bash "$script" "$@" 2>&1)"; rc=$?
+}
+run_strict() { # FEATURE_LINK left at its default (required)
   out="$(PATH="$bin:$PATH" REPO="$REPO" BACKLOG_REPO="$BACKLOG" FIXTURES="$fx" bash "$script" "$@" 2>&1)"; rc=$?
 }
+MSG='links no feature of the backlog'
 has() { grep -qF -- "$1" <<<"$out"; }
 only_known_calls() { [ ! -s "$fx/unexpected.log" ]; }
 
@@ -187,6 +193,72 @@ add_pr 3 MERGED "" "Part of $BACKLOG#30"
 issue_in "$BACKLOG" 30 'M1 — first run' "$BUSINESS"
 run --tag
 check "tag: a merged PR that links a feature does not block the tag" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+# Every PR links a feature of the backlog (FEATURE_LINK=required, the default)
+new_case strict-none
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 "Closes #1" v0.8.0
+run_strict --pr 3
+check "strict gate: a closing link without a feature fails" $([ "$rc" -eq 1 ] && has "✗ $MSG" && echo 0 || echo 1) "rc=$rc out=$out"
+check "strict gate: the message names the standing feature" $(has 'the standing feature of the active business milestone, the issue with the label standing)' && echo 0 || echo 1) "out=$out"
+
+new_case strict-part-of
+pr_json 3 OPEN "" "Part of $BACKLOG#30" v0.8.0
+issue_in "$BACKLOG" 30 'M1 — first run' "$BUSINESS"
+run_strict --pr 3
+check "strict gate: Part of a feature passes" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-both
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 $'Closes #1\nPart of '"$BACKLOG#30" v0.8.0
+issue_in "$BACKLOG" 30 'M1 — first run' "$BUSINESS"
+run_strict --pr 3
+check "strict gate: a feature beside a closing link passes" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-closes-feature
+pr_json 3 OPEN "" "Closes $BACKLOG#30" v0.8.0
+issue_in "$BACKLOG" 30 'M1 — first run' "$BUSINESS"
+run_strict --pr 3
+check "strict gate: a closing link to a feature is seen" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-bot
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 "Closes #1" v0.8.0 "dependabot[bot]" "chore/x" true
+run_strict --pr 3
+check "strict gate: a bot author is exempt" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-bot-branch
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 "Closes #1" v0.8.0 "someone" "dependabot/npm/x"
+run_strict --pr 3
+check "strict gate: a dependabot/ branch is exempt" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-update-branch
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 "Closes #1" v0.8.0 "someone" "update/lib-1.2"
+run_strict --pr 3
+check "strict gate: an update/ branch is exempt" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-backlog-repo
+pr_json 3 OPEN "" "nothing" v0.8.0
+out="$(PATH="$bin:$PATH" REPO="$BACKLOG" BACKLOG_REPO="$BACKLOG" FIXTURES="$fx" bash "$script" --pr 3 2>&1)"; rc=$?
+check "strict gate: a PR of the backlog repository is exempt from the feature rule" $(has "$MSG" && echo 1 || echo 0) "out=$out"
+
+new_case strict-bad-env
+out="$(PATH="$bin:$PATH" REPO="$REPO" BACKLOG_REPO="$BACKLOG" FEATURE_LINK=maybe FIXTURES="$fx" bash "$script" --pr 3 2>&1)"; rc=$?
+check "FEATURE_LINK other than required or optional exits 2" $([ "$rc" -eq 2 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-optional
+issue_in "$REPO" 1 v0.8.0
+pr_json 3 OPEN 1 "Closes #1" v0.8.0
+run --pr 3
+check "gate: FEATURE_LINK=optional lets a PR without a feature pass" $([ "$rc" -eq 0 ] && echo 0 || echo 1) "rc=$rc out=$out"
+
+new_case strict-audit
+add_issue 1 open
+add_pr 2 OPEN 1 "Closes #1"
+run_strict
+check "audit: a PR without a feature only warns" $([ "$rc" -eq 0 ] && has "! PR #2 $MSG" && echo 0 || echo 1) "rc=$rc out=$out"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
