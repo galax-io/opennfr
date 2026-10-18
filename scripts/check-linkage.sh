@@ -10,24 +10,29 @@ usage() {
 check-linkage.sh — verify the issue <-> PR <-> milestone contract (see AGENTS.md "Milestones (ALWAYS)").
 
 What each entity owes (this script enforces it):
-  Issue      belongs to exactly one milestone; closed only when its fix is on main.
-  PR         carries its milestone + a real closing link (Closes #<issue>) for every issue it
-             closes; every linked issue sits in that same milestone. A PR may close several.
-  Milestone  one release (vX.Y.Z); tag only when every issue is closed and every PR merged.
-  Every PR   of a product repository links a feature of the backlog: "Part of <backlog>#N" (or a
-             closing link) to an issue whose milestone says "Release: business". A bot's PR (bot
-             author, or a dependabot/ or update/ branch) and the backlog's own PRs are exempt.
-             Maintenance with no feature of its own links the standing feature of the active
-             business milestone, the issue with the label standing.
-  Feature    an issue in the backlog repository whose milestone says "Release: business" on a
-             line of its own. A PR writes "Part of owner/repo#N" for it; the same-milestone
-             rule is skipped for that link. The PR still carries its own version milestone.
+  Issue      an important task, not a technical one; belongs to exactly one milestone;
+             closed only when its fix is on main.
+  PR         carries a milestone. One that completes an important task links its
+             issue with a real closing link (Closes owner/repo#N); one PR of several
+             writes "Part of owner/repo#N". A linked issue sits in the PR's milestone.
+             A technical PR (sync, pins, docs, CI) links no issue: its commit is the record.
+  Feature    every PR of a product repository links a feature of the backlog: "Part of
+             <backlog>#N" (or a closing link) to an issue whose milestone says "Release: business".
+             A bot's PR (a bot author, or a dependabot/ or update/ branch) and the backlog's own
+             PRs are exempt. Maintenance with no feature of its own links the standing feature
+             (the issue with the label "type:standing") of the active business milestone.
+  Milestone  one release (vX.Y.Z); tag only when every issue is closed, every PR that
+             links one is merged, and no PR is still open.
+  Feature    an issue in the backlog repository whose milestone says "Release: business"
+             on a line of its own. It sits in that business milestone, not in the version
+             milestone of the PR that does a part of it, so a link to a feature skips the
+             same-milestone rule. The PR still carries its own version milestone.
 
 Usage:
-  scripts/check-linkage.sh --pr <N>          # GATE one PR: milestone + Closes #issue + same milestone
+  scripts/check-linkage.sh --pr <N>          # GATE one PR: milestone + any linked issue in the same milestone
   scripts/check-linkage.sh --for-tag vX.Y.Z  # GATE a release: tag-readiness of that version's milestone
   scripts/check-linkage.sh [milestone]       # audit a milestone (default: lowest-numbered open)
-  scripts/check-linkage.sh --tag [ms]        # also assert tag-readiness (all issues closed, all PRs merged)
+  scripts/check-linkage.sh --tag [ms]        # also assert tag-readiness (issues closed, linked PRs merged, none open)
   scripts/check-linkage.sh --help
 
 Env:
@@ -38,7 +43,7 @@ Env:
                            # backlog is private, so the job's own token cannot read it; this one is used
                            # for calls about the backlog and for nothing else.
   FEATURE_LINK=required|optional   # required (default): a PR without a feature of the backlog fails
-                           # the gate and warns in the audit. optional only for a repository not yet on the rule.
+                           # the gate. optional only for a repository not yet on the rule.
 
 Exit: 0 all rules hold | 1 at least one violation | 2 usage/prereq error.
 EOF
@@ -73,7 +78,17 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# "Part of owner/repo#N" at the start of a line: the link a PR writes for a feature of the backlog.
+# Issues may live in another repository (the SDLC backlog), so every reference is
+# owner/repo#N and is looked up in its own repository. A bare #N means this one.
+closing_refs() { # pr-json -> registered GitHub closing links
+  jq -r '.closingIssuesReferences[]? | "\(.repository.owner.login)/\(.repository.name)#\(.number)"' <<<"$1"
+}
+body_refs() { # pr-json, regex of what precedes a link -> "[owner/repo]#N" links in the body
+  jq -r '.body // ""' <<<"$1" \
+    | grep -oiE "$2([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[0-9]+" \
+    | grep -oE '([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[0-9]+$' \
+    | sed "s|^#|$REPO#|" || true
+}
 gh_for() { # owner/repo, gh arguments: gh, with BACKLOG_READ_TOKEN when the repository is the backlog
   local repo="$1"; shift
   if [ "$repo" = "$BACKLOG_REPO" ] && [ -n "${BACKLOG_READ_TOKEN:-}" ]; then GH_TOKEN="$BACKLOG_READ_TOKEN" gh "$@"; else gh "$@"; fi
@@ -88,76 +103,100 @@ backlog_readable() { # whether this job can read the backlog repository (asked o
 cannot_read_backlog() { # text of the failure that names what is missing
   printf 'cannot read the backlog %s with this job'"'"'s token, so a feature link cannot be checked: give the job BACKLOG_READ_TOKEN, a read-only token for %s (Issues and Metadata)' "$BACKLOG_REPO" "$BACKLOG_REPO"
 }
+issue_ms() { # owner/repo#N -> the issue's milestone title
+  gh_for "${1%#*}" issue view "${1##*#}" --repo "${1%#*}" --json milestone -q '.milestone.title // ""' 2>/dev/null || echo ""
+}
 feature_ms() { # owner/repo#N -> the business milestone's title when the issue is a feature of the backlog
   [ "${1%#*}" = "$BACKLOG_REPO" ] || return 0
   gh_for "${1%#*}" issue view "${1##*#}" --repo "${1%#*}" --json milestone -q '
     select(.milestone != null and ((.milestone.description // "")
       | test("(^|\n)[ \t]*Release:[ \t]*business[ \t]*\r?(\n|$)"; "i"))) | .milestone.title' 2>/dev/null || true
 }
-part_of_refs() { # pr-json -> owner/repo#N of every "Part of" line that names a repository
-  jq -r '.body // ""' <<<"$1" \
-    | grep -iE '^[[:space:]]*part of +[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' \
-    | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' || true
-}
-closes_refs() { # pr-json -> owner/repo#N of every closing keyword that names a repository
-  jq -r '.body // ""' <<<"$1" \
-    | grep -oiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?):? +[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' \
-    | grep -oE '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+' || true
-}
 is_bot_pr() { # pr-json -> succeeds when a bot opened it: a bot author, or Dependabot's or Scala Steward's branch
   jq -e '(.author.is_bot == true) or ((.author.login // "") | test("\\[bot\\]$|^app/")) or ((.headRefName // "") | test("^(dependabot|update)/"))' <<<"$1" >/dev/null 2>&1
 }
-feature_refs() { # pr-json -> every Part of / closing link that is a feature of the backlog
-  local r
-  { part_of_refs "$1"; closes_refs "$1"; } | awk 'NF && !seen[$0]++' | while read -r r; do
-    [ -z "$(feature_ms "$r")" ] || echo "$r"
+feature_candidates() { # pr-json -> the links it writes into the backlog (closing links and Part of lines)
+  { closing_refs "$1"; body_refs "$1" "$PART_OF"; } | awk -v b="$BACKLOG_REPO" 'NF && index($0, b "#") == 1 && !seen[$0]++'
+}
+feature_refs() { # pr-json -> every issue it links (closing links and Part of lines) that is a feature of the backlog
+  local i
+  { closing_refs "$1"; body_refs "$1" "$PART_OF"; } | awk 'NF && !seen[$0]++' | while read -r i; do
+    [ -z "$(feature_ms "$i")" ] || echo "$i"
   done
 }
-has_feature_link() { # pr-json -> succeeds when it links a feature of the backlog
-  local r
-  for r in $(part_of_refs "$1"); do [ -z "$(feature_ms "$r")" ] || return 0; done
-  return 1
+pr_links() { # pr-json -> its issue links: registered closing links, else "Part of" lines
+  local refs
+  refs=$(closing_refs "$1")
+  [ -n "$refs" ] || refs=$(body_refs "$1" "$PART_OF")
+  printf '%s' "$refs"
 }
+# "Part of owner/repo#N" marks one PR per repository of a multi-repository change. It is
+# this project's convention, not a GitHub keyword, so it counts only at the start of a
+# line: prose such as "part of #190's follow-up" links nothing.
+PART_OF='^[[:space:]]*part of +'
+# GitHub's closing keywords start a word and may take a colon: "prefix #5" closes nothing.
+CLOSES='(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?):? +'
 
-# Gate one PR (the merge gate). Fails if the PR is missing a milestone, closes no
-# issue, or closes an issue in a different milestone. Strict: requires a registered
-# GitHub closing link (no body-text fallback — that lenient path is audit-mode only).
+# Gate one PR (the merge gate). Fails if the PR is missing a milestone or links an
+# issue in a different milestone. A PR that links no issue passes: a technical PR
+# needs none. A link is a registered GitHub closing link, or "Part of owner/repo#N"
+# for one PR of several. A Closes in the body of a PR that does not target the
+# default branch still fails: GitHub links closing keywords only there, so merging
+# would not close that issue. On the default branch, a Closes GitHub did not link
+# names no issue (a pull request, say) and is not a link (the lenient text
+# fallback is audit-mode only).
 if [ -n "$PR_NUM" ]; then
-  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body,author,headRefName) \
+  pj=$(gh pr view "$PR_NUM" --repo "$REPO" --json number,title,state,milestone,closingIssuesReferences,body,baseRefName,author,headRefName) \
     || { echo "error: PR #$PR_NUM not found in $REPO" >&2; exit 2; }
   p_title=$(jq -r '.title' <<<"$pj")
   p_ms=$(jq -r '.milestone.title // ""' <<<"$pj")
-  p_closes=$(jq -r '.closingIssuesReferences[]?.number' <<<"$pj")
+  p_links=$(pr_links "$pj")
   e=0
   printf 'PR #%s  %s\n' "$PR_NUM" "$p_title"
   if [ -z "$p_ms" ]; then printf '  ✗ no milestone — assign one (gh pr edit %s --milestone "…")\n' "$PR_NUM"; e=1
   else printf '  ✓ milestone: %s\n' "$p_ms"; fi
-  f_linked=0
-  for r in $(feature_refs "$pj"); do
-    f=$(feature_ms "$r")
-    [ -z "$f" ] || { printf '  ✓ links %s (feature of business milestone "%s")\n' "$r" "$f"; f_linked=1; }
-  done
-  # Every PR belongs to a feature of the backlog; the backlog's own PRs and bots' are exempt.
-  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && [ "$f_linked" = 0 ] && ! { [ -n "$({ part_of_refs "$pj"; closes_refs "$pj"; } | grep -F "$BACKLOG_REPO#" || true)" ] && ! backlog_readable; }; then
-    if is_bot_pr "$pj"; then printf '  ✓ a bot'"'"'s PR needs no feature of the backlog\n'
-    else
-      printf '  ✗ links no feature of the backlog — add "Part of %s#<feature>" (maintenance with no feature of its own: the standing feature of the active business milestone, the issue with the label standing)\n' "$BACKLOG_REPO"; e=1
+  if [ -z "$p_links" ]; then
+    p_text=$(body_refs "$pj" "$CLOSES")
+    p_base=$(jq -r '.baseRefName' <<<"$pj")
+    default=$p_base
+    if [ -n "$p_text" ]; then
+      default=$(gh api "repos/$REPO" --jq '.default_branch') \
+        || { echo "error: cannot read the default branch of $REPO" >&2; exit 2; }
     fi
-  fi
-  unread=0
-  if [ "$f_linked" = 0 ] && [ -n "$({ part_of_refs "$pj"; closes_refs "$pj"; } | grep -F "$BACKLOG_REPO#" || true)" ] && ! backlog_readable; then
-    printf '  ✗ links the backlog, but %s\n' "$(cannot_read_backlog)"; e=1; unread=1
-  fi
-  if [ "$unread" = 1 ]; then :
-  elif [ -z "$p_closes" ] && [ "$f_linked" = 1 ]; then :
-  elif [ -z "$p_closes" ]; then
-    printf '  ✗ closes no issue — add "Closes #<issue>" to the PR body\n'; e=1
+    if [ "$p_base" != "$default" ]; then
+      printf '  ✗ the body closes %s, but the PR targets %s, not %s, and GitHub links closing keywords only on the default branch, so merging would not close it — retarget the PR, or write "Part of …"\n' \
+        "$(paste -sd, - <<<"$p_text")" "$p_base" "$default"; e=1
+    else
+      printf '  ✓ links no issue (a technical PR needs none)\n'
+    fi
   else
-    for i in $p_closes; do
-      i_ms=$(gh issue view "$i" --repo "$REPO" --json milestone -q '.milestone.title // ""' 2>/dev/null || echo "")
-      if [ "$i_ms" = "$p_ms" ]; then printf '  ✓ closes #%s (same milestone)\n' "$i"
-      else printf '  ✗ closes #%s but its milestone is "%s", not "%s"\n' "$i" "${i_ms:-none}" "$p_ms"; e=1; fi
+    for i in $p_links; do
+      i_feature=$(feature_ms "$i")
+      i_ms=$(issue_ms "$i")
+      if [ -n "$i_feature" ]; then printf '  ✓ links %s (feature of business milestone "%s")\n' "$i" "$i_feature"
+      elif [ "${i%#*}" = "$BACKLOG_REPO" ] && ! backlog_readable; then printf '  ✗ links %s, but %s\n' "$i" "$(cannot_read_backlog)"; e=1
+      elif [ -z "$p_ms" ]; then printf '  - links %s (its milestone is "%s")\n' "$i" "${i_ms:-none}"
+      elif [ "$i_ms" = "$p_ms" ]; then printf '  ✓ links %s (same milestone)\n' "$i"
+      else printf '  ✗ links %s but its milestone is "%s", not "%s"\n' "$i" "${i_ms:-none}" "$p_ms"; e=1; fi
     done
+  fi
+  # Every PR belongs to a feature of the backlog; the backlog's own PRs and bots' are exempt.
+  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ]; then
+    if is_bot_pr "$pj"; then
+      printf '  ✓ a bot'"'"'s PR needs no feature of the backlog\n'
+    else
+      feats=$(feature_refs "$pj")
+      if [ -z "$feats" ] && [ -n "$(feature_candidates "$pj")" ] && ! backlog_readable; then
+        :   # said above, link by link
+      elif [ -z "$feats" ]; then
+        printf '  ✗ links no feature of the backlog — add "Part of %s#<feature>" (maintenance with no feature of its own: the standing feature of the active business milestone, the issue with the label type:standing)\n' "$BACKLOG_REPO"; e=1
+      else
+        shown=" $(printf '%s ' $p_links)"
+        for f in $feats; do
+          case "$shown" in *" $f "*) ;; *) printf '  ✓ links %s (feature of business milestone "%s")\n' "$f" "$(feature_ms "$f")" ;; esac
+        done
+      fi
+    fi
   fi
   if [ "$e" = 0 ]; then printf 'PASS: PR #%s is well-formed.\n' "$PR_NUM"; exit 0; fi
   printf 'FAIL: PR #%s is malformed — fix the above before merge.\n' "$PR_NUM"; exit 1
@@ -211,46 +250,46 @@ for pr in $pr_numbers; do
   pr_state=$(jq -r '.state' <<<"$pr_json")
   pr_title=$(jq -r '.title' <<<"$pr_json")
 
-  # Real GitHub closing links, plus a text fallback for Closes/Fixes/Resolves #N in the body.
-  ref_nums=$(jq -r '.closingIssuesReferences[]?.number' <<<"$pr_json")
-  if [ -z "$ref_nums" ]; then
-    ref_nums=$(jq -r '.body // ""' <<<"$pr_json" \
-      | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
-      | grep -oE '[0-9]+' || true)
-    [ -n "$ref_nums" ] && warn "PR #$pr links via body text only (not a registered GitHub closing link): $pr_title"
-  fi
-
+  # A PR of a product repository belongs to a feature of the backlog (a warning here, the gate fails it).
   if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && ! is_bot_pr "$pr_json" \
      && [ -z "$(feature_refs "$pr_json")" ]; then
     warn "PR #$pr links no feature of the backlog (Part of $BACKLOG_REPO#N): $pr_title"
   fi
 
-  if [ -z "$ref_nums" ] && has_feature_link "$pr_json"; then
-    if [ "$TAG_MODE" = 1 ] && [ "$pr_state" != "MERGED" ]; then
-      err "PR #$pr is $pr_state — must be MERGED before tagging: $pr_title"
+  # The PR's links, else a text fallback for Closes/Fixes/Resolves [owner/repo]#N
+  # in the body.
+  ref_nums=$(pr_links "$pr_json")
+  if [ -z "$ref_nums" ]; then
+    ref_nums=$(body_refs "$pr_json" "$CLOSES")
+    [ -n "$ref_nums" ] && warn "PR #$pr links via body text only (not a registered GitHub closing link): $pr_title"
+  fi
+
+  # A technical PR (sync, pins, docs, CI — a bot's too) links no issue and needs
+  # none. Before a tag it must still be merged or closed.
+  if [ -z "$ref_nums" ]; then
+    if [ "$TAG_MODE" = 1 ] && [ "$pr_state" = OPEN ]; then
+      err "PR #$pr is OPEN — merge or close it before tagging: $pr_title"
     else
-      ok "PR #$pr ($pr_state) → links a backlog feature"
+      ok "PR #$pr ($pr_state) → no issue (technical)"
     fi
     continue
   fi
 
-  if [ -z "$ref_nums" ]; then
-    err "PR #$pr ($pr_state) closes no issue — add 'Closes #<issue>': $pr_title"
-    continue
-  fi
-
+  pr_ok=1
   for ri in $ref_nums; do
     linked_issues="$linked_issues$ri "
-    ri_ms=$(gh issue view "$ri" --repo "$REPO" --json milestone -q '.milestone.title // ""' 2>/dev/null || echo "")
+    [ -z "$(feature_ms "$ri")" ] || continue   # a feature sits in its business milestone
+    ri_ms=$(issue_ms "$ri")
     if [ "$ri_ms" != "$ms_title" ]; then
-      err "PR #$pr closes issue #$ri but that issue's milestone is '${ri_ms:-none}', not '$ms_title'"
+      err "PR #$pr links issue $ri but that issue's milestone is '${ri_ms:-none}', not '$ms_title'"
+      pr_ok=0
     fi
   done
 
   if [ "$TAG_MODE" = 1 ] && [ "$pr_state" != "MERGED" ]; then
     err "PR #$pr is $pr_state — must be MERGED before tagging: $pr_title"
-  else
-    ok "PR #$pr ($pr_state) → closes #$(echo "$ref_nums" | paste -sd, -)"
+  elif [ "$pr_ok" = 1 ]; then
+    ok "PR #$pr ($pr_state) → $(echo "$ref_nums" | paste -sd, -)"
   fi
 done
 
@@ -261,7 +300,7 @@ fi
 for is in $issue_numbers; do
   is_state=$(jq -r --argjson n "$is" '.[] | select(.number == $n) | .state' <<<"$items")
   case "$linked_issues" in
-    *" $is "*) linked="linked" ;;
+    *" $REPO#$is "*) linked="linked" ;;
     *)         linked="" ;;
   esac
 
