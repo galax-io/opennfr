@@ -17,10 +17,11 @@
 # looking for a milestone that never existed. It blocked the documented release
 # procedure at its second step.
 #
-# This is the fast in-session failure, not the authority: it only ever sees
+# This is the fast in-session failure, not the whole gate: it only ever sees
 # commands an agent runs, so a push from a terminal or an IDE never reaches it.
-# .githooks/pre-push catches those by reading the refs git hands it, and the
-# release workflow runs the same check server-side where nothing bypasses it.
+# .githooks/pre-push catches those by reading the refs git hands it. Both run
+# locally and can be skipped; nothing checks server-side unless the project's
+# release workflow runs scripts/check-linkage.sh --for-tag itself.
 set -uo pipefail
 input=$(cat)
 cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || true)
