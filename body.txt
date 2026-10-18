@@ -1,0 +1,14 @@
+Part of galax-io/galaxio-sdlc-backlog#94
+
+Ports the rule from galax-io/spec-kit-galaxio-bootstrap#26: every PR of a product repository links a feature of the backlog.
+
+- The `--pr` gate fails a PR that links no feature, with a `Part of` line or a closing link. A feature next to a closing link is now seen.
+- A bot's PR (bot author, or a `dependabot/` or `update/` branch) and every PR of the backlog repository are exempt.
+- The audit only warns for such a PR.
+- `FEATURE_LINK=required` (default) or `optional`; any other value exits 2.
+
+Kept: `feature_ms`, the same-milestone skip for a feature link, and the rule that a human PR needs a closing link or a feature link. The older test cases run with `FEATURE_LINK=optional`.
+
+Tests: `check-linkage_test.sh` 16 -> 28 checks, all green. `verify.sh` fails locally only on missing PyYAML/jsonschema, as it does on main.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

@@ -34,6 +34,9 @@ Env:
   REPO=owner/name          # override repo (default: gh repo view of the current checkout)
   BACKLOG_REPO=owner/name  # the repository whose business milestones hold features
                            # (default: galax-io/galaxio-sdlc-backlog)
+  BACKLOG_READ_TOKEN=token # a read-only token for the backlog repository (Issues and Metadata). The
+                           # backlog is private, so the job's own token cannot read it; this one is used
+                           # for calls about the backlog and for nothing else.
   FEATURE_LINK=required|optional   # required (default): a PR without a feature of the backlog fails
                            # the gate and warns in the audit. optional only for a repository not yet on the rule.
 
@@ -71,9 +74,23 @@ while [ $# -gt 0 ]; do
 done
 
 # "Part of owner/repo#N" at the start of a line: the link a PR writes for a feature of the backlog.
+gh_for() { # owner/repo, gh arguments: gh, with BACKLOG_READ_TOKEN when the repository is the backlog
+  local repo="$1"; shift
+  if [ "$repo" = "$BACKLOG_REPO" ] && [ -n "${BACKLOG_READ_TOKEN:-}" ]; then GH_TOKEN="$BACKLOG_READ_TOKEN" gh "$@"; else gh "$@"; fi
+}
+BACKLOG_SEEN=""
+backlog_readable() { # whether this job can read the backlog repository (asked once)
+  if [ -z "$BACKLOG_SEEN" ]; then
+    if gh_for "$BACKLOG_REPO" api "repos/$BACKLOG_REPO" --silent >/dev/null 2>&1; then BACKLOG_SEEN=yes; else BACKLOG_SEEN=no; fi
+  fi
+  [ "$BACKLOG_SEEN" = yes ]
+}
+cannot_read_backlog() { # text of the failure that names what is missing
+  printf 'cannot read the backlog %s with this job'"'"'s token, so a feature link cannot be checked: give the job BACKLOG_READ_TOKEN, a read-only token for %s (Issues and Metadata)' "$BACKLOG_REPO" "$BACKLOG_REPO"
+}
 feature_ms() { # owner/repo#N -> the business milestone's title when the issue is a feature of the backlog
   [ "${1%#*}" = "$BACKLOG_REPO" ] || return 0
-  gh issue view "${1##*#}" --repo "${1%#*}" --json milestone -q '
+  gh_for "${1%#*}" issue view "${1##*#}" --repo "${1%#*}" --json milestone -q '
     select(.milestone != null and ((.milestone.description // "")
       | test("(^|\n)[ \t]*Release:[ \t]*business[ \t]*\r?(\n|$)"; "i"))) | .milestone.title' 2>/dev/null || true
 }
@@ -121,13 +138,18 @@ if [ -n "$PR_NUM" ]; then
     [ -z "$f" ] || { printf '  ✓ links %s (feature of business milestone "%s")\n' "$r" "$f"; f_linked=1; }
   done
   # Every PR belongs to a feature of the backlog; the backlog's own PRs and bots' are exempt.
-  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && [ "$f_linked" = 0 ]; then
+  if [ "$FEATURE_LINK" = required ] && [ "$REPO" != "$BACKLOG_REPO" ] && [ "$f_linked" = 0 ] && ! { [ -n "$({ part_of_refs "$pj"; closes_refs "$pj"; } | grep -F "$BACKLOG_REPO#" || true)" ] && ! backlog_readable; }; then
     if is_bot_pr "$pj"; then printf '  ✓ a bot'"'"'s PR needs no feature of the backlog\n'
     else
       printf '  ✗ links no feature of the backlog — add "Part of %s#<feature>" (maintenance with no feature of its own: the standing feature of the active business milestone, the issue with the label standing)\n' "$BACKLOG_REPO"; e=1
     fi
   fi
-  if [ -z "$p_closes" ] && [ "$f_linked" = 1 ]; then :
+  unread=0
+  if [ "$f_linked" = 0 ] && [ -n "$({ part_of_refs "$pj"; closes_refs "$pj"; } | grep -F "$BACKLOG_REPO#" || true)" ] && ! backlog_readable; then
+    printf '  ✗ links the backlog, but %s\n' "$(cannot_read_backlog)"; e=1; unread=1
+  fi
+  if [ "$unread" = 1 ]; then :
+  elif [ -z "$p_closes" ] && [ "$f_linked" = 1 ]; then :
   elif [ -z "$p_closes" ]; then
     printf '  ✗ closes no issue — add "Closes #<issue>" to the PR body\n'; e=1
   else

@@ -46,4 +46,5 @@ jobs:
       - run: scripts/check-linkage.sh --pr "${{ github.event.pull_request.number }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BACKLOG_READ_TOKEN: ${{ secrets.BACKLOG_READ_TOKEN }}
           REPO: ${{ github.repository }}
