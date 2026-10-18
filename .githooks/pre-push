@@ -18,10 +18,12 @@
 # It also covers pushes that hook never sees at all — from a terminal, from an
 # IDE, from a script — because git runs this for every client.
 #
-# It is not the authority. A local hook is opt-in (core.hooksPath) and can be
-# skipped with --no-verify, so `release.yml` still runs the same check
-# server-side, where nothing can bypass it. This is the fast failure that saves
-# you from finding out after the tag is public and cannot be taken back.
+# It is not a guarantee. A local hook is opt-in (core.hooksPath) and can be
+# skipped with --no-verify, and nothing server-side repeats the check unless
+# the project's own release workflow runs `scripts/check-linkage.sh --for-tag`.
+# Even then the workflow starts after the tag is public, so it can hold back the
+# release but not the tag. This is the fast failure that saves you from finding
+# out after the tag is public and cannot be taken back.
 
 set -uo pipefail
 
