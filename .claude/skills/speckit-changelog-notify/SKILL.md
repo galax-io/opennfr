@@ -1,10 +1,9 @@
 ---
 name: speckit-changelog-notify
-description: Generate stakeholder notifications summarizing spec changes for team
-  communication
+description: Generate stakeholder notifications summarizing spec changes for team communication
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: github-spec-kit
+  author: Quratulain-bilal
   source: changelog:commands/speckit.changelog.notify.md
 model: sonnet
 ---

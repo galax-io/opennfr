@@ -18,5 +18,24 @@ speckit-install.log
 __pycache__/
 *.pyc
 
+# Spec Kit scripts run by Python
+__pycache__/
+
+# Spec Kit CLI state: it differs on every machine, and the kit (scripts/check-speckit.sh) leaves it out
+.specify/extensions/.registry
+.specify/extensions/.cache/
+.specify/extensions/.backup/
+.specify/presets/.registry
+.specify/integrations/*.manifest.json
+.specify/workflows/workflow-registry.json
+
 # build output
 # extend per stack: target/, build/, dist/, node_modules/, etc.
+
+# Spec Kit: Python caches and the CLI state, which the kit does not ship (scripts/check-speckit.sh)
+.specify/extensions/.registry
+.specify/extensions/.cache/
+.specify/extensions/.backup/
+.specify/presets/.registry
+.specify/integrations/*.manifest.json
+.specify/workflows/workflow-registry.json

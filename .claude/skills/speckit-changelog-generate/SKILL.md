@@ -1,10 +1,9 @@
 ---
 name: speckit-changelog-generate
-description: Generate a full changelog from spec git history showing all requirement
-  changes over time
+description: Generate a full changelog from spec git history showing all requirement changes over time
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: github-spec-kit
+  author: Quratulain-bilal
   source: changelog:commands/speckit.changelog.generate.md
 model: sonnet
 ---
