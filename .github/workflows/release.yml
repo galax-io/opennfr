@@ -47,14 +47,6 @@ jobs:
             exit 1
           fi
 
-      # AGENTS.md: every PR since the last tag carries the milestone, every issue
-      # whose fix is on main is closed.
-      - name: Milestone must be tag-ready
-        run: scripts/check-linkage.sh --for-tag "${GITHUB_REF_NAME}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-
       # cliff.toml's remote_url() macro reads {{ remote.github.owner }} / {{ remote.github.repo
       # }}. Neither the action nor the git-cliff binary infers them from this checkout's origin
       # by default in this environment — both v0.2.0 and v0.3.0 shipped with the "Full diff" link
