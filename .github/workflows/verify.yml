@@ -20,11 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          python-version: "3.12"
-
-      - run: pip install --disable-pip-version-check pyyaml jsonschema
+          version: "0.13.9"
+          enable-cache: false
 
       # One invocation. Piping into tee would report tee's status, and GitHub
       # runs these blocks with errexit but not pipefail — a failing gate would
