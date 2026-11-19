@@ -528,14 +528,14 @@ Start from [`examples/`](examples/) and validate:
 bash scripts/verify.sh
 ```
 
-It needs `python3` with `pyyaml` and `jsonschema`. The schema is an ordinary Draft 2020-12 file, so
+It needs `uv`, which brings `pyyaml` and `jsonschema` itself. The schema is an ordinary Draft 2020-12 file, so
 any validator in any language will do, and an editor with YAML schema support will complete the
 fields as you type — every definition carries `examples` for exactly that.
 
 To validate one document without the repository:
 
 ```bash
-python3 -c "
+uv run --no-project --with 'pyyaml==6.0.3' --with 'jsonschema==4.26.0' python -I -c "
 import json, sys, yaml
 from jsonschema import Draft202012Validator as V
 schema = json.load(open('schema/opennfr.io/v1/requirementset.schema.json'))

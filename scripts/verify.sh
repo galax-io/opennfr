@@ -23,15 +23,15 @@ bad()     { printf '  FAIL  %s\n' "$1"; fail=1; }
 
 # ---------------------------------------------------------------------------
 section "YAML parses"
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the YAML parse gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the YAML parse gate cannot run"
 else
-  python3 - <<'PY'
+  uv run --no-project --with 'pyyaml==6.0.3' python -I - <<'PY'
 import glob, sys
 try:
     import yaml
 except ImportError:
-    print("  FAIL  PyYAML not installed (pip install pyyaml)")
+    print("  FAIL  PyYAML not installed (run it with `uv run --with pyyaml`)")
     sys.exit(1)
 rc = 0
 files = sorted(glob.glob("examples/*.yaml"))
@@ -55,15 +55,15 @@ section "Documents map one-to-one onto JSON"
 # Every object must map onto JSON, and anchors, aliases and merge
 # keys are forbidden outright. Both checks have to happen before safe_load_all
 # resolves them away: by the time it returns, an alias is an ordinary dict.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the JSON-mapping gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the JSON-mapping gate cannot run"
 else
-  python3 - <<'JSONABLE' || fail=1
+  uv run --no-project --with 'pyyaml==6.0.3' python -I - <<'JSONABLE' || fail=1
 import glob, math, sys
 try:
     import yaml
 except ImportError:
-    print("  FAIL  PyYAML not installed (pip install pyyaml)"); sys.exit(1)
+    print("  FAIL  PyYAML not installed (run it with `uv run --with pyyaml`)"); sys.exit(1)
 rc = 0
 def scan_events(f):
     """Anchors, aliases and merge keys, caught at the event level."""
@@ -112,17 +112,17 @@ fi
 
 section "Examples validate against the schema"
 # The real gate. Every document in examples/ must satisfy the schema.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the schema gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the schema gate cannot run"
 else
-  python3 - <<'SCHEMA' || fail=1
+  uv run --no-project --with 'pyyaml==6.0.3' --with 'jsonschema==4.26.0' python -I - <<'SCHEMA' || fail=1
 import glob, json, sys
 try:
     import yaml
     from jsonschema import Draft202012Validator
 except ImportError as e:
     # A gate that skips itself reads exactly like a passing one.
-    print(f"  FAIL  {e.name} not installed (pip install jsonschema pyyaml)")
+    print(f"  FAIL  {e.name} not installed (run it with `uv run --with jsonschema --with pyyaml`)")
     sys.exit(1)
 sys.path.insert(0, "scripts")
 import identity
@@ -212,15 +212,15 @@ section "The schema holds up its own examples, and still rejects"
 #
 # The one exception is `$defs/predicate.type`, whose removal changes no verdict — the `not` rules
 # below reject a non-object anyway — so no document can probe it.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the schema self-check cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the schema self-check cannot run"
 else
-  python3 - <<'SELFCHECK' || fail=1
+  uv run --no-project --with 'jsonschema==4.26.0' python -I - <<'SELFCHECK' || fail=1
 import json, sys
 try:
     from jsonschema import Draft202012Validator as V
 except ImportError as e:
-    print(f"  FAIL  {e.name} not installed (pip install jsonschema)"); sys.exit(1)
+    print(f"  FAIL  {e.name} not installed (run it with `uv run --with jsonschema`)"); sys.exit(1)
 
 path = "schema/opennfr.io/v1/requirementset.schema.json"
 try:
@@ -566,10 +566,10 @@ section "Examples are assertable by Gatling"
 # corpus: http.route, sum and neq are valid and no example uses them. Extending this
 # section to read the schema would be the format narrowing to one tool, which the
 # constitution's Principle VI forbids.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the Gatling reach gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the Gatling reach gate cannot run"
 else
-  python3 - <<'GATLING' || fail=1
+  uv run --no-project --with 'pyyaml==6.0.3' python -I - <<'GATLING' || fail=1
 import glob, re, sys
 from fractions import Fraction
 sys.path.insert(0, "scripts")
@@ -577,7 +577,7 @@ import identity
 try:
     import yaml
 except ImportError as e:
-    print(f"  FAIL  {e.name} not installed (pip install pyyaml)"); sys.exit(1)
+    print(f"  FAIL  {e.name} not installed (run it with `uv run --with pyyaml`)"); sys.exit(1)
 
 # PyYAML hands back a double, and a double cannot carry a decimal literal of more than 15
 # significant digits: `1.0000000000000001` arrives as `1.0`. The rule this section implements is
@@ -1178,10 +1178,10 @@ section "Internal markdown links resolve"
 # close a bracket group with a parenthesis inside a code span — issue #43. What a link is now
 # lives in scripts/mdlinks.py, shared with the isolation section below so the two cannot drift
 # into disagreeing about the same text.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the link-resolution gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the link-resolution gate cannot run"
 else
-  python3 - <<'LINKS' || fail=1
+  uv run --no-project python -I - <<'LINKS' || fail=1
 import os, sys
 sys.path.insert(0, "scripts")
 import mdlinks
@@ -1248,10 +1248,10 @@ section "docs/ is isolated"
 # as history and left as written. Dot-directories are NOT exempt — .github/ and
 # .specify/ hold markdown that a reader follows, and a link from there into docs/ would
 # dangle the moment the ideas area is dropped.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the isolation gate cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the isolation gate cannot run"
 else
-  python3 - <<'ISOLATION' || fail=1
+  uv run --no-project python -I - <<'ISOLATION' || fail=1
 import os, re, subprocess, sys
 
 def tracked():
@@ -1338,10 +1338,10 @@ section "Docs are English"
 # the exit status, and an empty result read as a clean scan: the check reported ok on
 # every Mac without ever having run once. Python carries no such dialect, and the rest
 # of this file already reaches for it whenever a check stops being one grep long.
-if ! command -v python3 >/dev/null 2>&1; then
-  bad "python3 not found — the English scan cannot run"
+if ! command -v uv >/dev/null 2>&1; then
+  bad "uv not found — the English scan cannot run"
 else
-  python3 - <<'ENGLISH' || fail=1
+  uv run --no-project python -I - <<'ENGLISH' || fail=1
 import re, subprocess, sys
 
 # What the repository carries or is about to: tracked files plus untracked ones git
