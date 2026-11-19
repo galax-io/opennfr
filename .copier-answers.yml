@@ -1,7 +1,7 @@
 # Changes here will be overwritten by `copier update` — NEVER EDIT MANUALLY.
 # This file records the answers used to scaffold the project so the template
 # can be re-applied later.  Keep it committed.
-_commit: v0.17.0
+_commit: v0.21.0
 _src_path: gh:galax-io/spec-kit-galaxio-bootstrap
 architecture: 'The schema decides; `README.md` explains it and is the only document
     that describes a field. `GLOSSARY.md` defines the terms the schema carries. Compatibility-sensitive:
@@ -13,8 +13,8 @@ commands: '# verify      bash scripts/verify.sh    (YAML parses, links resolve, 
 
     # links       inside verify.sh, via scripts/mdlinks.py
 
-    # yaml        uv run --no-project --with ''pyyaml==6.0.3'' python -I -c ''import yaml,glob; [list(yaml.safe_load_all(open(f)))
-    for f in glob.glob("examples/*.yaml")]''
+    # yaml        uv run --no-project --with ''pyyaml==6.0.3'' python -I -c ''import
+    yaml,glob; [list(yaml.safe_load_all(open(f))) for f in glob.glob("examples/*.yaml")]''
 
     # no build, no tests — there is nothing to compile yet'
 dep_manifest: none yet — no code. GLOSSARY.md is the vocabulary truth
