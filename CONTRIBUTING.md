@@ -38,8 +38,8 @@ downstream consumer breaks on.
    prose are two. A milestone is one concern: its issues land as one pull request carrying one
    commit each, not as a stack of pull requests.
 3. `bash scripts/verify.sh` must pass. It needs `uv`, which brings `pyyaml` and `jsonschema` itself.
-4. Assign the pull request to a milestone and link the issue it closes. `scripts/check-linkage.sh`
-   gates this in CI. If you cannot set a milestone from a fork, a maintainer does it in review.
+4. Link the issue it closes. A pull request of a feature goes into the feature's release branch,
+   `release/<id>`; a maintainer retargets one from a fork in review.
 
 ## Adding an example
 
