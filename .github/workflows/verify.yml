@@ -30,21 +30,3 @@ jobs:
       # runs these blocks with errexit but not pipefail — a failing gate would
       # look green.
       - run: bash scripts/verify.sh
-
-  linkage:
-    # Enforces the issue <-> PR <-> milestone contract from AGENTS.md.
-    # PR-only: pushes to main have no PR to inspect.
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-    steps:
-      - uses: actions/checkout@v7
-      - run: scripts/check-linkage.sh --pr "${{ github.event.pull_request.number }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BACKLOG_READ_TOKEN: ${{ secrets.BACKLOG_READ_TOKEN }}
-          REPO: ${{ github.repository }}

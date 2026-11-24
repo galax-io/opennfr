@@ -1,7 +1,7 @@
 <!--
-  scripts/check-linkage.sh gates this PR in CI. It fails unless the PR carries a
-  milestone AND closes at least one issue, with every issue it closes in that same
-  milestone. A PR may close several. See AGENTS.md > Milestones.
+  A PR of a feature goes into its release branch, release/<id>, and writes
+  Part of galax-io/galaxio-sdlc-backlog#<feature>; a change with no feature goes
+  into main. See AGENTS.md > Feature milestones.
 -->
 
 Closes #
